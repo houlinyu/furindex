@@ -9,11 +9,14 @@ import InsuranceSection from "@/components/InsuranceSection";
 import DeletePetButton from "@/components/DeletePetButton";
 import PetAvatar from "@/components/PetAvatar";
 import PetPhotoUpload from "@/components/PetPhotoUpload";
+import JournalTimeline from "@/components/JournalTimeline";
+import JournalEntryForm from "@/components/JournalEntryForm";
 import { signedPetPhotoUrl } from "@/lib/photos";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, SPECIES_LABEL, ageFromBirthDate, formatDate } from "@/lib/format";
 import type {
   CustomValue,
+  JournalEntry,
   InsuranceClaim,
   InsurancePolicy,
   PetDocument,
@@ -44,6 +47,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
     docs,
     policies,
     claims,
+    journal,
   ] = await Promise.all([
     supabase.from("vaccinations").select("*").eq("pet_id", id).order("administered_on", { ascending: false }),
     supabase.from("medications").select("*").eq("pet_id", id).order("start_date", { ascending: false }),
@@ -66,6 +70,14 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         .select("*")
         .eq("pet_id", id)
         .order("service_date", { ascending: false }),
+      supabase
+        .from("journal_entries")
+        .select("*")
+        .eq("pet_id", id)
+        // Several entries can share a day; without the tiebreak their order
+        // flips between renders.
+        .order("occurred_on", { ascending: false })
+        .order("created_at", { ascending: false }),
     ]);
 
   const p = pet as Pet;
@@ -139,6 +151,18 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         definitions={(definitions.data ?? []) as FieldDefinition[]}
         values={(customValues.data ?? []) as CustomValue[]}
       />
+
+      <section className="mb-8">
+        <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
+          Journal
+        </h2>
+        <p className="muted mb-3 text-xs">
+          Small observations, dated. A run of them is the history a vet asks for —
+          when it started, how often, what it looked like.
+        </p>
+        <JournalEntryForm petId={p.id} />
+        <JournalTimeline entries={(journal.data ?? []) as JournalEntry[]} />
+      </section>
 
       <section className="mb-8">
         <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
