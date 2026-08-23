@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { ExtractedReport } from "@/lib/extraction";
 import type { FieldType, PetSex, PetSpecies } from "@/lib/types";
+import { SAMPLE_REPORT } from "@/lib/demo-report";
 
 /** What the owner accepted on the review screen. Indices refer to the arrays
  *  in documents.extracted — nothing is written that isn't listed here. */
@@ -249,4 +250,36 @@ export async function deleteDocument(documentId: string) {
 
   revalidatePath("/dashboard");
   if (doc.pet_id) revalidatePath(`/pets/${doc.pet_id}`);
+}
+
+
+/**
+ * Seeds a pre-extracted sample document so the review -> apply flow can be shown
+ * without an API key. Writes the same shape a real extraction would, so there is
+ * no separate demo code path downstream.
+ */
+export async function createSampleDocument() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data, error } = await supabase
+    .from("documents")
+    .insert({
+      owner_id: user.id,
+      pet_id: null,
+      storage_path: `${user.id}/sample-${crypto.randomUUID()}.pdf`,
+      filename: "SAMPLE — Cambridge Vet, annual exam.pdf",
+      mime_type: "application/pdf",
+      size_bytes: 148_233,
+      status: "extracted",
+      extracted: SAMPLE_REPORT,
+    })
+    .select("id")
+    .single();
+
+  if (error) throw new Error(error.message);
+  redirect(`/documents/${data.id}`);
 }

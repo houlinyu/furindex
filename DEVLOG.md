@@ -11,6 +11,42 @@ pick up. If you leave the project mid-thought, write the thought down here.
 
 ---
 
+## 2026-08-23 (night) — hyu
+
+**Supabase is live and the app runs against it.** Project `FurIndex`
+(`pkckggqctrgzzeoivfsj`, us-west-2). Schema applied via the Management API:
+14 tables, RLS enabled on all 14, 24 policies, `vet-reports` bucket present and
+private. `.env.local` written with the real URL + anon key.
+
+**RLS verified against the live database, not assumed.** Anonymous REST reads on
+all 12 data tables return `[]`; anonymous insert into `pets` returns 401;
+unauthenticated storage listing returns 400.
+
+**No ANTHROPIC_API_KEY, by decision.** Setting up API billing was not worth the
+interruption mid-hackathon. The app now degrades cleanly instead of erroring:
+- `/api/documents/[id]/extract` returns a readable 503 when the key is absent,
+  not a stack trace.
+- The dashboard swaps the upload dropzone for a "see how it works" card.
+- `createSampleDocument()` seeds a realistic pre-extracted report
+  (`src/lib/demo-report.ts`) so the review -> confirm -> apply flow demos fully
+  with no key and no token spend. It writes the same row shape a real extraction
+  does, so there is no separate demo code path downstream.
+- The sample is labelled on the review page and in its filename. It must never
+  read as something the model actually parsed.
+
+Adding a key later re-enables real extraction with zero code changes — the
+dashboard branches on `process.env.ANTHROPIC_API_KEY` server-side.
+
+**Still to do**
+- Supabase Auth -> URL Configuration: Site URL + `/auth/callback` redirect.
+  Login silently fails until this is set. Dashboard-only, cannot be scripted.
+- Deploy (Vercel), then `gh repo edit --homepage <url>`.
+- Register the Sundai project page and fill `SUNDAI_PROJECT_URL` in
+  `src/lib/links.ts`.
+- Naming: Supabase project is "FurIndex", app is branded "Petfolio". Pick one.
+
+---
+
 ## 2026-08-23 (evening) — hyu
 
 **Marketing surface + review fixes. Build green: 15 routes, 0 type errors.**

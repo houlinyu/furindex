@@ -93,6 +93,17 @@ export default async function DocumentPage({
         </div>
       )}
 
+      {d.filename.startsWith("SAMPLE") && (
+        <div className="card mb-6 border-amber-400 p-4 text-sm">
+          <p className="font-medium">🧪 This is a sample report</p>
+          <p className="muted mt-1">
+            Pre-filled demonstration data, not something read from a document you
+            uploaded. Everything below behaves exactly as a real extraction would —
+            tick what you want and save it to a pet.
+          </p>
+        </div>
+      )}
+
       {d.status === "extracted" && d.extracted != null && (
         <ExtractionReview
           documentId={d.id}

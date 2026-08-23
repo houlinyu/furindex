@@ -30,6 +30,15 @@ export async function POST(
   if (!doc) {
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json(
+      {
+        error:
+          "Automatic reading is switched off — no ANTHROPIC_API_KEY is configured. You can still add records by hand, or open a sample report to see how the review step works.",
+      },
+      { status: 503 }
+    );
+  }
   if (!isSupportedMime(doc.mime_type)) {
     return NextResponse.json({ error: `Unsupported file type: ${doc.mime_type}` }, { status: 400 });
   }
