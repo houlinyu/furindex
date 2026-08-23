@@ -5,15 +5,16 @@ visits for the animals in your life. Developed as a **Sundai** project.
 
 ## ▶️ Live demo
 
-**https://furindex.vercel.app/?k=furindex-0a4587760afa**
+**https://furindex.vercel.app**
 
-That `?k=` is a shared preview password — it sets a 30-day cookie, so you only
-need the full link once per device. After that plain `furindex.vercel.app` works.
-Without it the site returns 401, which is why the bare URL looks broken.
+Open, no password. Sign up with any email and you have a working record in
+about thirty seconds — or drop a vet PDF on the dashboard and watch it read
+itself.
 
-This is preview hygiene so the work-in-progress isn't world-readable. It is NOT
-the security model — the app's real protection is Supabase auth plus row-level
-security on every table.
+The app's protection is Supabase auth plus row-level security on every table,
+so every query is scoped to the signed-in owner by the database rather than by
+the application. (An earlier build sat behind a shared `?k=` preview password;
+that was preview hygiene, never the security model, and it is gone.)
 
 **Sundai project page:** _add the link once the project is registered_
 
