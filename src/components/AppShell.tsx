@@ -60,7 +60,7 @@ export default function AppShell({
           <Link href="/partners" className="muted inline-flex min-h-11 items-center hover:text-brand-600">
             Partners
           </Link>
-          <span className="muted ml-auto">🐾 FurIndex · built at Sundai</span>
+          <span className="muted ml-auto">🐾 FurIndex — a Sundai project</span>
         </div>
       </footer>
     </div>

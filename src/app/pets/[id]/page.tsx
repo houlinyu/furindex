@@ -5,6 +5,9 @@ import RecordTabs from "@/components/RecordTabs";
 import WeightChart from "@/components/WeightChart";
 import CustomFields from "@/components/CustomFields";
 import PetDocumentDrop from "@/components/PetDocumentDrop";
+import HealthSignals from "@/components/HealthSignals";
+import NutritionSection from "@/components/NutritionSection";
+import BreedFacts from "@/components/BreedFacts";
 import InsuranceSection from "@/components/InsuranceSection";
 import DeletePetButton from "@/components/DeletePetButton";
 import PetAvatar from "@/components/PetAvatar";
@@ -16,6 +19,8 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, SPECIES_LABEL, ageFromBirthDate, formatDate } from "@/lib/format";
 import type {
   CustomValue,
+  FeedingLog,
+  FeedingPlan,
   JournalEntry,
   InsuranceClaim,
   InsurancePolicy,
@@ -48,6 +53,8 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
     policies,
     claims,
     journal,
+    plans,
+    feedingLogs,
   ] = await Promise.all([
     supabase.from("vaccinations").select("*").eq("pet_id", id).order("administered_on", { ascending: false }),
     supabase.from("medications").select("*").eq("pet_id", id).order("start_date", { ascending: false }),
@@ -78,6 +85,18 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         // flips between renders.
         .order("occurred_on", { ascending: false })
         .order("created_at", { ascending: false }),
+      supabase
+        .from("feeding_plans")
+        .select("*")
+        .eq("pet_id", id)
+        .order("started_on", { ascending: false })
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("feeding_logs")
+        .select("*")
+        .eq("pet_id", id)
+        .order("fed_at", { ascending: false })
+        .limit(50),
     ]);
 
   const p = pet as Pet;
@@ -128,6 +147,8 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         <div className="card muted mb-8 whitespace-pre-wrap p-4 text-sm">{p.notes}</div>
       )}
 
+      <BreedFacts species={p.species} breed={p.breed} />
+
       {weightRows.length >= 2 && (
         <section className="mb-8">
           <h2 className="mb-3 text-sm font-medium uppercase tracking-wide muted">Weight trend</h2>
@@ -136,6 +157,13 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
           </div>
         </section>
       )}
+
+      <HealthSignals
+        petName={p.name}
+        weights={weightRows}
+        values={(customValues.data ?? []) as CustomValue[]}
+        definitions={(definitions.data ?? []) as FieldDefinition[]}
+      />
 
       <div className="mb-8">
         <PetPhotoUpload pet={p} photoUrl={photoUrl} />
@@ -151,6 +179,21 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         definitions={(definitions.data ?? []) as FieldDefinition[]}
         values={(customValues.data ?? []) as CustomValue[]}
       />
+
+      <section className="mb-8">
+        <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
+          Nutrition &amp; feeding
+        </h2>
+        <p className="muted mb-3 text-xs">
+          What they eat, how much, and when it last changed — the context that makes
+          a change in appetite mean something.
+        </p>
+        <NutritionSection
+          petId={p.id}
+          plans={(plans.data ?? []) as FeedingPlan[]}
+          logs={(feedingLogs.data ?? []) as FeedingLog[]}
+        />
+      </section>
 
       <section className="mb-8">
         <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">

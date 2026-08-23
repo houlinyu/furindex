@@ -21,7 +21,7 @@ export default async function LandingPage() {
       {/* --------------------------------------------------------- hero ---- */}
       <section className="mx-auto max-w-5xl px-5 pb-16 pt-20 text-center">
         <p className="muted mb-4 text-xs font-medium uppercase tracking-widest">
-          Built at Sundai
+          Owner-held pet health records
         </p>
         <h1 className="mx-auto max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
           Your pet&apos;s health record,
@@ -207,7 +207,7 @@ export default async function LandingPage() {
           {/* Until the project is registered, render plain text — a live link to
               a REPLACE_ME URL is worse than no link. */}
           {isPlaceholder(SUNDAI_PROJECT_URL) ? (
-            <span>Built at Sundai</span>
+            <span>A Sundai project</span>
           ) : (
             <a
               href={SUNDAI_PROJECT_URL}
