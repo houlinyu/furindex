@@ -242,6 +242,8 @@ export type Database = {
       insurance_claims: Row<InsuranceClaim>;
       partner_inquiries: Row<PartnerInquiry>;
       journal_entries: Row<JournalEntry>;
+      feeding_plans: Row<FeedingPlan>;
+      feeding_logs: Row<FeedingLog>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -254,6 +256,8 @@ export type Database = {
       field_type: FieldType;
       claim_status: ClaimStatus;
       journal_category: JournalCategory;
+      food_type: FoodType;
+      food_unit: FoodUnit;
     };
     CompositeTypes: { [_ in never]: never };
   };
@@ -316,4 +320,84 @@ export const INSURERS = [
   "ASPCA Pet Health Insurance", "Pets Best", "MetLife Pet Insurance",
   "Fetch by The Dodo", "Spot", "Pumpkin", "Prudent Pet", "Hartville",
   "Petplan", "Bought By Many / ManyPets", "Agria", "Direct Line", "Animal Friends",
+];
+
+// --------------------------------------------------------------- nutrition --
+export type FoodType =
+  | "dry" | "wet" | "raw" | "home_cooked" | "mixed" | "prescription";
+
+export type FoodUnit = "g" | "oz" | "cup" | "can" | "scoop";
+
+/** What the pet is *supposed* to eat. Superseded plans stay as diet history. */
+export type FeedingPlan = {
+  id: string;
+  pet_id: string;
+  owner_id: string;
+  food_brand: string | null;
+  food_product: string | null;
+  food_type: FoodType;
+  amount_per_meal: number | null;
+  amount_unit: FoodUnit;
+  meals_per_day: number;
+  calories_per_day: number | null;
+  notes: string | null;
+  is_current: boolean;
+  started_on: string;
+  ended_on: string | null;
+  created_at: string;
+};
+
+/** What actually went in the bowl. `skipped` rows are meals that didn't happen. */
+export type FeedingLog = {
+  id: string;
+  pet_id: string;
+  owner_id: string;
+  fed_at: string;
+  amount: number | null;
+  amount_unit: FoodUnit;
+  fed_by: string | null;
+  skipped: boolean;
+  notes: string | null;
+  created_at: string;
+};
+
+export const FOOD_TYPE_LABEL: Record<FoodType, string> = {
+  dry: "Dry / kibble",
+  wet: "Wet / canned",
+  raw: "Raw",
+  home_cooked: "Home cooked",
+  mixed: "Mixed",
+  prescription: "Prescription",
+};
+
+export const FOOD_TYPE_EMOJI: Record<FoodType, string> = {
+  dry: "🥣",
+  wet: "🥫",
+  raw: "🥩",
+  home_cooked: "🍲",
+  mixed: "🍽️",
+  prescription: "💊",
+};
+
+export const FOOD_UNIT_LABEL: Record<FoodUnit, string> = {
+  g: "g",
+  oz: "oz",
+  cup: "cup",
+  can: "can",
+  scoop: "scoop",
+};
+
+export const FOOD_TYPES: FoodType[] = [
+  "dry", "wet", "raw", "home_cooked", "mixed", "prescription",
+];
+export const FOOD_UNITS: FoodUnit[] = ["g", "oz", "cup", "can", "scoop"];
+
+/** Datalist suggestions only — the brand field stays free text. */
+export const FOOD_BRANDS = [
+  "Royal Canin", "Hill's Science Diet", "Hill's Prescription Diet", "Purina Pro Plan",
+  "Purina ONE", "Iams", "Eukanuba", "Blue Buffalo", "Wellness", "Orijen", "Acana",
+  "Taste of the Wild", "Merrick", "Nutro", "Canidae", "Farmina", "Ziwi Peak",
+  "Instinct", "James Wellbeloved", "Lily's Kitchen", "Burns", "Arden Grange",
+  "Harringtons", "Whiskas", "Felix", "Sheba", "Fancy Feast", "Friskies",
+  "Open Farm", "The Farmer's Dog", "Homemade",
 ];

@@ -642,3 +642,88 @@ drop policy if exists "partner_inquiries: no public read"    on public.partner_i
 -- read through the anon or authenticated key returns zero rows.
 create policy "partner_inquiries: anyone may submit" on public.partner_inquiries
   for insert to anon, authenticated with check (true);
+
+-- ============================================================================
+-- Nutrition & feeding (added 2026-08-23). PURELY ADDITIVE — two new enums plus
+-- two new tables and their policies. Alters nothing, drops nothing.
+--
+-- Two tables, not one, because they answer different questions. The PLAN is
+-- what the pet is supposed to eat — the thing a vet asks about and the thing
+-- that changes maybe twice a year. The LOG is what actually went in the bowl,
+-- which matters during an illness, a diet trial, or a household where more than
+-- one person feeds. Merging them would force a full plan restatement on every
+-- meal, and nobody would log the second meal.
+-- ============================================================================
+
+do $$ begin
+  create type food_type as enum ('dry','wet','raw','home_cooked','mixed','prescription');
+exception when duplicate_object then null; end $$;
+
+-- Deliberately unit-agnostic rather than normalising to grams: a cup of kibble
+-- and a cup of wet food weigh nothing alike, so a conversion here would invent
+-- precision the owner never gave us. We store what they measured with.
+do $$ begin
+  create type food_unit as enum ('g','oz','cup','can','scoop');
+exception when duplicate_object then null; end $$;
+
+create table if not exists public.feeding_plans (
+  id               uuid primary key default gen_random_uuid(),
+  pet_id           uuid not null references public.pets(id) on delete cascade,
+  owner_id         uuid not null references auth.users(id) on delete cascade,
+  food_brand       text,
+  food_product     text,
+  food_type        food_type not null default 'dry',
+  amount_per_meal  numeric(8,2) check (amount_per_meal is null or (amount_per_meal > 0 and amount_per_meal < 100000)),
+  amount_unit      food_unit not null default 'g',
+  meals_per_day    smallint not null default 2 check (meals_per_day between 1 and 6),
+  -- Nullable and separate from amount: most owners don't know the kcal figure,
+  -- and deriving it from amount would be a guess presented as a measurement.
+  calories_per_day integer check (calories_per_day is null or (calories_per_day > 0 and calories_per_day < 20000)),
+  notes            text,
+  -- Superseded plans are kept, never deleted — a diet change is often the
+  -- answer to "when did the itching start?".
+  is_current       boolean not null default true,
+  started_on       date not null default current_date,
+  ended_on         date,
+  created_at       timestamptz not null default now(),
+  constraint feeding_plan_ended_after_started check (ended_on is null or ended_on >= started_on),
+  -- A plan can't be both the current diet and a closed chapter.
+  constraint feeding_plan_current_is_open check (not (is_current and ended_on is not null))
+);
+create index if not exists feeding_plans_pet_idx on public.feeding_plans(pet_id, started_on desc);
+create index if not exists feeding_plans_current_idx on public.feeding_plans(pet_id) where is_current;
+
+create table if not exists public.feeding_logs (
+  id         uuid primary key default gen_random_uuid(),
+  pet_id     uuid not null references public.pets(id) on delete cascade,
+  owner_id   uuid not null references auth.users(id) on delete cascade,
+  fed_at     timestamptz not null default now(),
+  amount     numeric(8,2) check (amount is null or (amount > 0 and amount < 100000)),
+  amount_unit food_unit not null default 'g',
+  -- Free text on purpose. There is no caretaker system, and inventing one to
+  -- record "the dog walker" would block the note that matters today.
+  fed_by     text,
+  -- A refused or deliberately withheld meal is a clinical signal, so it is
+  -- recorded as a meal that didn't happen rather than as no row at all.
+  skipped    boolean not null default false,
+  notes      text,
+  created_at timestamptz not null default now(),
+  -- A skipped meal has no amount to report; allowing one invites "fed 0".
+  constraint feeding_log_skipped_has_no_amount check (not (skipped and amount is not null))
+);
+create index if not exists feeding_logs_pet_idx on public.feeding_logs(pet_id, fed_at desc);
+
+alter table public.feeding_plans enable row level security;
+alter table public.feeding_logs  enable row level security;
+
+drop policy if exists "feeding_plans: owner all" on public.feeding_plans;
+create policy "feeding_plans: owner all" on public.feeding_plans
+  for all
+  using (owner_id = auth.uid() and public.owns_pet(pet_id))
+  with check (owner_id = auth.uid() and public.owns_pet(pet_id));
+
+drop policy if exists "feeding_logs: owner all" on public.feeding_logs;
+create policy "feeding_logs: owner all" on public.feeding_logs
+  for all
+  using (owner_id = auth.uid() and public.owns_pet(pet_id))
+  with check (owner_id = auth.uid() and public.owns_pet(pet_id));

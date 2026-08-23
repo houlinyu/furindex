@@ -43,3 +43,33 @@ export function formatMoney(cents: number | null): string {
   if (cents == null) return "—";
   return (cents / 100).toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
+
+/**
+ * For timestamptz columns. `formatDate` above only handles bare date strings —
+ * feeding it a timestamp appends "T00:00:00" to an already-complete instant and
+ * yields Invalid Date.
+ */
+export function formatDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString(undefined, {
+    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+  });
+}
+
+/** "8:15 AM" — the day is usually already shown by the group heading. */
+export function formatTime(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+/** Local YYYY-MM-DD for an instant — used to group logs by the owner's day. */
+export function localDayKey(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
