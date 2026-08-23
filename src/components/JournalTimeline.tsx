@@ -23,14 +23,10 @@ const SEVERITY_LABEL: Record<number, string> = {
  * history a vet asks for and nobody remembers accurately.
  */
 export default async function JournalTimeline({ entries }: { entries: JournalEntry[] }) {
-  if (entries.length === 0) {
-    return (
-      <p className="card muted px-4 py-8 text-center text-sm">
-        Nothing logged yet. Small notes add up — &ldquo;off her food&rdquo;, &ldquo;limping after the
-        walk&rdquo; — into a history a vet can read.
-      </p>
-    );
-  }
+  // Nothing to list, and the entry form directly above already says what the
+  // journal is for and offers the way in. A second card repeating it is the
+  // "heading over nothing" this page had too much of.
+  if (entries.length === 0) return null;
 
   const photoUrls = await signPhotos(entries);
 

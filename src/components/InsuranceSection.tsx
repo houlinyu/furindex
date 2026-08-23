@@ -30,7 +30,11 @@ export default function InsuranceSection({
   policies: InsurancePolicy[];
   claims: InsuranceClaim[];
 }) {
-  const [showPolicy, setShowPolicy] = useState(policies.length === 0);
+  // Was `policies.length === 0`, which meant a brand-new pet page opened with
+  // this eight-field form already expanded — asking for a deductible and a
+  // reimbursement percentage from somebody who has owned the record for ten
+  // seconds. Closed by default; the prompt below says what it is for.
+  const [showPolicy, setShowPolicy] = useState(false);
   const [policyState, policyAction, policyPending] = useActionState<InsuranceState, FormData>(
     addPolicy,
     {}
@@ -202,6 +206,23 @@ export default function InsuranceSection({
             )}
           </div>
         </form>
+      ) : policies.length === 0 ? (
+        <button
+          onClick={() => setShowPolicy(true)}
+          className="card flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left text-sm hover:border-brand-300"
+        >
+          <span aria-hidden className="muted shrink-0">
+            ›
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="font-medium">Add a policy</span>
+            <span className="muted">
+              {" "}
+              — insurer and plan name is enough. The rest is there for when a claim
+              needs it and the paperwork has gone missing.
+            </span>
+          </span>
+        </button>
       ) : (
         <button
           onClick={() => setShowPolicy(true)}
@@ -282,7 +303,10 @@ export default function InsuranceSection({
           </form>
 
           {claims.length === 0 ? (
-            <p className="card muted px-4 py-6 text-center text-sm">No claims recorded yet.</p>
+            <p className="card muted px-4 py-6 text-center text-sm">
+              No claims yet. Logging them here keeps what you claimed and what came
+              back in one place, next to the policy they were made against.
+            </p>
           ) : (
             <ul className="card divide-y divide-[var(--border)]">
               {claims.map((c) => (

@@ -86,7 +86,7 @@ export default function ActivityLogger({
               one entry per day, so it replaces rather than adds.
             </>
           ) : (
-            "Nothing logged for today yet. One tap does it."
+            "Nothing for today yet. Pick the line that sounds most like their day — one tap, and that is this section done."
           )}
         </p>
 

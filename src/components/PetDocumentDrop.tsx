@@ -33,11 +33,12 @@ export default function PetDocumentDrop({
       ) : (
         <div className="card p-4 text-center">
           <div className="text-2xl">📄</div>
-          <p className="mt-2 text-sm font-medium">Automatic reading is switched off</p>
+          <p className="mt-2 text-sm font-medium">See how a report becomes a record</p>
           <p className="muted mx-auto mt-1 max-w-md text-xs leading-relaxed">
-            No Anthropic API key is configured on this deployment, so uploads can&apos;t
-            be read yet. Open a sample to see exactly what the feature does — it runs
-            the identical review-and-confirm flow.
+            Reading your own uploads needs an Anthropic API key, which isn&apos;t
+            configured here. The sample runs the identical review-and-confirm flow on
+            a real vet report, so you can see exactly what you would get. Records can
+            be added by hand at any time.
           </p>
           <div className="mt-3">
             <SampleReportButton primary />

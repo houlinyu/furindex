@@ -24,7 +24,9 @@ export default function CommunityFeed({
   if (posts.length === 0) {
     return (
       <p className="card muted px-4 py-10 text-center text-sm">
-        Nothing here yet. Be the first to post.
+        No posts yet. This is where owners share how their animals are getting on —
+        a photo, a small win, a question about something odd. Yours can be the
+        first.
       </p>
     );
   }

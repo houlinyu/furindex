@@ -64,6 +64,33 @@ export default function NutritionSection({
 
   const visibleLogs = showAllLogs ? logs : logs.slice(0, RECENT);
 
+  // Nothing recorded at all: show one line explaining what a feeding plan buys
+  // you, with the ten-field form folded behind it. Open, this section is the
+  // single largest block on a brand-new pet page, and it is asking for detail
+  // ("kcal/day") that nobody has to hand in their first minute.
+  if (plans.length === 0 && logs.length === 0) {
+    return (
+      <details className="card group">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
+          <span aria-hidden className="muted shrink-0 transition-transform group-open:rotate-90">
+            ›
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="font-medium">Record what they eat</span>
+            <span className="muted">
+              {" "}
+              — the brand and how much, so a change in appetite has something to be a
+              change from. Two fields is enough.
+            </span>
+          </span>
+        </summary>
+        <div className="border-t border-[var(--border)] p-4">
+          <FeedingPlanForm petId={petId} current={null} onSaved={() => setChanging(false)} />
+        </div>
+      </details>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* ------------------------------------------------------ current plan --- */}
@@ -109,8 +136,8 @@ export default function NutritionSection({
         </div>
       ) : (
         <p className="card muted px-4 py-6 text-center text-sm">
-          No feeding plan yet. Recording what they eat, and how much, is what makes a
-          change in appetite mean something later.
+          No current food recorded. Add the brand and the amount per meal and a change
+          in appetite later has something to be a change from.
         </p>
       )}
 
@@ -136,7 +163,8 @@ export default function NutritionSection({
         </h3>
         {logs.length === 0 ? (
           <p className="card muted px-4 py-6 text-center text-sm">
-            Nothing logged yet.
+            No meals logged yet. Each one you log builds the picture of what a normal
+            day of eating looks like for them.
           </p>
         ) : (
           <>

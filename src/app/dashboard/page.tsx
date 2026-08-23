@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
-import EmptyState from "@/components/EmptyState";
+import FirstRun from "@/components/FirstRun";
 import ReportUpload from "@/components/ReportUpload";
 import DailyFactPanel from "@/components/DailyFactPanel";
 import SampleReportButton from "@/components/SampleReportButton";
@@ -35,24 +35,37 @@ export default async function DashboardPage() {
   const upcoming = ((dueVaccines ?? []) as Vaccination[])
     .filter((v) => v.due_on && daysUntil(v.due_on) <= 60)
     .slice(0, 6);
+  // A no-pets account gets a different page, not the normal page with holes in
+  // it. Every section below that can only show an absence is suppressed.
+  const isFirstRun = petList.length === 0;
 
   return (
     <AppShell email={user?.email}>
-      <div className="mb-8 flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="muted mt-1 text-sm">
-            {petList.length === 0
-              ? "Let's get your first pet on the books."
-              : `${petList.length} pet${petList.length === 1 ? "" : "s"} under your care.`}
-          </p>
+      {/* `items-end` with no wrap let the button sit on top of the subtitle at
+          375px. Wrapping, and giving the text a basis, keeps both readable. */}
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0 grow basis-56">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {isFirstRun ? "Welcome to FurIndex" : "Dashboard"}
+          </h1>
+          {/* On first run the block below opens with its own summary line, so a
+              second one here would just be the same sentence twice. */}
+          {!isFirstRun && (
+            <p className="muted mt-1 text-sm">
+              {petList.length} pet{petList.length === 1 ? "" : "s"} under your care.
+            </p>
+          )}
         </div>
-        <Link
-          href="/pets/new"
-          className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          Add pet
-        </Link>
+        {/* While the first-run block is on screen it already carries the one
+            primary action; a second identical button just splits attention. */}
+        {!isFirstRun && (
+          <Link
+            href="/pets/new"
+            className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            Add pet
+          </Link>
+        )}
       </div>
 
       {petList.length > 0 && (
@@ -61,57 +74,60 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <section className="mb-8">
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide muted">
-          Add a vet report
-        </h2>
-
-        {extractionEnabled ? (
-          <>
-            <ReportUpload pets={petList} />
-            <p className="muted mt-2 flex flex-wrap items-center gap-2 text-xs">
-              <span>
-                A PDF or a photo of the paperwork. We read the vaccinations,
-                medications, weight and dates out of it, and you confirm what gets
-                saved.
-              </span>
-              <SampleReportButton primary={false} />
-            </p>
-          </>
-        ) : (
-          <div className="card p-6">
-            <p className="text-sm font-medium">
-              📄 See how a report becomes a record
-            </p>
-            <p className="muted mt-2 max-w-xl text-sm leading-relaxed">
-              Automatic reading of your own uploads needs an Anthropic API key,
-              which isn&apos;t configured on this deployment. The sample below runs
-              the identical review-and-confirm flow on a real-world vet report, so
-              you can see exactly what the feature does.
-            </p>
-            <div className="mt-4">
-              <SampleReportButton primary />
-            </div>
-            <p className="muted mt-3 text-xs">
-              You can add records by hand at any time — everything else on this page
-              works normally.
-            </p>
-          </div>
-        )}
-      </section>
-
-      <section className="mb-8">
-        <DailyFactPanel />
-      </section>
-
-      {petList.length === 0 ? (
-        <EmptyState
-          title="No pets yet"
-          body="Add a pet to start tracking vaccinations, medications, weight and vet visits."
-          href="/pets/new"
-          cta="Add your first pet"
-        />
+      {isFirstRun ? (
+        // The vet-report panel is the loudest thing on the page and, with no
+        // pets, it has nothing to attach a report to — on a deployment without
+        // an API key it opens with an apology, which is a poor first sentence.
+        // The sample it offers is folded into the first-run block instead.
+        <FirstRun sampleEnabled />
       ) : (
+        <>
+          <section className="mb-8">
+            <h2 className="mb-3 text-sm font-medium uppercase tracking-wide muted">
+              Add a vet report
+            </h2>
+
+            {extractionEnabled ? (
+              <>
+                <ReportUpload pets={petList} />
+                <p className="muted mt-2 flex flex-wrap items-center gap-2 text-xs">
+                  <span>
+                    A PDF or a photo of the paperwork. We read the vaccinations,
+                    medications, weight and dates out of it, and you confirm what gets
+                    saved.
+                  </span>
+                  <SampleReportButton primary={false} />
+                </p>
+              </>
+            ) : (
+              <div className="card p-6">
+                <p className="text-sm font-medium">
+                  📄 See how a report becomes a record
+                </p>
+                <p className="muted mt-2 max-w-xl text-sm leading-relaxed">
+                  Automatic reading of your own uploads needs an Anthropic API key,
+                  which isn&apos;t configured on this deployment. The sample below runs
+                  the identical review-and-confirm flow on a real-world vet report, so
+                  you can see exactly what the feature does.
+                </p>
+                <div className="mt-4">
+                  <SampleReportButton primary />
+                </div>
+                <p className="muted mt-3 text-xs">
+                  You can add records by hand at any time — everything else on this page
+                  works normally.
+                </p>
+              </div>
+            )}
+          </section>
+
+          <section className="mb-8">
+            <DailyFactPanel />
+          </section>
+        </>
+      )}
+
+      {!isFirstRun && (
         <>
           <section className="mb-10">
             <h2 className="mb-3 text-sm font-medium uppercase tracking-wide muted">
