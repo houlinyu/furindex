@@ -3,8 +3,19 @@
 A pet health record app — vaccinations, medications, weight trends and vet
 visits for the animals in your life. Built for **Sundai**.
 
+## ▶️ Live demo
+
+**https://furindex.vercel.app/?k=furindex-0a4587760afa**
+
+That `?k=` is a shared preview password — it sets a 30-day cookie, so you only
+need the full link once per device. After that plain `furindex.vercel.app` works.
+Without it the site returns 401, which is why the bare URL looks broken.
+
+This is preview hygiene so the work-in-progress isn't world-readable. It is NOT
+the security model — the app's real protection is Supabase auth plus row-level
+security on every table.
+
 **Sundai project page:** _add the link once the project is registered_
-**Live demo:** _add the Vercel URL once deployed_
 
 > Before demoing, fill in `src/lib/links.ts` — anything left as `REPLACE_ME`
 > renders a visible "(link TODO)" on the site footer.
