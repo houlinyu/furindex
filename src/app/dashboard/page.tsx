@@ -12,6 +12,7 @@ import { signedPetPhotoUrls } from "@/lib/photos";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, ageFromBirthDate, daysUntil, formatDate } from "@/lib/format";
 import type { CareReminder, Pet, Vaccination } from "@/lib/types";
+import { readerKind } from "@/lib/reader";
 
 export default async function DashboardPage() {
   const user = await getUser();
@@ -39,7 +40,7 @@ export default async function DashboardPage() {
       .limit(50),
   ]);
 
-  const extractionEnabled = !!process.env.ANTHROPIC_API_KEY;
+  const reader = readerKind();
   const petList = (pets ?? []) as Pet[];
   const petNameById = new Map(petList.map((p) => [p.id, p.name]));
   const photoUrls = await signedPetPhotoUrls(supabase, petList);
@@ -100,13 +101,22 @@ export default async function DashboardPage() {
 
             <ReportUpload pets={petList} />
         <p className="muted mt-2 flex flex-wrap items-center gap-2 text-xs">
-          {extractionEnabled ? (
+          {reader === "model" && (
             <span>
               A PDF or a photo of the paperwork. We read the vaccinations,
               medications, weight and dates out of it, and you confirm what gets
               saved.
             </span>
-          ) : (
+          )}
+          {reader === "on-device" && (
+            <span>
+              A PDF or a photo of the paperwork. We read it here on the server —
+              no AI service involved — and propose records for you to confirm. A
+              PDF with real text in it comes out exact; a photo goes through OCR,
+              so check those lines closely before saving.
+            </span>
+          )}
+          {reader === "off" && (
             <span>
               A PDF or a photo of the paperwork. It&apos;s stored, listed on the
               pet&apos;s page and included in your export. Automatic reading is off

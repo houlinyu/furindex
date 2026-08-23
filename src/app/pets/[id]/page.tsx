@@ -29,6 +29,7 @@ import JournalEntryForm from "@/components/JournalEntryForm";
 import { signedPetPhotoUrl } from "@/lib/photos";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, SPECIES_LABEL, ageFromBirthDate, formatDate } from "@/lib/format";
+import { readerKind } from "@/lib/reader";
 import type {
   CareReminder,
   CustomValue,
@@ -54,7 +55,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
   const { data: pet } = await supabase.from("pets").select("*").eq("id", id).maybeSingle();
   if (!pet) notFound();
 
-  const extractionEnabled = !!process.env.ANTHROPIC_API_KEY;
+  const reader = readerKind();
   const [
     vaccinations,
     medications,
@@ -265,7 +266,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
       <PetDocumentDrop
         pet={p}
         documents={(docs.data ?? []) as PetDocument[]}
-        extractionEnabled={extractionEnabled}
+        reader={reader}
       />
 
       <CustomFields

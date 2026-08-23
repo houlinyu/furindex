@@ -86,7 +86,11 @@ export default function ReportUpload({
           filename: file.name,
           mimeType: file.type,
           sizeBytes: file.size,
-          petId: fixedPetId ?? petId ?? null,
+          // `petId` is "" while the picker sits on "work it out from the
+          // report". `??` keeps an empty string, which Postgres then rejects as
+          // a uuid — the upload died on a redacted server error. `||` is right
+          // here precisely because "" is the value being guarded against.
+          petId: fixedPetId || petId || null,
         });
       } catch (regErr) {
         // The file is already in the bucket. Without this it would sit there

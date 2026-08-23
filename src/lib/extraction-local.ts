@@ -35,13 +35,15 @@ import type { SupportedMime } from "./extraction";
 import { extractPdfText } from "./pdf-text";
 import { ocrImage } from "./ocr";
 import { parseVetReport, type ParseTrace } from "./vet-parser";
+import { localReaderAvailable } from "./reader";
 
 /**
  * Whether the local reader should be used. It needs nothing configured, so the
- * only reasons to say no are an explicit opt-out.
+ * only reason to say no is an explicit opt-out — which lives in reader.ts with
+ * the rest of the reader question, so the UI copy and this route agree.
  */
 export function localExtractProvider(): boolean {
-  return process.env.LOCAL_EXTRACTION !== "off";
+  return localReaderAvailable();
 }
 
 export interface LocalScanDetail {

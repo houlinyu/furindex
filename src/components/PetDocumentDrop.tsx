@@ -3,6 +3,7 @@ import ReportUpload from "@/components/ReportUpload";
 import SampleReportButton from "@/components/SampleReportButton";
 import { formatDate } from "@/lib/format";
 import type { Pet, PetDocument } from "@/lib/types";
+import type { ReaderKind } from "@/lib/reader";
 
 /**
  * Drop zone on the pet page. Anything dropped here is filed against this pet
@@ -11,11 +12,11 @@ import type { Pet, PetDocument } from "@/lib/types";
 export default function PetDocumentDrop({
   pet,
   documents,
-  extractionEnabled,
+  reader,
 }: {
   pet: Pet;
   documents: PetDocument[];
-  extractionEnabled: boolean;
+  reader: ReaderKind;
 }) {
   return (
     <section className="mb-8">
@@ -23,13 +24,22 @@ export default function PetDocumentDrop({
         Add a document
       </h2>
       <p className="muted mb-3 text-xs">
-        {extractionEnabled ? (
+        {reader === "model" && (
           <>
             Drop a vet report, invoice, lab result or vaccination card — PDF or a
             photo. We read it and propose records for {pet.name}; nothing is saved
             until you confirm each line.
           </>
-        ) : (
+        )}
+        {reader === "on-device" && (
+          <>
+            Drop a vet report, invoice, lab result or vaccination card — PDF or a
+            photo. We read it here on the server and propose records for{" "}
+            {pet.name}; nothing is saved until you confirm each line. A photo is
+            read by OCR, so check those lines closely.
+          </>
+        )}
+        {reader === "off" && (
           <>
             Drop a vet report, invoice, lab result or vaccination card — PDF or a
             photo. It&apos;s filed against {pet.name} and stays available to open,
@@ -45,7 +55,7 @@ export default function PetDocumentDrop({
           app. */}
       <ReportUpload pets={[]} fixedPetId={pet.id} compact />
 
-      {!extractionEnabled && (
+      {reader === "off" && (
         <p className="muted mt-2 text-xs">
           Curious what automatic reading does? <SampleReportButton primary={false} />
         </p>

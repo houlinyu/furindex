@@ -25,7 +25,14 @@ export default function ExtractionReview({
 }) {
   const lowConfidence = report.confidence === "low";
 
-  const [petId, setPetId] = useState<string>(presetPetId ?? "");
+  // With exactly one pet there is nothing to disambiguate, and leaving it
+  // unpicked disables the save button under a label that already counts the
+  // records ready to go — a dead button with no visible reason. With two or
+  // more, no default: filing a report against the wrong animal is worse than
+  // one extra click.
+  const [petId, setPetId] = useState<string>(
+    presetPetId ?? (pets.length === 1 ? pets[0].id : "")
+  );
   const [createNew, setCreateNew] = useState(!presetPetId && pets.length === 0);
   const [vacc, setVacc] = useState<Set<number>>(
     () => new Set(lowConfidence ? [] : report.vaccinations.map((_, i) => i))
@@ -250,7 +257,11 @@ export default function ExtractionReview({
           {pending ? "Saving…" : `Save ${selectedCount} record${selectedCount === 1 ? "" : "s"}`}
         </button>
         <span className="muted text-xs">
-          Nothing is stored on {petName}&apos;s record until you press save.
+          {!createNew && !petId
+            ? "Choose which pet this report belongs to first."
+            : selectedCount === 0
+              ? "Tick at least one record to save."
+              : `Nothing is stored on ${petName}'s record until you press save.`}
         </span>
       </div>
     </div>

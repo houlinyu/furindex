@@ -11,6 +11,8 @@
  * Exits non-zero on any failure so it can gate a deploy.
  */
 import { chromium } from "playwright-core";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const BASE = process.argv[2] ?? "http://127.0.0.1:3000";
 const GATE = process.argv[3] ?? "";
@@ -69,6 +71,51 @@ try {
   const body = (await page.innerText("body")).toLowerCase();
   for (const s of ["reminders", "activity", "journal", "insurance", "nutrition", "add a document"]) {
     body.includes(s) ? ok(`section: ${s}`) : bad(`section missing: ${s}`);
+  }
+
+  // Upload → read → review → save. This whole path was unguarded, which is how
+  // a `pet_id: ""` reached a uuid column and killed every upload made without
+  // first picking a pet — behind a green build and a passing smoke run.
+  const fixture = new URL("../fixtures/out/f1-invoice-textlayer.pdf", import.meta.url);
+  if (!existsSync(fixture)) {
+    bad("extraction fixture missing", "run `npm run fixtures` first");
+  } else {
+    await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
+    await page.setInputFiles('input[type="file"]', fileURLToPath(fixture));
+    try {
+      await page.waitForURL(/\/documents\/[0-9a-f-]{36}/, { timeout: 120000 });
+      await page.waitForLoadState("networkidle");
+      ok("upload reached review");
+    } catch {
+      // The upload box renders its own error rather than throwing, so the
+      // message is on the dashboard, not in a status code.
+      const t = await page.innerText("body").catch(() => "");
+      const line = t.split("\n").find((l) => /error|couldn't|failed|expired/i.test(l));
+      bad("upload never reached review", line?.trim().slice(0, 160));
+    }
+
+    if (/\/documents\//.test(page.url())) {
+      const review = await page.innerText("body");
+      // Values measured off this fixture; a parser regression changes them.
+      for (const v of ["Rabies", "Cambridge", "9.39", "284"]) {
+        review.includes(v) ? ok(`extracted: ${v}`) : bad(`extracted value missing: ${v}`);
+      }
+      const save = page.getByRole("button", { name: /^Save \d+ records?$/ });
+      if (await save.isEnabled().catch(() => false)) {
+        await Promise.all([
+          page.waitForURL(/\/pets\/[0-9a-f-]{36}/, { timeout: 60000 }),
+          save.click(),
+        ]);
+        await page.waitForLoadState("networkidle");
+        const saved = await page.innerText("body");
+        // Only the vaccine tab is open by default, so assert on the counts.
+        /Medications\s*\n?\s*2/.test(saved) && /Vaccinations\s*\n?\s*3/.test(saved)
+          ? ok("records applied to pet")
+          : bad("records not applied", saved.slice(0, 200).replace(/\n/g, " "));
+      } else {
+        bad("save button disabled on review");
+      }
+    }
   }
 
   for (const [label, url] of [
