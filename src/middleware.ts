@@ -3,7 +3,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Prefix-matched. "/" is handled separately below — as a prefix it would make
 // every route public.
-const PUBLIC_PREFIXES = ["/login", "/auth"];
+// "/writing" covers the blog index, every post and /writing/rss.xml in one
+// entry. It is a prefix rather than three exact paths so that adding a fourth
+// post never needs a middleware edit — and a feed reader is signed out by
+// definition, so a 307 to /login there would just serve login HTML as RSS.
+const PUBLIC_PREFIXES = ["/login", "/auth", "/writing"];
 // "/start" is the funnel's cat-or-dog step. It has to be public: it is asked
 // BEFORE sign-up, and bouncing it to /login would put the wall back exactly
 // where this funnel exists to remove it.
@@ -21,6 +25,9 @@ const PUBLIC_EXACT = [
   "/api/breed-scan",
   "/collaborate",
   "/partners",
+  // /science no longer renders an essay; it redirects to the first post on
+  // /writing. It has to stay public or the redirect never runs for the signed-out
+  // visitors who follow the old link.
   "/science",
   "/compare",
 ];
