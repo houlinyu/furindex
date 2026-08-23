@@ -41,39 +41,53 @@ export default async function SciencePage() {
           </h2>
 
           <p className="muted mt-4 text-sm leading-relaxed">
-            In 2023 the Australian pathologist <strong>Richard Scolyer</strong> — one
-            of the world&apos;s leading melanoma pathologists, and co-medical director
-            of Melanoma Institute Australia — was diagnosed with glioblastoma, a brain
-            cancer with a grim and famously unmoved prognosis.
+            In June 2023 the Australian pathologist <strong>Richard Scolyer</strong> —
+            one of the world&apos;s leading melanoma pathologists, and then
+            co-medical director of Melanoma Institute Australia — was diagnosed
+            with glioblastoma, IDH wild-type. It is a brain cancer with a grim and
+            famously unmoved prognosis, typically measured in months.
           </p>
 
           <p className="muted mt-3 text-sm leading-relaxed">
-            He did something unusual. Together with his colleague Georgina Long, he
-            applied to his own brain the approach his career had helped develop for
-            melanoma: combination immunotherapy given <em>before</em> surgery rather
-            than after, plus a vaccine built from the specific mutations found in his
-            own tumour tissue. Not an off-the-shelf drug — a therapy manufactured
-            against his individual cancer. The two were named Australians of the Year
-            in 2024.
+            He did something unusual. With his colleague Georgina Long, he applied
+            to his own brain the approach his career had helped develop for
+            melanoma: combination immunotherapy given <em>before</em> surgery
+            rather than after, plus a vaccine built from the specific mutations
+            found in his own tumour tissue. He was the first brain cancer patient
+            in the world to receive either. The two were named Australians of the
+            Year in 2024.
           </p>
 
           <div className="card mt-6 p-5">
+            <p className="text-sm font-medium">What actually happened</p>
+            <p className="muted mt-2 text-sm leading-relaxed">
+              He went <strong>22 months without recurrence</strong>, against a
+              median time to recurrence for this cancer of roughly six months. In
+              March 2025 the tumour returned; some of it could not be removed, and
+              he described the prognosis as poor. <strong>He died on 7 June 2026,
+              aged 59</strong>, about three years after a diagnosis that normally
+              allows months. He had stepped down from his role at the Institute
+              shortly before.
+            </p>
+          </div>
+
+          <div className="card mt-4 p-5">
             <p className="text-sm font-medium">
               Be honest about what this was, and wasn&apos;t
             </p>
             <p className="muted mt-2 text-sm leading-relaxed">
-              This was <strong>n = 1</strong>. Not a trial, not a control arm, not
-              evidence of efficacy — a scientist consenting to an untested protocol on
-              himself, with full knowledge of the odds. He went substantially longer
-              without recurrence than glioblastoma usually allows, which is genuinely
-              notable. His cancer <strong>did later recur</strong>.
+              This was <strong>n = 1</strong>. Not a trial, no control arm, and not
+              evidence of efficacy — a scientist consenting to an untested protocol
+              on himself, with full knowledge of the odds. It did not cure him.
             </p>
             <p className="muted mt-2 text-sm leading-relaxed">
-              We think the story is worth telling precisely because of that ending.
-              The interesting claim is not &ldquo;this cures cancer.&rdquo; It is that a
-              therapy can now be built against one individual&apos;s tumour at all —
-              and that the limiting factor is increasingly data and manufacturing
-              logistics rather than fundamental science.
+              We think the story is worth telling precisely because of how it
+              ended. The interesting claim is not that this beats cancer. It is
+              that a therapy can now be built against one individual&apos;s tumour
+              at all — and that what limits it is increasingly data and
+              manufacturing logistics rather than fundamental science. The
+              neoadjuvant immunotherapy data from that work was published in
+              Nature Medicine; the approach outlived the patient.
             </p>
           </div>
         </div>
@@ -137,10 +151,12 @@ export default async function SciencePage() {
             <div className="card p-5">
               <p className="text-sm font-medium">It already exists, in part</p>
               <p className="muted mt-2 text-sm leading-relaxed">
-                A therapeutic cancer vaccine for canine oral melanoma has held USDA
-                conditional licensure for over a decade. Veterinary medicine is not
-                waiting for permission to try immunotherapy — it got there early, and
-                in some respects ahead of the human field.
+                A therapeutic vaccine for canine oral melanoma (ONCEPT) was
+                conditionally licensed by the USDA in 2007 and <strong>fully
+                licensed in February 2010</strong> — described at the time as the
+                first USDA-approved therapeutic cancer vaccine in either animals or
+                humans. Veterinary medicine did not wait for permission to try
+                immunotherapy; on this particular front it got there first.
               </p>
             </div>
 
@@ -156,11 +172,13 @@ export default async function SciencePage() {
             </div>
 
             <div className="card p-5">
-              <p className="text-sm font-medium">Disease moves faster</p>
+              <p className="text-sm font-medium">The traffic already runs both ways</p>
               <p className="muted mt-2 text-sm leading-relaxed">
-                A canine cancer study reads out in a fraction of the time a human one
-                takes. Every result arrives sooner — for the dogs, and for the people
-                the findings eventually reach.
+                The NCI&apos;s Comparative Oncology Trials Consortium runs drug
+                trials in pet dogs with naturally occurring cancers specifically to
+                inform human drug development. It is not hypothetical: results from
+                dogs with osteosarcoma treated with L-MTP-PE formed part of the
+                rationale for taking it into Phase III trials in children.
               </p>
             </div>
           </div>
@@ -217,11 +235,19 @@ export default async function SciencePage() {
           </Link>
         </div>
 
-        <p className="muted mt-8 border-t border-[var(--border)] pt-4 text-xs leading-relaxed">
-          Educational content only. Nothing here is veterinary advice — talk to your
-          vet about your animal. Named cases are described from public reporting;
-          verify specifics before citing them.
-        </p>
+        <div className="muted mt-8 border-t border-[var(--border)] pt-4 text-xs leading-relaxed">
+          <p>
+            Educational content only. Nothing here is veterinary or medical advice —
+            talk to your vet about your animal, and to a doctor about yourself.
+          </p>
+          <p className="mt-2">
+            Facts on this page were checked against public reporting on 23 August
+            2026. Sources: ABC News (Scolyer diagnosis, 22-month remission, March
+            2025 recurrence, death 7 June 2026); Merial/USDA announcement of full
+            ONCEPT licensure, February 2010; Paoloni &amp; Khanna, &ldquo;The
+            Comparative Oncology Trials Consortium,&rdquo; PLOS Medicine 2009.
+          </p>
+        </div>
       </section>
     </div>
   );
