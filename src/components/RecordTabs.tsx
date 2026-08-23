@@ -105,10 +105,24 @@ export default function RecordTabs({
   // near it — scrolling someone to a tab strip and leaving them to find the
   // right tab is the same dead end as having no link at all.
   useEffect(() => {
+    let lastHandled = "";
     const open = () => {
-      const m = window.location.hash.match(/^#records-(\w+)$/);
+      const hash = window.location.hash;
+      const m = hash.match(/^#records-(\w+)$/);
       const t = m?.[1] as Tab | undefined;
-      if (t && TABS.some((x) => x.key === t)) setTab(t);
+      if (!t || !TABS.some((x) => x.key === t)) return;
+      setTab(t);
+      // Do the scroll ourselves. A hash-only Link in the App Router does not
+      // reliably scroll, and the anchor may not exist yet at navigation time —
+      // so the tab would open correctly two thousand pixels below the fold.
+      if (hash !== lastHandled) {
+        lastHandled = hash;
+        window.requestAnimationFrame(() => {
+          document
+            .getElementById(`records-${t}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
     };
     open();
     window.addEventListener("hashchange", open);
