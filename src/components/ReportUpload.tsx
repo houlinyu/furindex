@@ -4,6 +4,7 @@ import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { registerDocument } from "@/app/document-actions";
+import { requestExtraction } from "@/lib/extract-request";
 import type { Pet } from "@/lib/types";
 
 const ACCEPT = "application/pdf,image/png,image/jpeg,image/webp";
@@ -96,13 +97,12 @@ export default function ReportUpload({
       }
 
       setPhase("reading");
-      const res = await fetch(`/api/documents/${documentId}/extract`, { method: "POST" });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+      const outcome = await requestExtraction(documentId);
+      if (!outcome.ok) {
         // The file is already stored either way. A reader that is switched off is
         // not a failed upload, and saying so would be a lie about what happened.
-        if (!body.disabled) {
-          setError(body.error ?? "Couldn't read that document.");
+        if (!outcome.disabled) {
+          setError(outcome.error ?? "Couldn't read that document.");
         }
       }
       router.push(`/documents/${documentId}`);

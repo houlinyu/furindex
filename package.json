@@ -8,7 +8,10 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",
-    "check:actions": "node scripts/check-server-actions.mjs"
+    "check:actions": "node scripts/check-server-actions.mjs",
+    "test:parser": "tsx scripts/test-vet-parser.ts",
+    "test:extract": "tsx scripts/test-extraction-local.ts",
+    "fixtures": "node fixtures/make-pdfs.mjs && python3 fixtures/make-images.py"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
@@ -17,14 +20,19 @@
     "next": "^15.5.23",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "tesseract.js": "^7.0.0",
+    "unpdf": "^1.8.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.9.0",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "pdfkit": "^0.20.1",
     "tailwindcss": "^4.0.0",
+    "tsx": "^4.23.12",
     "typescript": "^5.6.3"
   }
 }
