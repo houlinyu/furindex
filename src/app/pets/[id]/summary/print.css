@@ -1,0 +1,200 @@
+/*
+ * Print stylesheet for the one-page health summary.
+ *
+ * Scoped to the summary route by being imported from its page, so nothing here
+ * can leak into the rest of the app.
+ *
+ * The awkward part is the theme. globals.css defines the palette on `:root` and
+ * then redefines it inside `@media (prefers-color-scheme: dark)`. When an owner
+ * on a dark-mode laptop hits print, BOTH that block and this one match, and
+ * `:root` beats `:root` on nothing but source order — which Next decides, not
+ * us. Hence `!important` on the custom properties: it is the only thing that
+ * reliably wins, and it is what stops a vet being handed a sheet of grey text on
+ * a background the printer refuses to ink.
+ */
+
+/* ------------------------------------------------------------ screen ----- */
+
+.sheet {
+  max-width: 52rem;
+  margin: 0 auto;
+}
+
+/* One record — a vaccination row, a visit, a journal entry. The unit we refuse
+   to let a page break fall inside. */
+.rec {
+  break-inside: avoid;
+}
+
+.print-only {
+  display: none;
+}
+
+/*
+ * The repeating footer is drawn by @page margin boxes (see below) rather than by
+ * an element. Nothing in the DOM can repeat itself onto every printed page, and
+ * `counter(page)` only resolves inside a margin box, so this is the one place
+ * the page number can come from at all.
+ */
+
+/* ------------------------------------------------------------- print ----- */
+
+@page {
+  /* `auto` rather than A4 or Letter: the sheet is fluid, so whichever paper the
+     dialog is set to is the right one. Pinning a size here would letterbox the
+     other one. The generous bottom margin is the fixed footer's room. */
+  size: auto;
+  margin: 13mm 12mm 16mm;
+
+  /*
+   * Footer, on every page. The pet's name and the export date are injected as a
+   * second @page rule by the summary page itself, because they aren't known
+   * here; this rule owns the page number and the shared typography.
+   *
+   * The first attempt at this was a `position: fixed` strip. It printed on page
+   * one and nowhere else — Chrome does not repeat fixed elements across pages —
+   * which reads as a bug rather than as a design. Margin boxes are the only
+   * mechanism that actually repeats, and the only one where counter(page)
+   * resolves. Verified against Blink's print pipeline; engines too old to
+   * implement margin boxes simply get no footer, which is a clean degradation.
+   */
+  @bottom-left {
+    font: 7.5pt ui-sans-serif, system-ui, sans-serif;
+    color: #333;
+  }
+
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font: 7.5pt ui-sans-serif, system-ui, sans-serif;
+    color: #333;
+  }
+}
+
+@media print {
+  :root {
+    --bg: #ffffff !important;
+    --surface: #ffffff !important;
+    --border: #9a9a9a !important;
+    --text: #000000 !important;
+    --muted: #3a3a3a !important;
+    --brand-text: #000000 !important;
+    /* The weight chart draws itself with the brand tokens. Blacking them out
+       here is what turns it into a printable line instead of a pale teal one. */
+    --color-brand-300: #777777 !important;
+    --color-brand-500: #000000 !important;
+    --color-brand-600: #000000 !important;
+    --color-brand-700: #000000 !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 9.5pt;
+    line-height: 1.35;
+  }
+
+  /* AppShell's chrome, the print button, the export links, the back link. */
+  .no-print,
+  nav,
+  header.app-nav,
+  footer.app-footer {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  .sheet {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  /* Card chrome is screen decoration; on paper a hairline rule reads better and
+     doesn't cost a millimetre of margin. */
+  .card {
+    border: 1px solid #bbb !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  a {
+    color: #000 !important;
+    text-decoration: none !important;
+  }
+
+  h1 {
+    font-size: 17pt;
+  }
+
+  h2 {
+    font-size: 10pt;
+    /* A heading stranded at the foot of a page is the single ugliest thing a
+       print stylesheet can allow. */
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  section {
+    break-inside: auto;
+    margin-bottom: 5mm !important;
+  }
+
+  .rec,
+  tr,
+  .avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Repeat column headings on every page a long table spills onto. */
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+  }
+
+  th,
+  td {
+    border-bottom: 1px solid #ccc;
+    padding: 1.2mm 1.5mm;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    border-bottom: 1px solid #666;
+    font-weight: 600;
+  }
+
+  /* The sparkline is a 4:1 viewBox, so at full page width it eats ~46mm of
+     paper for one line. Capped, it says the same thing in a third of the space
+     and leaves room for the table underneath it on the same page. */
+  .weight-chart {
+    max-width: 125mm;
+  }
+
+  /* The identity block and the header must never be split off from the name. */
+  .sheet-head {
+    break-inside: avoid;
+    break-after: avoid;
+  }
+
+  /* Keep the browser from shrinking the page to fit and from re-colouring. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
