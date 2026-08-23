@@ -11,6 +11,40 @@ pick up. If you leave the project mid-thought, write the thought down here.
 
 ---
 
+## 2026-08-23 (deployed) — hyu
+
+**LIVE: https://furindex.vercel.app** — private preview, gated by a shared
+password. Renamed Petfolio -> FurIndex throughout to match the Supabase project.
+
+- Vercel project `furindex` under team `fur-index`, production deploy.
+- Supabase auth site_url + redirect allowlist set for both localhost and the
+  production URL, via the Management API — no dashboard clicking needed.
+- GitHub repo Website field points at the deploy.
+- `SITE_PASSWORD` gate in `src/middleware.ts`: no password -> 401, `?k=<pw>`
+  sets a 30-day cookie. Inactive when the env var is unset, so local dev is
+  unaffected. This is preview hygiene, NOT real security — the app's own auth is
+  what protects data.
+
+**Two traps hit during deploy, worth remembering**
+1. `vercel link` silently REWROTE `.env.local`, so a later
+   `grep NEXT_PUBLIC_... .env.local | cut` piped empty strings and
+   `vercel env add` registered nothing. Only `SITE_PASSWORD` landed and every
+   page 500'd with "Your project's URL and Key are required".
+2. `vercel env add` with piped stdin did not register values at all, silently.
+   Fixed by going straight to the REST API
+   (`POST /v10/projects/{id}/env`) — see `set-vercel-env.mjs` in the session
+   scratchpad. If env vars ever look missing again, check the API, not the CLI.
+
+Also: a 500 immediately after `vercel deploy --prod` can just be propagation.
+Re-check before debugging.
+
+**Still open**
+- No ANTHROPIC_API_KEY, by choice — sample-report path covers the demo.
+- Sundai project page not registered; `SUNDAI_PROJECT_URL` still REPLACE_ME.
+- Repo is private, so `REPO_IS_PUBLIC` stays false and the Source link is hidden.
+
+---
+
 ## 2026-08-23 (night) — hyu
 
 **Supabase is live and the app runs against it.** Project `FurIndex`
