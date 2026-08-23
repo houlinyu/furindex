@@ -802,3 +802,83 @@ grant execute on function public.claim_scan_slot(text, integer) to anon, authent
 -- ============================================================================
 
 alter table public.journal_entries add column if not exists occurred_at time;
+
+-- ============================================================================
+-- Care reminders (added 2026-08-23). PURELY ADDITIVE — two new enums, one new
+-- table, its indexes and one policy. Alters nothing, drops nothing.
+--
+-- WHY a table of its own rather than more date columns on the clinical tables:
+-- the product promises to warn you before things lapse, but the only thing that
+-- can currently lapse in the schema is a vaccination that happens to have a
+-- `due_on` filled in. The most-forgotten items in pet care aren't vaccinations
+-- at all — monthly flea, worm and heartworm preventatives are, precisely
+-- because they recur on a short cycle with no appointment attached to them.
+-- Those have no home in `vaccinations` (nothing was administered by a vet) or
+-- in `medications` (a course with a start and an end is a different shape from
+-- a treatment that repeats forever). A reminder is its own thing: a title, a
+-- date it is next owed, and a rhythm.
+--
+-- WHY it does not point at the clinical rows: a reminder is admin, not a
+-- medical record. Keeping it separate means an owner can delete, snooze or
+-- abandon a reminder without touching the health history, and a health record
+-- can be corrected without silently rescheduling anything.
+-- ============================================================================
+
+do $$ begin
+  create type care_kind as enum
+    ('vaccination','medication','preventative','checkup','grooming','other');
+exception when duplicate_object then null; end $$;
+
+-- 'none' is a real, common answer — a one-off "book the dental" is a reminder
+-- too — so it is a value in the enum rather than a null repeat_interval.
+-- 'biannual' here means every six months (twice a year), which is how vets
+-- schedule senior check-ups; the UI never uses the bare word for that reason.
+do $$ begin
+  create type care_interval as enum
+    ('none','weekly','monthly','quarterly','biannual','annual');
+exception when duplicate_object then null; end $$;
+
+create table if not exists public.care_reminders (
+  id                uuid primary key default gen_random_uuid(),
+  pet_id            uuid not null references public.pets(id) on delete cascade,
+  owner_id          uuid not null references auth.users(id) on delete cascade,
+  title             text not null check (length(trim(title)) > 0),
+  kind              care_kind not null default 'other',
+  -- Not null: a reminder with no date cannot remind anyone of anything. New
+  -- reminders default to today rather than to nothing.
+  due_on            date not null default current_date,
+  repeat_interval   care_interval not null default 'none',
+  -- When it was last actually done. Null = never done yet, which is different
+  -- from "done and the next one is scheduled" and is worth being able to tell
+  -- apart when an owner asks "did I ever give her that?".
+  last_completed_on date,
+  notes             text,
+  -- Retired rather than deleted: the pet outgrew the treatment, the course
+  -- ended, the reminder was a mistake. Deleting would take the completion
+  -- history with it, so nothing here ever deletes.
+  is_active         boolean not null default true,
+  created_at        timestamptz not null default now()
+  -- No "completion is not in the future" CHECK here on purpose: current_date is
+  -- STABLE, not IMMUTABLE, and Postgres rejects it inside a CHECK. That rule is
+  -- enforced in completeReminder() instead.
+);
+
+-- The dashboard's only question is "what is due soon across ALL my pets", which
+-- is an owner-wide scan ordered by date, not a per-pet lookup. Partial on
+-- is_active because retired reminders are never part of that answer and would
+-- otherwise pad the index for every owner who has ever cancelled one.
+create index if not exists care_reminders_due_idx
+  on public.care_reminders(owner_id, due_on)
+  where is_active;
+
+-- The pet page's question, which is the other half of the traffic.
+create index if not exists care_reminders_pet_idx
+  on public.care_reminders(pet_id, due_on);
+
+alter table public.care_reminders enable row level security;
+
+drop policy if exists "care_reminders: owner all" on public.care_reminders;
+create policy "care_reminders: owner all" on public.care_reminders
+  for all
+  using (owner_id = auth.uid() and public.owns_pet(pet_id))
+  with check (owner_id = auth.uid() and public.owns_pet(pet_id));
