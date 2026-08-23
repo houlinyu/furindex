@@ -26,6 +26,7 @@ import JournalTimeline from "@/components/JournalTimeline";
 import JournalPatterns from "@/components/JournalPatterns";
 import { hasEnoughTimedEntries } from "@/lib/journal-patterns";
 import JournalEntryForm from "@/components/JournalEntryForm";
+import PetSectionRail, { type RailSection } from "@/components/PetSectionRail";
 import { signedPetPhotoUrl } from "@/lib/photos";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, SPECIES_LABEL, ageFromBirthDate, formatDate } from "@/lib/format";
@@ -46,6 +47,25 @@ import type {
   VetVisit,
   WeightLog,
 } from "@/lib/types";
+
+/**
+ * Order matters: it is the order these appear down the page. The rail filters
+ * out any whose section didn't render, so a conditional block can stay listed.
+ */
+const PET_SECTIONS: RailSection[] = [
+  { id: "about", label: "About" },
+  { id: "weight", label: "Weight trend" },
+  { id: "vaccines", label: "Vaccines" },
+  { id: "reminders", label: "Reminders" },
+  { id: "activity", label: "Activity" },
+  { id: "signals", label: "Health signals" },
+  { id: "documents", label: "Documents" },
+  { id: "fields", label: "Your own fields" },
+  { id: "nutrition", label: "Nutrition" },
+  { id: "journal", label: "Journal" },
+  { id: "insurance", label: "Insurance" },
+  { id: "records", label: "All records" },
+];
 
 export default async function PetPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -176,6 +196,8 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         </div>
       </header>
 
+      <PetSectionRail sections={PET_SECTIONS} />
+
       {p.notes && (
         <div className="card muted mb-8 whitespace-pre-wrap p-4 text-sm">{p.notes}</div>
       )}
@@ -195,12 +217,13 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
 
       <OnboardingNudge pet={p} progress={onboardingProgress} />
 
+      <div id="about" className="scroll-mt-20" />
       <PetProfileCard petId={p.id} petName={p.name} />
 
       <BreedFacts species={p.species} breed={p.breed} />
 
       {weightRows.length >= 2 && (
-        <section className="mb-8">
+        <section id="weight" className="mb-8 scroll-mt-20">
           <h2 className="mb-3 text-sm font-medium uppercase tracking-wide muted">Weight trend</h2>
           <div className="card p-4">
             <WeightChart points={weightRows.map((w) => ({ date: w.recorded_on, kg: w.weight_kg }))} />
@@ -208,6 +231,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         </section>
       )}
 
+      <div id="vaccines" className="scroll-mt-20" />
       <VaccineBlock
         petId={p.id}
         species={p.species}
@@ -215,7 +239,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         reminders={(reminders.data ?? []) as CareReminder[]}
       />
 
-      <section className="mb-8">
+      <section id="reminders" className="mb-8 scroll-mt-20">
         <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
           Reminders
         </h2>
@@ -251,6 +275,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         />
       </section>
 
+      <div id="signals" className="scroll-mt-20" />
       <HealthSignals
         petName={p.name}
         weights={weightRows}
@@ -269,12 +294,13 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         reader={reader}
       />
 
+      <div id="fields" className="scroll-mt-20" />
       <CustomFields
         definitions={(definitions.data ?? []) as FieldDefinition[]}
         values={(customValues.data ?? []) as CustomValue[]}
       />
 
-      <section className="mb-8">
+      <section id="nutrition" className="mb-8 scroll-mt-20">
         <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
           Nutrition &amp; feeding
         </h2>
@@ -289,7 +315,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         />
       </section>
 
-      <section className="mb-8">
+      <section id="journal" className="mb-8 scroll-mt-20">
         <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
           Journal
         </h2>
@@ -306,7 +332,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         <JournalTimeline entries={journalEntries} />
       </section>
 
-      <section className="mb-8">
+      <section id="insurance" className="mb-8 scroll-mt-20">
         <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
           Insurance
         </h2>

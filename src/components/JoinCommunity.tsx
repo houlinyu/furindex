@@ -7,7 +7,16 @@ import type { CommunityProfile } from "@/lib/types";
 const field =
   "w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 focus:border-brand-500";
 
-export default function JoinCommunity({ existing }: { existing: CommunityProfile | null }) {
+export default function JoinCommunity({
+  existing,
+  hiddenPosts = 0,
+  hiddenPets = 0,
+}: {
+  existing: CommunityProfile | null;
+  /** Rows this person has written that nobody else can currently see. */
+  hiddenPosts?: number;
+  hiddenPets?: number;
+}) {
   const [state, formAction, pending] = useActionState<CommunityState, FormData>(joinCommunity, {});
   const errorId = useId();
   // joinCommunity returns one form-level message; the only required field is
@@ -18,8 +27,29 @@ export default function JoinCommunity({ existing }: { existing: CommunityProfile
 
   return (
     <div className="card p-6">
+      {hiddenPosts + hiddenPets > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm dark:border-amber-500/30 dark:bg-amber-500/10">
+          <p className="font-medium">
+            {hiddenPosts > 0 && `${hiddenPosts} post${hiddenPosts === 1 ? "" : "s"}`}
+            {hiddenPosts > 0 && hiddenPets > 0 && " and "}
+            {hiddenPets > 0 && `${hiddenPets} published pet${hiddenPets === 1 ? "" : "s"}`}
+            {" "}
+            {hiddenPosts + hiddenPets === 1 ? "is" : "are"} hidden right now
+          </p>
+          <p className="muted mt-1">
+            You can still see your own, which is why this is easy to miss — but
+            while your profile is private nobody else can. Nothing was deleted;
+            rejoining below makes it all visible again.
+          </p>
+        </div>
+      )}
+
       <div className="mb-4">
-        <p className="font-medium">You&apos;re not in the community yet</p>
+        <p className="font-medium">
+          {hiddenPosts + hiddenPets > 0
+            ? "Your profile is private"
+            : "You\u2019re not in the community yet"}
+        </p>
         <p className="muted mt-1 text-sm">
           Joining shows other signed-in owners your display name, anything you post,
           and any pets you choose to publish. It shares{" "}

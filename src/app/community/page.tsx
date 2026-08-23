@@ -1,11 +1,11 @@
 import AppShell from "@/components/AppShell";
 import JoinCommunity from "@/components/JoinCommunity";
+import LeaveCommunityButton from "@/components/LeaveCommunityButton";
 import PostComposer from "@/components/PostComposer";
 import CommunityFeed from "@/components/CommunityFeed";
 import PublishPet from "@/components/PublishPet";
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
-import { leaveCommunity } from "@/app/community-actions";
 import { SPECIES_EMOJI } from "@/lib/format";
 import type {
   CommunityPet,
@@ -30,13 +30,33 @@ export default async function CommunityPage() {
   const profile = me as CommunityProfile | null;
 
   if (!profile?.is_public) {
+    // A post's visibility hangs off a flag on a different row — the author's
+    // profile — and RLS always lets an author read their own posts back. So a
+    // private author sees everything they wrote exactly as they left it while
+    // nobody else sees any of it, and until now nothing anywhere said so. Count
+    // what is currently hidden and put the number on this screen.
+    const [{ count: hiddenPosts }, { count: hiddenPets }] = await Promise.all([
+      supabase
+        .from("community_posts")
+        .select("id", { count: "exact", head: true })
+        .eq("author_id", user.id),
+      supabase
+        .from("community_pets")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", user.id),
+    ]);
+
     return (
       <AppShell email={user?.email}>
         <h1 className="text-2xl font-semibold tracking-tight">Community</h1>
         <p className="muted mb-6 mt-1 text-sm">
           Meet other owners and their animals.
         </p>
-        <JoinCommunity existing={profile} />
+        <JoinCommunity
+          existing={profile}
+          hiddenPosts={hiddenPosts ?? 0}
+          hiddenPets={hiddenPets ?? 0}
+        />
       </AppShell>
     );
   }
@@ -76,11 +96,7 @@ export default async function CommunityPage() {
             Posting as {profile.avatar_emoji} {profile.display_name}
             {profile.city ? ` · ${profile.city}` : ""}
           </p>
-          <form action={leaveCommunity}>
-            <button className="muted text-xs underline underline-offset-4 hover:text-red-600">
-              Leave the community
-            </button>
-          </form>
+          <LeaveCommunityButton />
         </div>
       </div>
 
