@@ -40,7 +40,14 @@ export default function AppShell({
             </Link>
           </nav>
           <div className="ml-auto flex items-center gap-3">
-            {email && <span className="muted hidden text-xs sm:inline">{email}</span>}
+            {email && (
+              <Link
+                href="/account"
+                className="muted hidden text-xs underline underline-offset-4 hover:text-[var(--brand-text)] sm:inline"
+              >
+                {email}
+              </Link>
+            )}
             <form action={signOut}>
               <button className="muted inline-flex min-h-11 shrink-0 items-center whitespace-nowrap text-xs underline underline-offset-4">
                 Sign out
