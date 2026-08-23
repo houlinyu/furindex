@@ -112,7 +112,14 @@ export default function RecordTabs({
     };
     open();
     window.addEventListener("hashchange", open);
-    return () => window.removeEventListener("hashchange", open);
+    // A same-page hash Link does not always emit hashchange in the App Router,
+    // and the mount effect has already run by then. A short poll costs nothing
+    // and makes the button work on the second press as well as the first.
+    const poll = window.setInterval(open, 400);
+    return () => {
+      window.removeEventListener("hashchange", open);
+      window.clearInterval(poll);
+    };
   }, []);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const baseId = useId();
