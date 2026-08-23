@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { parseWallClock } from "@/lib/format";
+import {
+  hasEnoughTimedEntries,
+  toTimed,
+  MIN_TIMED_ENTRIES,
+  type Timed,
+} from "@/lib/journal-patterns";
 import {
   JOURNAL_CATEGORY_LABEL,
   type JournalCategory,
@@ -57,7 +62,6 @@ import {
  * repeat to a vet, and silence costs us nothing — the entries themselves are
  * still on screen in the timeline.
  */
-const MIN_TIMED_ENTRIES = 8;
 
 /**
  * Share of timed entries one part of the day must hold before we will name it.
@@ -86,7 +90,6 @@ const PARTS = [
 
 // ------------------------------------------------------------------ shared --
 
-type Timed = { hour: number; weekend: boolean; category: JournalCategory };
 
 function partIndex(hour: number): number {
   return PARTS.findIndex((p) =>
@@ -130,28 +133,9 @@ function hourLabel(h: number): string {
  * and `occurred_on` is a bare date — neither is combined with the other, and
  * neither is turned into an instant, so nothing here shifts by timezone.
  */
-function toTimed(entries: JournalEntry[]): Timed[] {
-  const out: Timed[] = [];
-  for (const e of entries) {
-    const mins = parseWallClock(e.occurred_at);
-    if (mins == null) continue;
-    // Midnight-anchored local parse, same convention as lib/format.ts.
-    const day = new Date(e.occurred_on + "T00:00:00").getDay();
-    if (Number.isNaN(day)) continue;
-    out.push({
-      hour: Math.floor(mins / 60),
-      weekend: day === 0 || day === 6,
-      category: e.category,
-    });
-  }
-  return out;
-}
 
 /** Exported so the page can drop the whole section — heading included — rather
  *  than render a header over nothing. */
-export function hasEnoughTimedEntries(entries: JournalEntry[]): boolean {
-  return toTimed(entries).length >= MIN_TIMED_ENTRIES;
-}
 
 // --------------------------------------------------------------- component --
 
@@ -473,3 +457,6 @@ function HourStrip({ rows, title, noun }: { rows: Timed[]; title: string; noun: 
     </figure>
   );
 }
+
+// Re-exported so existing imports from this module keep working.
+export { hasEnoughTimedEntries };
