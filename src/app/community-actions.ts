@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { PetSpecies } from "@/lib/types";
 
+/** Same contract as everywhere else: return errors, never throw. */
+export type CommunityState = { error?: string; ok?: boolean };
+
 /** Slice by code point, not UTF-16 unit — .slice(0,8) can cut a surrogate pair
  *  in half and produce a lone surrogate that Postgres rejects. */
 function trimEmoji(raw: FormDataEntryValue | null): string {
@@ -23,12 +26,20 @@ async function requireUser() {
 }
 
 /** Joining is explicit. Until this runs, the owner is invisible to everyone. */
-export async function joinCommunity(formData: FormData) {
+export async function joinCommunity(
+  _prev: CommunityState,
+  formData: FormData
+): Promise<CommunityState> {
   const { supabase, user } = await requireUser();
 
+  // minLength=2 is satisfied by two spaces, so this is reachable normally.
   const displayName = String(formData.get("display_name") ?? "").trim();
-  if (displayName.length < 2) throw new Error("Pick a display name of at least 2 characters");
-  if (displayName.length > 40) throw new Error("Display names are limited to 40 characters");
+  if (displayName.length < 2) {
+    return { error: "Pick a display name of at least 2 characters." };
+  }
+  if (displayName.length > 40) {
+    return { error: "Display names are limited to 40 characters." };
+  }
 
   const { error } = await supabase.from("community_profiles").upsert({
     id: user.id,
@@ -38,9 +49,10 @@ export async function joinCommunity(formData: FormData) {
     avatar_emoji: trimEmoji(formData.get("avatar_emoji")),
     is_public: true,
   });
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath("/community");
+  return { ok: true };
 }
 
 /** Leaving hides the profile, its pets and its posts from everyone else at once,
@@ -55,12 +67,17 @@ export async function leaveCommunity() {
   revalidatePath("/community");
 }
 
-export async function createPost(formData: FormData) {
+export async function createPost(
+  _prev: CommunityState,
+  formData: FormData
+): Promise<CommunityState> {
   const { supabase, user } = await requireUser();
 
+  // HTML `required` counts spaces as filled, so whitespace-only reaches here on
+  // the normal path — it must be a message, not a crash.
   const body = String(formData.get("body") ?? "").trim();
-  if (!body) throw new Error("Say something first");
-  if (body.length > 1000) throw new Error("Keep it under 1000 characters");
+  if (!body) return { error: "Say something first." };
+  if (body.length > 1000) return { error: "Keep it under 1000 characters." };
 
   let communityPetId = String(formData.get("community_pet_id") ?? "") || null;
 
@@ -82,9 +99,10 @@ export async function createPost(formData: FormData) {
     body,
     community_pet_id: communityPetId,
   });
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath("/community");
+  return { ok: true };
 }
 
 export async function deletePost(formData: FormData) {

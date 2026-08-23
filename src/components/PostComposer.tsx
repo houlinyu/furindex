@@ -1,9 +1,16 @@
-import { createPost } from "@/app/community-actions";
+"use client";
+
+import { useActionState, useRef } from "react";
+import { createPost, type CommunityState } from "@/app/community-actions";
 import type { CommunityPet } from "@/lib/types";
 
 export default function PostComposer({ pets }: { pets: CommunityPet[] }) {
+  const [state, formAction, pending] = useActionState<CommunityState, FormData>(createPost, {});
+  const ref = useRef<HTMLFormElement>(null);
+  if (state.ok && ref.current) ref.current.reset();
+
   return (
-    <form action={createPost} className="card space-y-3 p-4">
+    <form ref={ref} action={formAction} className="card space-y-3 p-4">
       <textarea
         name="body"
         required
@@ -12,6 +19,11 @@ export default function PostComposer({ pets }: { pets: CommunityPet[] }) {
         placeholder="How's your animal today?"
         className="w-full resize-none rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm outline-none focus:border-brand-500"
       />
+      {state.error && (
+        <p className="text-sm text-red-600" role="alert">
+          {state.error}
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         {pets.length > 0 && (
           <select
@@ -27,8 +39,11 @@ export default function PostComposer({ pets }: { pets: CommunityPet[] }) {
             ))}
           </select>
         )}
-        <button className="ml-auto rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-          Post
+        <button
+          disabled={pending}
+          className="ml-auto rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+        >
+          {pending ? "Posting…" : "Post"}
         </button>
       </div>
     </form>

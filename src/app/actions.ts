@@ -81,9 +81,12 @@ export async function createPet(
   redirect(`/pets/${data.id}`);
 }
 
-export async function deletePet(formData: FormData) {
+export async function deletePet(
+  _prev: RecordFormState,
+  formData: FormData
+): Promise<RecordFormState> {
   const id = str(formData, "pet_id");
-  if (!id) throw new Error("Missing pet");
+  if (!id) return { error: "Missing pet." };
 
   const supabase = await createClient();
 
@@ -95,9 +98,11 @@ export async function deletePet(formData: FormData) {
     .select("name, photo_url")
     .eq("id", id)
     .maybeSingle();
-  if (!pet) throw new Error("Pet not found");
+  if (!pet) return { error: "Pet not found." };
+  // A typo here is the single most likely way to hit this action. It must be a
+  // correction, not a crash.
   if (typed.trim().toLowerCase() !== pet.name.trim().toLowerCase()) {
-    throw new Error(`Type "${pet.name}" exactly to confirm deletion.`);
+    return { error: `That doesn't match. Type "${pet.name}" exactly to confirm.` };
   }
 
   // documents.pet_id is ON DELETE SET NULL, so the rows survive — but their
@@ -118,7 +123,7 @@ export async function deletePet(formData: FormData) {
 
   // RLS restricts this to pets the caller owns; no extra ownership check needed.
   const { error } = await supabase.from("pets").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath("/pets");
   revalidatePath("/dashboard");
@@ -228,6 +233,14 @@ export async function addVetVisit(
   if (!petId) return { error: "Missing pet." };
 
   const costRaw = str(formData, "cost");
+  // int4 cents: anything past ~$21.4M overflows and used to surface the raw
+  // Postgres message ("out of range for type integer") to the user.
+  if (costRaw) {
+    const n = Number(costRaw);
+    if (!Number.isFinite(n)) return { error: "That cost isn't a number." };
+    if (n < 0) return { error: "Cost can't be negative." };
+    if (n > 21_474_836) return { error: "That cost looks wrong — the limit is $21,474,836." };
+  }
   const supabase = await createClient();
   const { error } = await supabase.from("vet_visits").insert({
     pet_id: petId,

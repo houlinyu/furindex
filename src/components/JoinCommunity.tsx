@@ -1,10 +1,15 @@
-import { joinCommunity } from "@/app/community-actions";
+"use client";
+
+import { useActionState } from "react";
+import { joinCommunity, type CommunityState } from "@/app/community-actions";
 import type { CommunityProfile } from "@/lib/types";
 
 const field =
   "w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm outline-none focus:border-brand-500";
 
 export default function JoinCommunity({ existing }: { existing: CommunityProfile | null }) {
+  const [state, formAction, pending] = useActionState<CommunityState, FormData>(joinCommunity, {});
+
   return (
     <div className="card p-6">
       <div className="mb-4">
@@ -18,7 +23,7 @@ export default function JoinCommunity({ existing }: { existing: CommunityProfile
         </p>
       </div>
 
-      <form action={joinCommunity} className="space-y-3">
+      <form action={formAction} className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-[5rem_1fr]">
           <div>
             <label htmlFor="avatar_emoji" className="mb-1 block text-sm font-medium">
@@ -69,8 +74,16 @@ export default function JoinCommunity({ existing }: { existing: CommunityProfile
           />
         </div>
 
-        <button className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-          Join the community
+        {state.error && (
+          <p className="text-sm text-red-600" role="alert">
+            {state.error}
+          </p>
+        )}
+        <button
+          disabled={pending}
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+        >
+          {pending ? "Joining…" : "Join the community"}
         </button>
       </form>
     </div>
