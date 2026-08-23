@@ -110,7 +110,10 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
 
   return (
     <AppShell email={user?.email}>
-      <Link href="/pets" className="muted text-sm hover:text-brand-600">
+      <Link
+        href="/pets"
+        className="muted inline-flex min-h-11 items-center text-sm hover:text-[var(--brand-text)]"
+      >
         ← Pets
       </Link>
 
@@ -139,7 +142,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <Link
             href={`/pets/${p.id}/edit`}
-            className="muted rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs hover:border-brand-500 hover:text-brand-600"
+            className="muted inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-3 text-xs hover:border-brand-500 hover:text-[var(--brand-text)]"
           >
             Edit
           </Link>

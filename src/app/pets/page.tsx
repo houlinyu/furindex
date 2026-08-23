@@ -20,7 +20,7 @@ export default async function PetsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Pets</h1>
         <Link
           href="/pets/new"
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
         >
           Add pet
         </Link>
