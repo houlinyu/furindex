@@ -165,6 +165,13 @@ export default function RecordTabs({
 
   return (
     <section>
+      {/* One real element per tab. A link to #records-weight must find
+          something to scroll to — a hash with no target silently does
+          nothing, which is exactly how this shipped broken twice. */}
+      {TABS.map((t) => (
+        <span key={t.key} id={`records-${t.key}`} className="block scroll-mt-24" />
+      ))}
+
       <div
         role="tablist"
         aria-label="Health records"
