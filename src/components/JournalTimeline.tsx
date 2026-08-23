@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatWallClock } from "@/lib/format";
 import {
   JOURNAL_CATEGORY_EMOJI,
   JOURNAL_CATEGORY_LABEL,
@@ -54,6 +54,10 @@ export default async function JournalTimeline({ entries }: { entries: JournalEnt
                 <p className="text-sm font-medium">{e.title}</p>
                 <span className="muted text-xs">
                   {JOURNAL_CATEGORY_LABEL[e.category]} · {formatDate(e.occurred_on)}
+                  {/* Absent for most entries, and shown as nothing at all rather
+                      than a placeholder — "no time recorded" is the normal case,
+                      not a gap to nag about. */}
+                  {e.occurred_at && ` at ${formatWallClock(e.occurred_at)}`}
                 </span>
               </div>
 

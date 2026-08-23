@@ -186,6 +186,12 @@ export type JournalEntry = {
   pet_id: string;
   owner_id: string;
   occurred_on: string;
+  /**
+   * Optional local wall-clock time, "HH:MM:SS". Null whenever the owner didn't
+   * know or didn't say — see the schema comment. NOT an instant: it carries no
+   * zone, so never feed it to `new Date()` together with a server-side date.
+   */
+  occurred_at: string | null;
   category: JournalCategory;
   title: string;
   body: string | null;

@@ -90,3 +90,45 @@ the owner has no way to reconstruct them.
 has to pick the current plan rather than assuming one row per pet. A "correct a
 typo" affordance would need a genuine update path — add it deliberately, don't
 reach for it by turning supersede into overwrite.
+
+---
+
+## 6. A journal time is optional, local, and never interpreted
+
+**Date:** 2026-08-23 · **Status:** accepted
+
+`journal_entries.occurred_at` is a **nullable** bare `time` — the owner's local
+wall clock, stored verbatim, never combined with a date and never turned into an
+instant on the server. `JournalPatterns` draws it back as a 24-hour clock face
+and a weekday/weekend pair, states its own n, and refuses to draw below 8 timed
+entries.
+
+**Why time at all:** Gruen et al. 2017, PLOS ONE 12(1):e0169576 (n=98 cats)
+measured activity as strongly bimodal across the day — morning peak ~05:30–09:00,
+evening peak ~17:00–23:00, trough ~02:00–05:00 — with weekday/weekend patterns
+differing at p<0.0001. A date-only entry discards the axis with the largest
+measured effect in that literature. "Vomiting at 3am" and "vomiting after dinner"
+are different stories.
+
+**Why nullable:** same reasoning as `severity`. Most observations are recalled as
+"sometime this morning". A forced clock reading invents data that reads as
+precise in a vet's hands.
+
+**Why bare `time` and not `timestamptz`:** an `<input type="time">` value is the
+owner's local wall clock with no instant behind it. Resolving it in the server's
+zone would silently shift every entry for every owner who doesn't live there.
+The same reasoning made the future-date guard in `journal-actions.ts` allow a
+day of slack rather than compare a local date to a UTC one.
+
+**Why the view claims nothing:** that same paper found mean activity did NOT
+differ between arthritic (n=83) and healthy (n=15) cats (p=0.541), and could not
+classify any individual animal. So there is no population curve to overlay and
+no "normal" to deviate from. `JournalPatterns` describes what the owner logged
+and nothing else — no comparison to other animals, no health language. Do not
+add a reference curve, a "your pet is unusual" badge, or a severity overlay to
+it; the evidence for any of them does not exist.
+
+**Consequence:** the 8-entry floor and the 60%-share bar before naming a part of
+the day are load-bearing, not cosmetic — they hold the false "most often in the
+evening" rate near one in ten under a patternless log. Lowering either turns the
+sentence into noise an owner will repeat to a vet.

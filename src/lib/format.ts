@@ -73,3 +73,44 @@ export function localDayKey(iso: string): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
+
+// ------------------------------------------------- journal time-of-day ------
+// A journal entry's `occurred_at` is a bare Postgres `time` — the owner's local
+// wall clock, with no zone attached. Everything below treats it as a string of
+// digits and never as an instant: building a Date from a bare time plus a date
+// resolves it in whatever zone the code happens to be running in, which on the
+// server is the server's, and that would shift every entry for every owner who
+// doesn't live there.
+
+/** "HH:MM" or "HH:MM:SS" → minutes since local midnight, or null if unparseable. */
+export function parseWallClock(time: string | null | undefined): number | null {
+  if (!time) return null;
+  const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(time.trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  return h * 60 + min;
+}
+
+/** "18:40:00" → "6:40 PM" in the reader's locale. "—" if absent or malformed. */
+export function formatWallClock(time: string | null | undefined): string {
+  const mins = parseWallClock(time);
+  if (mins == null) return "—";
+  // A fixed, arbitrary calendar day purely so Intl can format hour+minute; the
+  // date is never shown and never leaves this function.
+  const d = new Date(2000, 0, 1, Math.floor(mins / 60), mins % 60);
+  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+/** Today's date in the *reader's* zone, "YYYY-MM-DD". Client-side only. */
+export function localToday(): string {
+  return localDayKey(new Date().toISOString());
+}
+
+/** Now, as an <input type="time"> value ("HH:MM"). Client-side only. */
+export function localNowTime(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
