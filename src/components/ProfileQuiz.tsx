@@ -95,8 +95,8 @@ export default function ProfileQuiz({
       {!storageReady && (
         <p className="muted mt-4 rounded-lg border border-[var(--border)] p-3 text-xs leading-relaxed">
           Answers can&apos;t be saved yet on this environment — the profile table
-          hasn&apos;t been created. The questions below still work; nothing will be
-          written.
+          hasn&apos;t been created. You can read the questions, but saving will
+          fail until that migration is applied, so don&apos;t fill this in yet.
         </p>
       )}
 

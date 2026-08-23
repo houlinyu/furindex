@@ -132,3 +132,49 @@ it; the evidence for any of them does not exist.
 the day are load-bearing, not cosmetic — they hold the false "most often in the
 evening" rate near one in ten under a patternless log. Lowering either turns the
 sentence into noise an owner will repeat to a vet.
+
+## 7. Profile answers are `text[]` of stable keys, one row per pet
+
+**Date:** 2026-08-23 · **Status:** accepted
+
+`pet_profiles` is one row per pet (`pet_id` is the primary key), with a
+`text[]` column per multi-select question and a `profile_tristate` enum column
+per yes/no/not-sure question. The values stored are the option **keys** defined
+in `src/lib/pet-profile.ts` (`joint_mobility`), never the display labels
+("Joint / mobility").
+
+**Why arrays and not jsonb:** the reason to collect any of this is to be able to
+ask "how many anxious cats live in apartments" later. As arrays that is
+
+```sql
+where 'anxious' = any(personality) and 'apartment' = any(home_type)
+```
+
+against a GIN index — plain SQL, no JSON path expressions, and a mistyped key
+fails loudly at review time rather than silently matching nothing. In jsonb the
+same question is a string-matching exercise against a document whose shape
+nothing enforces.
+
+**Why keys and not labels:** labels are copy and get reworded. A stored label
+means "Joint / mobility" and "Joint or mobility" become two cohorts in one
+column and nothing ever tells you. Renaming an option key is a migration;
+rewording its label is not. This is the whole reason the option lists live in
+`src/lib/pet-profile.ts` rather than in the JSX — the form renders from that
+list and the server action validates against the same list, so the two cannot
+drift.
+
+**Why one row per pet, not a row per answer:** every question has exactly one
+answer per pet at a time and the question set is authored, not user-defined. A
+tall answers table would buy flexibility nothing needs and cost a pivot on every
+read. `custom_values` is the tall table for the things owners define themselves;
+this is not that.
+
+**Why `completed_blocks`:** an empty `text[]` cannot tell "asked, nothing
+applied" apart from "never asked". Without the difference, the pet page keeps
+offering the questionnaire to someone who has already been through and declined
+every block. Skipping is a complete answer to an optional question and has to be
+recordable as one.
+
+**Consequence:** the seven blocks save one at a time (`saveProfileBlock`), so the
+most an interrupted session can lose is the screen on the display. Do not
+collapse them into a single submit at the end.
