@@ -199,7 +199,7 @@ export default function RecordTabs({
           </RecordForm>
 
           <RecordList
-            empty="No vaccinations recorded yet."
+            empty="Nothing here yet. This is the list a boarding kennel or a new vet asks for, so it is the one worth filling first."
             rows={vaccinations.map((v) => {
               const days = v.due_on ? daysUntil(v.due_on) : null;
               return {
@@ -257,7 +257,7 @@ export default function RecordTabs({
           </RecordForm>
 
           <RecordList
-            empty="No medications recorded yet."
+            empty="Nothing here yet. Finished courses are worth adding too — what they have taken before is the part nobody remembers a year later."
             rows={medications.map((m) => {
               const ended = m.end_date && daysUntil(m.end_date) < 0;
               return {
@@ -305,7 +305,7 @@ export default function RecordTabs({
           </RecordForm>
 
           <RecordList
-            empty="No weight readings yet."
+            empty="Nothing here yet. Two readings a few weeks apart is where the trend line starts, and weight tends to move before anything else does."
             rows={weights.map((w) => ({
               id: w.id,
               title: `${w.weight_kg} kg`,
@@ -352,7 +352,7 @@ export default function RecordTabs({
           </RecordForm>
 
           <RecordList
-            empty="No vet visits recorded yet."
+            empty="Nothing here yet. A date and a line about what it was for is enough to answer when this last came up."
             rows={visits.map((v) => ({
               id: v.id,
               title: v.reason || v.diagnosis || "Visit",

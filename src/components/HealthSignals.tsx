@@ -119,7 +119,7 @@ function NotEnoughYet({
 }) {
   return (
     <div className="card p-6">
-      <p className="text-sm font-medium">Not enough history yet</p>
+      <p className="text-sm font-medium">Nothing to compare yet</p>
       <p className="muted mt-2 max-w-xl text-sm leading-relaxed">
         To say anything honest about a trend we need at least {MIN_POINTS_PER_WINDOW}{" "}
         readings in the last {windowDays} days and {MIN_POINTS_PER_WINDOW} in the{" "}

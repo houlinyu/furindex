@@ -32,7 +32,19 @@ const SEVERITY_HINT: Record<string, string> = {
   "5": "5 — urgent",
 };
 
-export default function JournalEntryForm({ petId }: { petId: string }) {
+export default function JournalEntryForm({
+  petId,
+  startCollapsed = false,
+}: {
+  petId: string;
+  /**
+   * Fold the form behind a one-line prompt. Set for a pet with no entries yet:
+   * six blank fields including a severity scale is a lot to meet before you
+   * have decided you want a journal at all, and the prompt sells it better
+   * than the form does.
+   */
+  startCollapsed?: boolean;
+}) {
   const [state, formAction, pending] = useActionState<JournalFormState, FormData>(
     addJournalEntry,
     {}
@@ -170,7 +182,7 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
     formAction(formData);
   }
 
-  return (
+  const form = (
     <form ref={formRef} action={submit} className="card mb-4 grid gap-3 p-4 sm:grid-cols-2">
       <input type="hidden" name="pet_id" value={petId} />
 
@@ -349,5 +361,25 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
         </button>
       </div>
     </form>
+  );
+
+  if (!startCollapsed) return form;
+
+  return (
+    <details className="group mb-4">
+      <summary className="card flex min-h-11 cursor-pointer list-none items-center gap-3 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
+        <span aria-hidden className="muted shrink-0 transition-transform group-open:rotate-90">
+          ›
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="font-medium">Note something you noticed</span>
+          <span className="muted">
+            {" "}
+            — one line and a date. Everything else on the form is optional.
+          </span>
+        </span>
+      </summary>
+      <div className="mt-3">{form}</div>
+    </details>
   );
 }
