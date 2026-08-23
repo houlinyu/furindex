@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import {
   addMedication,
   addVaccination,
@@ -100,6 +100,20 @@ export default function RecordTabs({
   visits: VetVisit[];
 }) {
   const [tab, setTab] = useState<Tab>("vaccinations");
+
+  // A link that says "Log a weight" has to land on the weight form, not merely
+  // near it — scrolling someone to a tab strip and leaving them to find the
+  // right tab is the same dead end as having no link at all.
+  useEffect(() => {
+    const open = () => {
+      const m = window.location.hash.match(/^#records-(\w+)$/);
+      const t = m?.[1] as Tab | undefined;
+      if (t && TABS.some((x) => x.key === t)) setTab(t);
+    };
+    open();
+    window.addEventListener("hashchange", open);
+    return () => window.removeEventListener("hashchange", open);
+  }, []);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const baseId = useId();
   const tabId = (t: Tab) => `${baseId}-tab-${t}`;

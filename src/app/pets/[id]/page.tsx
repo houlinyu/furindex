@@ -215,7 +215,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         />
       </section>
 
-      <section className="mb-8">
+      <section id="activity" className="mb-8 scroll-mt-20">
         <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
           Activity
         </h2>
@@ -244,6 +244,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         <PetPhotoUpload pet={p} photoUrl={photoUrl} />
       </div>
 
+      <div id="documents" className="scroll-mt-20" />
       <PetDocumentDrop
         pet={p}
         documents={(docs.data ?? []) as PetDocument[]}
@@ -302,6 +303,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         />
       </section>
 
+      <div id="records" className="scroll-mt-20" />
       <RecordTabs
         petId={p.id}
         vaccinations={(vaccinations.data ?? []) as Vaccination[]}

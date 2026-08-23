@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Pet } from "@/lib/types";
 
 /**
@@ -32,6 +33,14 @@ type Milestone = {
   suggest: string;
   /** Why it helps — never "so your record isn't incomplete". */
   because: string;
+  /**
+   * Where the suggestion actually happens. Naming a next step without a way to
+   * reach it just moves the work to the reader — they have to scroll a long page
+   * and guess which of nine sections was meant.
+   */
+  href: string;
+  /** What the button says. Names the destination, not "Go".  */
+  cta: string;
   done: boolean;
 };
 
@@ -68,6 +77,8 @@ export default function PetProgress({
       have: "Name and species",
       suggest: "",
       because: "",
+      href: "",
+      cta: "",
       // Always true: the pet cannot exist without them. Counted so the meter
       // never starts at zero — nobody's first look should be an empty bar.
       done: true,
@@ -78,6 +89,8 @@ export default function PetProgress({
       suggest: "Add a breed and rough birth date",
       because:
         "it turns on the breed notes, and lets every later reading be read against an age.",
+      href: `/pets/${pet.id}/edit`,
+      cta: "Edit details",
       done: !!pet.breed && !!pet.birth_date,
     },
     {
@@ -86,6 +99,8 @@ export default function PetProgress({
       suggest: `Weigh ${pet.name} and log it`,
       because:
         "weight is the one number that moves early and is easy to measure at home.",
+      href: "#records-weight",
+      cta: "Log a weight",
       done: weightCount > 0,
     },
     {
@@ -93,6 +108,8 @@ export default function PetProgress({
       have: "Vet records",
       suggest: "Add one vaccination, medication or visit",
       because: "it is what makes this record usable at an appointment.",
+      href: "#records",
+      cta: "Add a record",
       done: recordCount > 0,
     },
     {
@@ -101,6 +118,8 @@ export default function PetProgress({
       suggest: "Tap today's activity, or note one thing you saw",
       because:
         "a run of small dated notes is the history nobody can reconstruct from memory.",
+      href: "#activity",
+      cta: "Log today",
       done: observationCount > 0,
     },
     {
@@ -108,6 +127,8 @@ export default function PetProgress({
       have: "Paperwork on file",
       suggest: "Add a photo of a vet report or vaccination card",
       because: "it is the fastest way in — one upload can fill several of these.",
+      href: "#documents",
+      cta: "Add a document",
       done: documentCount > 0 || hasPhoto,
     },
   ];
@@ -169,11 +190,17 @@ export default function PetProgress({
       </p>
 
       {!settled && next && (
-        <div className="mt-4 border-t border-[var(--border)] pt-4">
-          <p className="text-sm">
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--border)] pt-4">
+          <p className="min-w-0 flex-1 text-sm">
             <span className="font-medium">{next.suggest}</span>{" "}
             <span className="muted">— {next.because}</span>
           </p>
+          <Link
+            href={next.href}
+            className="inline-flex min-h-11 shrink-0 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            {next.cta}
+          </Link>
         </div>
       )}
 
