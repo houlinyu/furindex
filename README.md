@@ -3,6 +3,12 @@
 A pet health record app — vaccinations, medications, weight trends and vet
 visits for the animals in your life. Built for **Sundai**.
 
+**Sundai project page:** _add the link once the project is registered_
+**Live demo:** _add the Vercel URL once deployed_
+
+> Before demoing, fill in `src/lib/links.ts` — anything left as `REPLACE_ME`
+> renders a visible "(link TODO)" on the site footer.
+
 > Personal side project. Not affiliated with any employer, and it holds no
 > employer data.
 

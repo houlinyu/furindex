@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getUser } from "@/lib/supabase/server";
 import MarketingNav from "@/components/MarketingNav";
+import { SUNDAI_PROJECT_URL, GITHUB_REPO_URL, CONTACT_EMAIL, isPlaceholder } from "@/lib/links";
 
 export default async function LandingPage() {
   const user = await getUser();
@@ -202,7 +203,7 @@ export default async function LandingPage() {
 
           <div className="mt-8">
             <a
-              href="mailto:hello@example.com?subject=Petfolio%20partnership"
+              href={`mailto:${CONTACT_EMAIL}?subject=Petfolio%20partnership`}
               className="inline-block rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
             >
               Talk to us about integrating
@@ -225,9 +226,29 @@ export default async function LandingPage() {
         >
           {ctaLabel}
         </Link>
-        <p className="muted mt-8 text-xs">
-          🐾 Petfolio · built at Sundai · animal records are not PHI, and we still
-          treat them like they matter
+        <div className="muted mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs">
+          <span>🐾 Petfolio</span>
+          <span aria-hidden>·</span>
+          <a
+            href={SUNDAI_PROJECT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-4 hover:text-brand-600"
+          >
+            Built at Sundai{isPlaceholder(SUNDAI_PROJECT_URL) ? " (link TODO)" : ""}
+          </a>
+          <span aria-hidden>·</span>
+          <a
+            href={GITHUB_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-4 hover:text-brand-600"
+          >
+            Source{isPlaceholder(GITHUB_REPO_URL) ? " (link TODO)" : ""}
+          </a>
+        </div>
+        <p className="muted mt-3 text-xs">
+          Animal records are not PHI, and we still treat them like they matter.
         </p>
       </footer>
     </div>

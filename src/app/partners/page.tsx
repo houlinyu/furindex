@@ -1,5 +1,6 @@
 import Link from "next/link";
 import MarketingNav from "@/components/MarketingNav";
+import { CONTACT_EMAIL } from "@/lib/links";
 import { getUser } from "@/lib/supabase/server";
 
 export const metadata = {
@@ -130,14 +131,12 @@ export default async function PartnersPage() {
           Tell us what you&apos;d want to write into it
         </h2>
         <a
-          href="mailto:hello@example.com?subject=Petfolio%20partnership"
+          href={`mailto:${CONTACT_EMAIL}?subject=Petfolio%20partnership`}
           className="mt-6 inline-block rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
         >
           Start a conversation
         </a>
-        <p className="muted mt-3 text-xs">
-          Replace this address with your own before demoing.
-        </p>
+
       </section>
     </div>
   );
