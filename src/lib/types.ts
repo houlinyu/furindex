@@ -250,6 +250,7 @@ export type Database = {
       journal_entries: Row<JournalEntry>;
       feeding_plans: Row<FeedingPlan>;
       feeding_logs: Row<FeedingLog>;
+      care_reminders: Row<CareReminder>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -265,6 +266,8 @@ export type Database = {
       journal_category: JournalCategory;
       food_type: FoodType;
       food_unit: FoodUnit;
+      care_kind: CareKind;
+      care_interval: CareInterval;
     };
     CompositeTypes: { [_ in never]: never };
   };
@@ -407,4 +410,134 @@ export const FOOD_BRANDS = [
   "Instinct", "James Wellbeloved", "Lily's Kitchen", "Burns", "Arden Grange",
   "Harringtons", "Whiskas", "Felix", "Sheba", "Fancy Feast", "Friskies",
   "Open Farm", "The Farmer's Dog", "Homemade",
+];
+
+// --------------------------------------------------------- care reminders --
+/**
+ * What kind of thing lapses. Deliberately coarse: the point of the kind is to
+ * pick an icon and a sensible default rhythm, not to classify treatments.
+ */
+export type CareKind =
+  | "vaccination" | "medication" | "preventative" | "checkup" | "grooming" | "other";
+
+/**
+ * How often it comes back round. "none" is a one-off — booking a dental is a
+ * reminder too. "biannual" means every SIX months (twice a year), which is the
+ * senior-check-up rhythm; the label below spells that out because the bare word
+ * is read both ways in the wild.
+ */
+export type CareInterval =
+  | "none" | "weekly" | "monthly" | "quarterly" | "biannual" | "annual";
+
+/**
+ * A thing that falls due and can lapse. Admin, not diagnosis — nothing here
+ * says anything about how the animal is, only about what is owed and when.
+ */
+export type CareReminder = {
+  id: string;
+  pet_id: string;
+  owner_id: string;
+  title: string;
+  kind: CareKind;
+  due_on: string;
+  repeat_interval: CareInterval;
+  last_completed_on: string | null;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+export const CARE_KINDS: CareKind[] = [
+  "preventative", "vaccination", "checkup", "medication", "grooming", "other",
+];
+
+export const CARE_KIND_LABEL: Record<CareKind, string> = {
+  vaccination: "Vaccination",
+  medication: "Medication",
+  preventative: "Flea, worm & heartworm",
+  checkup: "Check-up",
+  grooming: "Grooming",
+  other: "Other",
+};
+
+export const CARE_KIND_EMOJI: Record<CareKind, string> = {
+  vaccination: "💉",
+  medication: "💊",
+  preventative: "🛡️",
+  checkup: "🩺",
+  grooming: "✂️",
+  other: "📌",
+};
+
+export const CARE_INTERVALS: CareInterval[] = [
+  "none", "weekly", "monthly", "quarterly", "biannual", "annual",
+];
+
+export const CARE_INTERVAL_LABEL: Record<CareInterval, string> = {
+  none: "Doesn't repeat",
+  weekly: "Every week",
+  monthly: "Every month",
+  quarterly: "Every 3 months",
+  // Spelled out rather than "biannual", which half the world reads as twice a
+  // year and the other half as every two years.
+  biannual: "Every 6 months",
+  annual: "Every year",
+};
+
+/**
+ * Starting points offered by the form. A blank form is a wall: an owner who has
+ * never written a reminder down does not know what the app wants, and the
+ * single most-forgotten item in pet care — the monthly preventative — is the
+ * one they are least likely to invent unprompted.
+ */
+export type ReminderPreset = {
+  id: string;
+  label: string;
+  title: string;
+  kind: CareKind;
+  repeat_interval: CareInterval;
+  hint: string;
+};
+
+export const REMINDER_PRESETS: ReminderPreset[] = [
+  {
+    id: "flea-worm",
+    label: "Monthly flea & worm",
+    title: "Flea & worm treatment",
+    kind: "preventative",
+    repeat_interval: "monthly",
+    hint: "The one people miss most — it recurs monthly with no appointment attached.",
+  },
+  {
+    id: "heartworm",
+    label: "Monthly heartworm",
+    title: "Heartworm preventative",
+    kind: "preventative",
+    repeat_interval: "monthly",
+    hint: "Same monthly rhythm, usually a separate tablet.",
+  },
+  {
+    id: "booster",
+    label: "Annual booster",
+    title: "Annual booster",
+    kind: "vaccination",
+    repeat_interval: "annual",
+    hint: "Set the date your vet gave you on the card.",
+  },
+  {
+    id: "checkup",
+    label: "Annual check-up",
+    title: "Annual check-up",
+    kind: "checkup",
+    repeat_interval: "annual",
+    hint: "The routine visit, not a problem visit.",
+  },
+  {
+    id: "grooming",
+    label: "Grooming",
+    title: "Grooming appointment",
+    kind: "grooming",
+    repeat_interval: "quarterly",
+    hint: "Clip, nails, or a wash — whatever you book on a cycle.",
+  },
 ];
