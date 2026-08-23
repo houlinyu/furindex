@@ -270,7 +270,7 @@ export default function BreedScanWidget() {
 
       {error && (
         <p
-          className={`mt-3 text-sm ${phase === "off" ? "muted" : "text-red-600 dark:text-red-400"}`}
+          className="mt-3 text-sm text-red-600 dark:text-red-400"
           role="alert"
         >
           {error}
