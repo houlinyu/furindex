@@ -6,16 +6,18 @@ import DailyFactPanel from "@/components/DailyFactPanel";
 import SampleReportButton from "@/components/SampleReportButton";
 import PetAvatar from "@/components/PetAvatar";
 import SearchBox from "@/components/SearchBox";
+import ReminderList from "@/components/ReminderList";
+import { todayISO } from "@/lib/reminders";
 import { signedPetPhotoUrls } from "@/lib/photos";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, ageFromBirthDate, daysUntil, formatDate } from "@/lib/format";
-import type { Pet, Vaccination } from "@/lib/types";
+import type { CareReminder, Pet, Vaccination } from "@/lib/types";
 
 export default async function DashboardPage() {
   const user = await getUser();
   const supabase = await createClient();
 
-  const [{ data: pets }, { data: dueVaccines }] = await Promise.all([
+  const [{ data: pets }, { data: dueVaccines }, { data: dueReminders }] = await Promise.all([
     supabase.from("pets").select("*").order("created_at", { ascending: true }),
     supabase
       .from("vaccinations")
@@ -26,6 +28,15 @@ export default async function DashboardPage() {
       .gte("due_on", new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10))
       .order("due_on", { ascending: true })
       .limit(20),
+    // No pet filter: RLS already scopes this to the owner, and the partial index
+    // on (owner_id, due_on) where is_active serves exactly this cross-pet query.
+    supabase
+      .from("care_reminders")
+      .select("*")
+      .eq("is_active", true)
+      .lte("due_on", new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10))
+      .order("due_on", { ascending: true })
+      .limit(50),
   ]);
 
   const extractionEnabled = !!process.env.ANTHROPIC_API_KEY;
@@ -113,6 +124,20 @@ export default async function DashboardPage() {
         />
       ) : (
         <>
+          <section className="mb-10">
+            <h2 className="mb-3 text-sm font-medium uppercase tracking-wide muted">
+              Due care
+            </h2>
+            <ReminderList
+              reminders={(dueReminders ?? []) as CareReminder[]}
+              today={todayISO()}
+              petNames={Object.fromEntries(petNameById)}
+              showPetNames
+              limit={5}
+              emptyMessage="Nothing due across your pets."
+            />
+          </section>
+
           <section className="mb-10">
             <h2 className="mb-3 text-sm font-medium uppercase tracking-wide muted">
               Coming up

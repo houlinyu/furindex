@@ -6,6 +6,9 @@ import WeightChart from "@/components/WeightChart";
 import CustomFields from "@/components/CustomFields";
 import PetDocumentDrop from "@/components/PetDocumentDrop";
 import HealthSignals from "@/components/HealthSignals";
+import ReminderList from "@/components/ReminderList";
+import ReminderForm from "@/components/ReminderForm";
+import { todayISO } from "@/lib/reminders";
 import ActivityLogger from "@/components/ActivityLogger";
 import { activityRungLoggedOn } from "@/lib/activity";
 import NutritionSection from "@/components/NutritionSection";
@@ -22,6 +25,7 @@ import { signedPetPhotoUrl } from "@/lib/photos";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, SPECIES_LABEL, ageFromBirthDate, formatDate } from "@/lib/format";
 import type {
+  CareReminder,
   CustomValue,
   FeedingLog,
   FeedingPlan,
@@ -59,6 +63,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
     journal,
     plans,
     feedingLogs,
+    reminders,
   ] = await Promise.all([
     supabase.from("vaccinations").select("*").eq("pet_id", id).order("administered_on", { ascending: false }),
     supabase.from("medications").select("*").eq("pet_id", id).order("start_date", { ascending: false }),
@@ -101,6 +106,12 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         .eq("pet_id", id)
         .order("fed_at", { ascending: false })
         .limit(50),
+      supabase
+        .from("care_reminders")
+        .select("*")
+        .eq("pet_id", id)
+        .eq("is_active", true)
+        .order("due_on", { ascending: true }),
     ]);
 
   const p = pet as Pet;
@@ -142,6 +153,12 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <Link
+            href={`/pets/${p.id}/summary`}
+            className="muted inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-3 text-xs hover:border-brand-500 hover:text-[var(--brand-text)]"
+          >
+            Summary
+          </Link>
+          <Link
             href={`/pets/${p.id}/edit`}
             className="muted inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-3 text-xs hover:border-brand-500 hover:text-[var(--brand-text)]"
           >
@@ -165,6 +182,24 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
           </div>
         </section>
       )}
+
+      <section className="mb-8">
+        <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
+          Reminders
+        </h2>
+        <p className="muted mb-3 text-xs">
+          Flea and worm treatments, boosters, check-ups. One tap when it&apos;s done
+          and the next one schedules itself.
+        </p>
+        <div className="mb-4">
+          <ReminderForm petId={p.id} />
+        </div>
+        <ReminderList
+          reminders={(reminders.data ?? []) as CareReminder[]}
+          today={todayISO()}
+          emptyMessage="No reminders yet. The monthly flea &amp; worm preset above is the one most people wish they'd set."
+        />
+      </section>
 
       <section className="mb-8">
         <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
