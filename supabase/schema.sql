@@ -777,3 +777,28 @@ $$;
 
 revoke all on function public.claim_scan_slot(text, integer) from public;
 grant execute on function public.claim_scan_slot(text, integer) to anon, authenticated;
+
+-- ============================================================================
+-- Journal time-of-day (added 2026-08-23). PURELY ADDITIVE — one nullable
+-- column. Nothing is altered, nothing is dropped.
+--
+-- WHY a time at all: Gruen et al. 2017, PLOS ONE 12(1):e0169576 (n=98 cats)
+-- measured activity as strongly bimodal across the day — a morning peak around
+-- 05:30–09:00, an evening peak around 17:00–23:00, and a trough around
+-- 02:00–05:00 — with weekday and weekend patterns differing at p<0.0001,
+-- attributed to the owner's schedule. An entry logged only to a DATE throws
+-- away the axis with the largest measured effect in that literature.
+-- "Vomiting at 3am" and "vomiting after dinner" are different stories.
+--
+-- WHY nullable: the same reasoning already applied to `severity` above. Most
+-- observations are recalled as "sometime this morning", or written up hours
+-- later, and forcing a clock reading would invent data that reads as precise.
+--
+-- WHY `time` and not `timestamptz`: the value comes from an <input type="time">
+-- and is the owner's LOCAL wall clock. There is no instant to convert, and the
+-- server has no way to know the owner's zone, so anything that reinterprets it
+-- in the server's zone silently shifts every entry for every owner outside it.
+-- Stored as the wall clock it was typed as, and read back the same way.
+-- ============================================================================
+
+alter table public.journal_entries add column if not exists occurred_at time;

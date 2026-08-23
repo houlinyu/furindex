@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { addJournalEntry, type JournalFormState } from "@/app/journal-actions";
+import { localNowTime, localToday } from "@/lib/format";
 import { JOURNAL_CATEGORY_EMOJI, JOURNAL_CATEGORY_LABEL, type JournalCategory } from "@/lib/types";
 
 const field =
@@ -43,9 +44,37 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
   const [photo, setPhoto] = useState<{ path: string; name: string } | null>(null);
   const [severity, setSeverity] = useState("");
 
-  const today = new Date().toISOString().slice(0, 10);
   const v = state.values ?? {};
   const busy = uploading || pending;
+
+  // Date and time are controlled, and both start EMPTY rather than at "now".
+  // This component is server-rendered first, and the server's clock is in the
+  // server's timezone — deriving "today" or "now" during render would both
+  // mismatch on hydration and, worse, show the wrong day to any owner who
+  // doesn't live where the app is deployed. So the real clock is read once,
+  // on the client, after mount.
+  const [today, setToday] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  // Once the owner types or clears a time, changing the date must not overwrite
+  // their choice — the convenience default is only for a form they haven't
+  // touched yet.
+  const [timeTouched, setTimeTouched] = useState(false);
+
+  useEffect(() => {
+    const t = localToday();
+    setToday(t);
+    setDate(t);
+    setTime(localNowTime());
+  }, []);
+
+  /** Prefill the time for today, blank it for any other day — an observation
+   *  recalled from last Tuesday has no defensible clock reading. */
+  function pickDate(next: string) {
+    setDate(next);
+    if (timeTouched) return;
+    setTime(next && next === today ? localNowTime() : "");
+  }
 
   useEffect(() => {
     if (state.ok) {
@@ -53,6 +82,13 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
       setPhoto(null);
       setSeverity("");
       setPhotoError(null);
+      // reset() doesn't touch controlled inputs, so put the date/time defaults
+      // back by hand for the next entry.
+      const t = localToday();
+      setToday(t);
+      setDate(t);
+      setTime(localNowTime());
+      setTimeTouched(false);
     }
     // The row never landed, so nothing references the object any more. Without
     // this it sits in the bucket forever, counting against storage and visible
@@ -173,10 +209,48 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
           id="journal-date"
           name="occurred_on"
           type="date"
-          max={today}
-          defaultValue={v.occurred_on || today}
+          max={today || undefined}
+          value={date}
+          onChange={(e) => pickDate(e.target.value)}
           className={field}
         />
+      </div>
+
+      <div className="sm:col-span-2">
+        <label htmlFor="journal-time" className="mb-1 block text-sm font-medium">
+          Time <span className="muted font-normal">(optional)</span>
+        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            id="journal-time"
+            name="occurred_at"
+            type="time"
+            value={time}
+            onChange={(e) => {
+              setTimeTouched(true);
+              setTime(e.target.value);
+            }}
+            aria-describedby="journal-time-hint"
+            className={`${field} max-w-[10rem]`}
+          />
+          {time && (
+            <button
+              type="button"
+              onClick={() => {
+                setTimeTouched(true);
+                setTime("");
+              }}
+              className="rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-medium hover:border-brand-500 hover:text-brand-600"
+            >
+              Clear time
+            </button>
+          )}
+        </div>
+        <p id="journal-time-hint" className="muted mt-1 text-xs">
+          Leave it blank if you&rsquo;re not sure — a guessed time reads as a fact
+          later. When you do know, &ldquo;3am&rdquo; and &ldquo;after dinner&rdquo; are
+          different stories.
+        </p>
       </div>
 
       <div className="sm:col-span-2">
