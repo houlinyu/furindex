@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { addMedication, addVaccination, addVetVisit, addWeight } from "@/app/actions";
+import { useActionState, useRef, useState } from "react";
+import {
+  addMedication,
+  addVaccination,
+  addVetVisit,
+  addWeight,
+  type RecordFormState,
+} from "@/app/actions";
 import { daysUntil, formatDate, formatMoney } from "@/lib/format";
 import type { Medication, Vaccination, VetVisit, WeightLog } from "@/lib/types";
 
@@ -19,6 +25,48 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * Every record form goes through this. It exists because the previous version
+ * passed the server action straight to `action=`, which meant a validation
+ * failure threw a full-page "Application error" and the button never disabled —
+ * so users clicked again, and again. That is exactly how one tester ended up
+ * with eleven identical pets.
+ */
+function RecordForm({
+  action,
+  submitLabel,
+  children,
+  className = "",
+}: {
+  action: (prev: RecordFormState, fd: FormData) => Promise<RecordFormState>;
+  submitLabel: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const [state, formAction, pending] = useActionState<RecordFormState, FormData>(action, {});
+  const ref = useRef<HTMLFormElement>(null);
+
+  // Clear the fields once the row is actually written, so the next entry starts
+  // from empty rather than the previous values.
+  if (state.ok && ref.current) ref.current.reset();
+
+  return (
+    <form ref={ref} action={formAction} className={className}>
+      {children}
+      {state.error && (
+        <p className="text-sm text-red-600 sm:col-span-2" role="alert">
+          {state.error}
+        </p>
+      )}
+      <div className="sm:col-span-2">
+        <button type="submit" disabled={pending} className={submit}>
+          {pending ? "Saving…" : submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+}
 
 export default function RecordTabs({
   petId,
@@ -63,7 +111,7 @@ export default function RecordTabs({
 
       {tab === "vaccinations" && (
         <>
-          <form action={addVaccination} className="card mb-4 grid gap-3 p-4 sm:grid-cols-2">
+          <RecordForm action={addVaccination} submitLabel="Add vaccination" className="card mb-4 grid gap-3 p-4 sm:grid-cols-2">
             <input type="hidden" name="pet_id" value={petId} />
             <input name="name" required placeholder="Vaccine (e.g. Rabies)" className={field} />
             <input name="vet_clinic" placeholder="Clinic" className={field} />
@@ -75,10 +123,7 @@ export default function RecordTabs({
               Next due
               <input name="due_on" type="date" className={field} />
             </label>
-            <div className="sm:col-span-2">
-              <button className={submit}>Add vaccination</button>
-            </div>
-          </form>
+          </RecordForm>
 
           <RecordList
             empty="No vaccinations recorded yet."
@@ -101,7 +146,7 @@ export default function RecordTabs({
 
       {tab === "medications" && (
         <>
-          <form action={addMedication} className="card mb-4 grid gap-3 p-4 sm:grid-cols-2">
+          <RecordForm action={addMedication} submitLabel="Add medication" className="card mb-4 grid gap-3 p-4 sm:grid-cols-2">
             <input type="hidden" name="pet_id" value={petId} />
             <input name="name" required placeholder="Medication" className={field} />
             <input name="dosage" placeholder="Dosage (e.g. 5 mg)" className={field} />
@@ -115,10 +160,7 @@ export default function RecordTabs({
               End (optional)
               <input name="end_date" type="date" className={field} />
             </label>
-            <div className="sm:col-span-2">
-              <button className={submit}>Add medication</button>
-            </div>
-          </form>
+          </RecordForm>
 
           <RecordList
             empty="No medications recorded yet."
@@ -143,7 +185,7 @@ export default function RecordTabs({
 
       {tab === "weight" && (
         <>
-          <form action={addWeight} className="card mb-4 grid gap-3 p-4 sm:grid-cols-2">
+          <RecordForm action={addWeight} submitLabel="Log weight" className="card mb-4 grid gap-3 p-4 sm:grid-cols-2">
             <input type="hidden" name="pet_id" value={petId} />
             <label className="muted text-xs">
               Weight (kg)
@@ -153,10 +195,7 @@ export default function RecordTabs({
               Date
               <input name="recorded_on" type="date" defaultValue={today()} className={field} />
             </label>
-            <div className="sm:col-span-2">
-              <button className={submit}>Log weight</button>
-            </div>
-          </form>
+          </RecordForm>
 
           <RecordList
             empty="No weight readings yet."
@@ -172,7 +211,7 @@ export default function RecordTabs({
 
       {tab === "visits" && (
         <>
-          <form action={addVetVisit} className="card mb-4 grid gap-3 p-4 sm:grid-cols-2">
+          <RecordForm action={addVetVisit} submitLabel="Add visit" className="card mb-4 grid gap-3 p-4 sm:grid-cols-2">
             <input type="hidden" name="pet_id" value={petId} />
             <input name="clinic" placeholder="Clinic" className={field} />
             <label className="muted text-xs">
@@ -184,10 +223,7 @@ export default function RecordTabs({
             <input name="cost" type="number" step="0.01" min="0" placeholder="Cost (USD)" className={field} />
             <div />
             <textarea name="notes" rows={2} placeholder="Notes" className={`${field} sm:col-span-2`} />
-            <div className="sm:col-span-2">
-              <button className={submit}>Add visit</button>
-            </div>
-          </form>
+          </RecordForm>
 
           <RecordList
             empty="No vet visits recorded yet."

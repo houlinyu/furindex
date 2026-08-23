@@ -18,6 +18,9 @@ export async function signOut() {
   redirect("/login");
 }
 
+/** Shared by the record forms. Same contract as PetFormState: never throw. */
+export type RecordFormState = { error?: string; ok?: boolean };
+
 export type PetFormState = {
   error?: string;
   /** Echoed back so a validation error doesn't wipe what was typed. */
@@ -122,15 +125,20 @@ export async function deletePet(formData: FormData) {
   redirect("/pets");
 }
 
-export async function addVaccination(formData: FormData) {
+export async function addVaccination(
+  _prev: RecordFormState,
+  formData: FormData
+): Promise<RecordFormState> {
   const petId = str(formData, "pet_id");
   const name = str(formData, "name");
   const administeredOn = str(formData, "administered_on");
-  if (!petId || !name || !administeredOn) throw new Error("Missing required fields");
+  if (!petId || !name || !administeredOn) {
+    return { error: "Name and the date it was given are both required." };
+  }
 
   const dueOn = str(formData, "due_on");
   if (dueOn && dueOn < administeredOn) {
-    throw new Error("The next-due date can't be before the date it was given.");
+    return { error: "The next-due date can't be before the date it was given." };
   }
 
   const supabase = await createClient();
@@ -142,21 +150,25 @@ export async function addVaccination(formData: FormData) {
     vet_clinic: str(formData, "vet_clinic"),
     lot_number: str(formData, "lot_number"),
   });
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath(`/pets/${petId}`);
   revalidatePath("/dashboard");
+  return { ok: true };
 }
 
-export async function addMedication(formData: FormData) {
+export async function addMedication(
+  _prev: RecordFormState,
+  formData: FormData
+): Promise<RecordFormState> {
   const petId = str(formData, "pet_id");
   const name = str(formData, "name");
-  if (!petId || !name) throw new Error("Missing required fields");
+  if (!petId || !name) return { error: "Give the medication a name." };
 
   const startDate = str(formData, "start_date") ?? new Date().toISOString().slice(0, 10);
   const endDate = str(formData, "end_date");
   if (endDate && endDate < startDate) {
-    throw new Error("The end date can't be before the start date.");
+    return { error: "The end date can't be before the start date." };
   }
 
   const supabase = await createClient();
@@ -168,21 +180,29 @@ export async function addMedication(formData: FormData) {
     start_date: startDate,
     end_date: endDate,
   });
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath(`/pets/${petId}`);
+  return { ok: true };
 }
 
-export async function addWeight(formData: FormData) {
+export async function addWeight(
+  _prev: RecordFormState,
+  formData: FormData
+): Promise<RecordFormState> {
   const petId = str(formData, "pet_id");
   const raw = str(formData, "weight_kg");
-  if (!petId || !raw) throw new Error("Missing required fields");
+  if (!petId || !raw) return { error: "Enter a weight." };
 
   const weight = Number(raw);
   // numeric(6,2) with a < 1000 CHECK behind it — without an upper bound here the
   // user gets a raw "numeric field overflow" instead of a sentence.
-  if (!Number.isFinite(weight) || weight <= 0) throw new Error("Weight must be a positive number");
-  if (weight >= 1000) throw new Error("That weight looks wrong — the limit is 999.99 kg.");
+  if (!Number.isFinite(weight) || weight <= 0) {
+    return { error: "Weight must be a positive number." };
+  }
+  if (weight >= 1000) {
+    return { error: "That weight looks wrong — the limit is 999.99 kg." };
+  }
 
   const supabase = await createClient();
   // One reading per day: a correction overwrites rather than duplicating.
@@ -194,14 +214,18 @@ export async function addWeight(formData: FormData) {
     },
     { onConflict: "pet_id,recorded_on" }
   );
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath(`/pets/${petId}`);
+  return { ok: true };
 }
 
-export async function addVetVisit(formData: FormData) {
+export async function addVetVisit(
+  _prev: RecordFormState,
+  formData: FormData
+): Promise<RecordFormState> {
   const petId = str(formData, "pet_id");
-  if (!petId) throw new Error("Missing pet");
+  if (!petId) return { error: "Missing pet." };
 
   const costRaw = str(formData, "cost");
   const supabase = await createClient();
@@ -214,7 +238,8 @@ export async function addVetVisit(formData: FormData) {
     notes: str(formData, "notes"),
     cost_cents: costRaw ? Math.round(Number(costRaw) * 100) : null,
   });
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath(`/pets/${petId}`);
+  return { ok: true };
 }
