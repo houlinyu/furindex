@@ -1,3 +1,4 @@
+import Logo from "@/components/Logo";
 import LoginForm from "@/components/LoginForm";
 
 export const metadata = { title: "Sign in — FurIndex" };
@@ -16,7 +17,7 @@ export default async function LoginPage({
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="text-4xl">🐾</div>
+          <Logo className="mx-auto h-14 w-14 text-brand-600" title="FurIndex" />
           <h1 className="mt-3 text-2xl font-semibold tracking-tight">FurIndex</h1>
           <p className="muted mt-1 text-sm">
             Vaccinations, meds, weight and vet visits — in one place.

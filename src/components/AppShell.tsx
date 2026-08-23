@@ -1,3 +1,4 @@
+import Logo from "@/components/Logo";
 import Link from "next/link";
 import { signOut } from "@/app/actions";
 
@@ -22,7 +23,10 @@ export default function AppShell({
             className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap font-semibold tracking-tight"
             aria-label="FurIndex home"
           >
-            🐾 FurIndex
+            <span className="inline-flex items-center gap-2">
+              <Logo className="h-6 w-6 text-brand-600" title="FurIndex" />
+              FurIndex
+            </span>
           </Link>
           <nav className="flex gap-4 text-sm">
             <Link href="/dashboard" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
@@ -65,7 +69,7 @@ export default function AppShell({
           <Link href="/partners" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
             Partners
           </Link>
-          <span className="muted ml-auto">🐾 FurIndex — a Sundai project</span>
+          <span className="muted ml-auto">FurIndex — a Sundai project</span>
         </div>
       </footer>
     </div>

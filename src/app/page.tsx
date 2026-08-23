@@ -217,7 +217,7 @@ export default async function LandingPage() {
           {ctaLabel}
         </Link>
         <div className="muted mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs">
-          <span>🐾 FurIndex</span>
+          <span>FurIndex</span>
           <span aria-hidden>·</span>
           {/* Until the project is registered, render plain text — a live link to
               a REPLACE_ME URL is worse than no link. */}
