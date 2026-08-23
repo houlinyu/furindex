@@ -11,6 +11,62 @@ pick up. If you leave the project mid-thought, write the thought down here.
 
 ---
 
+## 2026-08-23 (evening) — hyu
+
+**Marketing surface + review fixes. Build green: 15 routes, 0 type errors.**
+
+**New pages** — all public (added to `PUBLIC_EXACT` in `src/middleware.ts`):
+- `/` landing, `/partners`, `/science`, `/compare`.
+- `/science` tells the Richard Scolyer personalised-cancer-vaccine story and
+  argues veterinary oncology is a credible near-term venue. It states plainly
+  that the case was n=1 and that his cancer later recurred — **verify the
+  specifics against current reporting before demoing**, and keep the honesty;
+  it is more persuasive than overclaiming, and a page that oversells an
+  experimental therapy is a real liability.
+- `/compare` positions against clinic apps, wearables, DNA tests, insurance and
+  manual trackers, and includes a "where we're genuinely behind" section.
+
+**Fixed from the code review** (agent verified independently with its own toolchain):
+- Retry lock: a document stuck in `extracting` after a timeout could never be
+  retried — the 409 guard made the retry button permanently dead. Guard removed;
+  extraction is idempotent.
+- `field_definitions` upsert was rewriting `field_type` on every new document,
+  which would flip an established `number` field to `text` and strand earlier
+  values in the wrong column. Now select-then-insert, and values always coerce
+  with the EXISTING type.
+- `custom_values` was written but never read anywhere — the feature the landing
+  page advertises had no read path. Added `src/components/CustomFields.tsx`,
+  rendered on the pet page.
+- Image upload cap was 20 MB; the Anthropic API rejects images far below that,
+  and phone photos clear 5 MB easily. Now 4.5 MB for images, 20 MB for PDFs.
+- `toggleReaction` wasn't awaited inside `startTransition` — no pending state,
+  unhandled rejection on failure.
+- Dashboard "Coming up" could fill its 20-row window with long-past overdue rows
+  and miss near-term ones. Added a 90-day floor.
+- Wired `leaveCommunity` (JoinCommunity promised "leave at any time" and it was
+  unreachable) and `deleteDocument` (a failed upload couldn't be discarded).
+- Removed `npm run lint` — no ESLint config, and it dropped into an interactive
+  prompt that would hang CI.
+
+**Deferred, on purpose**
+- `src/lib/types.ts` has `Relationships: []` and `Insert: Partial<T>`, so FK
+  embeds don't typecheck and NOT NULL omissions are runtime errors rather than
+  compile errors. Real fix is `npx supabase gen types` — needs a project ref,
+  which we don't have yet. Do this right after the Supabase project exists.
+- No CI workflow.
+
+**Footgun found the hard way**
+- With `NEXT_PUBLIC_SUPABASE_*` unset, EVERY route 500s — including the public
+  landing page, because `MarketingNav` calls `getUser()`. Set the env vars in
+  Vercel *before* the first deploy or the demo URL is a 500.
+
+**Next**
+- Supabase project + run `supabase/schema.sql` + one real end-to-end upload.
+- `ANTHROPIC_API_KEY` in `.env.local`.
+- Deploy to Vercel.
+
+---
+
 ## 2026-08-23 (later) — hyu
 
 **Built and VERIFIED — `npm run build` passes, 12 routes, 0 type errors.**

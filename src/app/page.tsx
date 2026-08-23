@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getUser } from "@/lib/supabase/server";
+import MarketingNav from "@/components/MarketingNav";
 
 export default async function LandingPage() {
   const user = await getUser();
@@ -8,22 +9,7 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen">
-      {/* ---------------------------------------------------------- nav ---- */}
-      <header className="border-b border-[var(--border)]">
-        <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-4">
-          <span className="font-semibold tracking-tight">🐾 Petfolio</span>
-          <nav className="ml-auto flex items-center gap-5 text-sm">
-            <a href="#how" className="muted hover:text-brand-600">How it works</a>
-            <a href="#partners" className="muted hover:text-brand-600">Partners</a>
-            <Link
-              href={cta}
-              className="rounded-lg bg-brand-600 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
-            >
-              {user ? "Dashboard" : "Sign in"}
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <MarketingNav signedIn={!!user} />
 
       {/* --------------------------------------------------------- hero ---- */}
       <section className="mx-auto max-w-5xl px-5 pb-16 pt-20 text-center">

@@ -8,6 +8,9 @@ export default function MarketingNav({ signedIn }: { signedIn: boolean }) {
           🐾 Petfolio
         </Link>
         <nav className="ml-auto flex items-center gap-5 text-sm">
+          <Link href="/compare" className="muted hover:text-brand-600">
+            Compare
+          </Link>
           <Link href="/science" className="muted hover:text-brand-600">
             The science
           </Link>
