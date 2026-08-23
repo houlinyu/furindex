@@ -6,6 +6,8 @@ import WeightChart from "@/components/WeightChart";
 import CustomFields from "@/components/CustomFields";
 import PetDocumentDrop from "@/components/PetDocumentDrop";
 import HealthSignals from "@/components/HealthSignals";
+import ActivityLogger from "@/components/ActivityLogger";
+import { activityRungLoggedOn } from "@/lib/activity";
 import NutritionSection from "@/components/NutritionSection";
 import BreedFacts from "@/components/BreedFacts";
 import InsuranceSection from "@/components/InsuranceSection";
@@ -157,6 +159,24 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
           </div>
         </section>
       )}
+
+      <section className="mb-8">
+        <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
+          Activity
+        </h2>
+        <p className="muted mb-3 text-xs">
+          One tap a day. The steps are behaviours somebody measured on a collar
+          accelerometer, so the number behind them means the same thing every time.
+        </p>
+        <ActivityLogger
+          petId={p.id}
+          species={p.species}
+          loggedToday={activityRungLoggedOn(
+            (customValues.data ?? []) as CustomValue[],
+            (definitions.data ?? []) as FieldDefinition[]
+          )}
+        />
+      </section>
 
       <HealthSignals
         petName={p.name}
