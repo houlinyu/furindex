@@ -609,3 +609,36 @@ create policy "journal_entries: owner all" on public.journal_entries
   for all
   using (owner_id = auth.uid() and public.owns_pet(pet_id))
   with check (owner_id = auth.uid() and public.owns_pet(pet_id));
+-- ============================================================================
+-- Partner enquiries (added 2026-08-23). PURELY ADDITIVE.
+-- Anyone can WRITE one (that is the point of a contact form); nobody can read
+-- them through the API. Reads happen via the Supabase dashboard or a service
+-- role, never through the anon key — otherwise a public form becomes a public
+-- mailing list.
+-- ============================================================================
+
+create table if not exists public.partner_inquiries (
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null check (length(trim(name)) between 1 and 120),
+  email        text not null check (position('@' in email) > 1 and length(email) <= 254),
+  organisation text check (length(organisation) <= 160),
+  category     text check (category in ('wearables','clinic','diagnostics','insurance','other')),
+  message      text not null check (length(trim(message)) between 10 and 4000),
+  -- Coarse provenance only. No IP, no user agent: this is a contact form, not
+  -- an analytics endpoint, and collecting less is the whole posture of the app.
+  source_page  text,
+  handled      boolean not null default false,
+  created_at   timestamptz not null default now()
+);
+create index if not exists partner_inquiries_new_idx
+  on public.partner_inquiries(created_at desc) where not handled;
+
+alter table public.partner_inquiries enable row level security;
+
+drop policy if exists "partner_inquiries: anyone may submit" on public.partner_inquiries;
+drop policy if exists "partner_inquiries: no public read"    on public.partner_inquiries;
+
+-- Insert only. There is deliberately NO select policy, so with RLS on, every
+-- read through the anon or authenticated key returns zero rows.
+create policy "partner_inquiries: anyone may submit" on public.partner_inquiries
+  for insert to anon, authenticated with check (true);

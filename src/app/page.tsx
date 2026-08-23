@@ -5,7 +5,6 @@ import FeatureShowcase from "@/components/FeatureShowcase";
 import {
   SUNDAI_PROJECT_URL,
   GITHUB_REPO_URL,
-  CONTACT_EMAIL,
   REPO_IS_PUBLIC,
   isPlaceholder,
 } from "@/lib/links";
@@ -178,12 +177,12 @@ export default async function LandingPage() {
           </div>
 
           <div className="mt-8">
-            <a
-              href={`mailto:${CONTACT_EMAIL}?subject=FurIndex%20partnership`}
+            <Link
+              href="/partners"
               className="inline-block rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
             >
               Talk to us about integrating
-            </a>
+            </Link>
             <p className="muted mt-2 text-xs">
               Replace this address with your own before demoing.
             </p>

@@ -161,6 +161,19 @@ export type PostReaction = {
   created_at: string;
 };
 
+// ------------------------------------------------------------- inquiries --
+export type PartnerInquiry = {
+  id: string;
+  name: string;
+  email: string;
+  organisation: string | null;
+  category: string | null;
+  message: string;
+  source_page: string | null;
+  handled: boolean;
+  created_at: string;
+};
+
 export type ReactionEmoji = "❤️" | "🐾" | "😂" | "💪" | "🙏";
 export const REACTION_EMOJI: ReactionEmoji[] = ["❤️", "🐾", "😂", "💪", "🙏"];
 
@@ -227,6 +240,7 @@ export type Database = {
       post_reactions: Row<PostReaction>;
       insurance_policies: Row<InsurancePolicy>;
       insurance_claims: Row<InsuranceClaim>;
+      partner_inquiries: Row<PartnerInquiry>;
       journal_entries: Row<JournalEntry>;
     };
     Views: { [_ in never]: never };

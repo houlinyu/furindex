@@ -1,7 +1,7 @@
 import Link from "next/link";
 import MarketingNav from "@/components/MarketingNav";
-import { CONTACT_EMAIL } from "@/lib/links";
 import { getUser } from "@/lib/supabase/server";
+import PartnerInquiryForm from "@/components/PartnerInquiryForm";
 
 export const metadata = {
   title: "Partners — FurIndex",
@@ -132,12 +132,9 @@ export default async function PartnersPage() {
         <h2 className="text-2xl font-semibold tracking-tight">
           Tell us what you&apos;d want to write into it
         </h2>
-        <a
-          href={`mailto:${CONTACT_EMAIL}?subject=FurIndex%20partnership`}
-          className="mt-6 inline-block rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          Start a conversation
-        </a>
+        <div className="mt-8 text-left">
+          <PartnerInquiryForm sourcePage="/partners" />
+        </div>
 
       </section>
     </div>

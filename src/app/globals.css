@@ -13,19 +13,30 @@
 :root {
   --bg: #fbfaf8;
   --surface: #ffffff;
-  --border: #e7e3dd;
+  --border: #d6cfc4;
   --text: #1c1a17;
   --muted: #6f6a63;
+  /* brand-600 only reaches 3.4:1 on dark surfaces; brand-300 reaches 8.3:1.
+     One token so brand-coloured text passes AA in both themes. */
+  --brand-text: var(--color-brand-600);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #15181a;
     --surface: #1d2124;
-    --border: #2e3438;
+    --border: #414b51;
     --text: #edeae6;
     --muted: #9aa0a4;
+    --brand-text: var(--color-brand-300);
   }
+}
+
+/* The UA default placeholder is a 50% alpha of the text colour, which lands at
+   3.3:1 — below AA. --muted is 5.1:1 in light and 6.1:1 in dark. */
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 
 body {

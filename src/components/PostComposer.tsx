@@ -17,7 +17,7 @@ export default function PostComposer({ pets }: { pets: CommunityPet[] }) {
         rows={3}
         maxLength={1000}
         placeholder="How's your animal today?"
-        className="w-full resize-none rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm outline-none focus:border-brand-500"
+        className="w-full resize-none rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 focus:border-brand-500"
       />
       {state.error && (
         <p className="text-sm text-red-600" role="alert">

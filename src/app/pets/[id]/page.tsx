@@ -93,7 +93,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
 
       <header className="mb-8 mt-3 flex flex-wrap items-start gap-4">
         <PetAvatar pet={p} photoUrl={photoUrl} size="lg" />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-48">
           <h1 className="text-2xl font-semibold tracking-tight">{p.name}</h1>
           <p className="muted mt-1 text-sm">
             {[
@@ -113,7 +113,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
             <p className="muted mt-0.5 text-xs">Born {formatDate(p.birth_date)}</p>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <Link
             href={`/pets/${p.id}/edit`}
             className="muted rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs hover:border-brand-500 hover:text-brand-600"

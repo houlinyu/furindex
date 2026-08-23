@@ -6,7 +6,7 @@ import { addJournalEntry, type JournalFormState } from "@/app/journal-actions";
 import { JOURNAL_CATEGORY_EMOJI, JOURNAL_CATEGORY_LABEL, type JournalCategory } from "@/lib/types";
 
 const field =
-  "w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm outline-none focus:border-brand-500";
+  "w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 focus:border-brand-500";
 
 const CATEGORIES: JournalCategory[] = [
   "symptom", "behaviour", "mood", "appetite", "energy", "other",

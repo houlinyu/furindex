@@ -5,7 +5,7 @@ import { breedsFor } from "@/lib/breeds";
 import { SPECIES_LABEL } from "@/lib/format";
 
 const field =
-  "w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm outline-none focus:border-brand-500";
+  "w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 focus:border-brand-500";
 
 /**
  * Species selector plus a breed field backed by a <datalist>: common breeds are

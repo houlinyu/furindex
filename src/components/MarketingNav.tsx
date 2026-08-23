@@ -3,18 +3,18 @@ import Link from "next/link";
 export default function MarketingNav({ signedIn }: { signedIn: boolean }) {
   return (
     <header className="border-b border-[var(--border)]">
-      <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-4">
-        <Link href="/" className="font-semibold tracking-tight">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4">
+        <Link href="/" className="shrink-0 whitespace-nowrap font-semibold tracking-tight">
           🐾 FurIndex
         </Link>
-        <nav className="ml-auto flex items-center gap-5 text-sm">
-          <Link href="/compare" className="muted hover:text-brand-600">
+        <nav className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-sm">
+          <Link href="/compare" className="muted inline-flex min-h-11 items-center hover:text-brand-600">
             Compare
           </Link>
-          <Link href="/science" className="muted hover:text-brand-600">
+          <Link href="/science" className="muted inline-flex min-h-11 items-center hover:text-brand-600">
             The science
           </Link>
-          <Link href="/partners" className="muted hover:text-brand-600">
+          <Link href="/partners" className="muted inline-flex min-h-11 items-center hover:text-brand-600">
             Partners
           </Link>
           <Link
