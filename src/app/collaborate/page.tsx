@@ -47,7 +47,7 @@ const TRACKS = [
       output becomes trackable over time rather than a one-off document — which
       is the precondition for anything personalised.`,
     fit: `See our note on where veterinary oncology is heading.`,
-    href: "/science",
+    href: "/writing",
     hrefLabel: "Read the science →",
   },
   {
