@@ -17,6 +17,7 @@ import InsuranceSection from "@/components/InsuranceSection";
 import DeletePetButton from "@/components/DeletePetButton";
 import PetAvatar from "@/components/PetAvatar";
 import PetPhotoUpload from "@/components/PetPhotoUpload";
+import PetProgress from "@/components/PetProgress";
 import JournalTimeline from "@/components/JournalTimeline";
 import JournalPatterns from "@/components/JournalPatterns";
 import { hasEnoughTimedEntries } from "@/lib/journal-patterns";
@@ -172,6 +173,19 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         <div className="card muted mb-8 whitespace-pre-wrap p-4 text-sm">{p.notes}</div>
       )}
 
+      <PetProgress
+        pet={p}
+        hasPhoto={!!photoUrl}
+        weightCount={weightRows.length}
+        recordCount={
+          (vaccinations.data?.length ?? 0) +
+          (medications.data?.length ?? 0) +
+          (visits.data?.length ?? 0)
+        }
+        observationCount={journalEntries.length + (customValues.data?.length ?? 0)}
+        documentCount={docs.data?.length ?? 0}
+      />
+
       <BreedFacts species={p.species} breed={p.breed} />
 
       {weightRows.length >= 2 && (
@@ -264,7 +278,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
           Small observations, dated. A run of them is the history a vet asks for —
           when it started, how often, what it looked like.
         </p>
-        <JournalEntryForm petId={p.id} />
+        <JournalEntryForm petId={p.id} startCollapsed={journalEntries.length === 0} />
         {hasEnoughTimedEntries(journalEntries) && (
           <div className="mb-4">
             <JournalPatterns entries={journalEntries} />

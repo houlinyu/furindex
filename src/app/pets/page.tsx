@@ -29,7 +29,7 @@ export default async function PetsPage() {
       {pets.length === 0 ? (
         <EmptyState
           title="No pets yet"
-          body="Add a pet to start tracking their health record."
+          body="A name and a species is all the form needs — everything else can come later, or come off a vet report."
           href="/pets/new"
           cta="Add your first pet"
         />
