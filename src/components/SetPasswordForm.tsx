@@ -11,7 +11,7 @@ import { setPassword, type SetPasswordState } from "@/app/auth-actions";
  * hosted mailer capped at two emails an hour, that is a real lockout rather
  * than an inconvenience.
  */
-export default function SetPasswordForm() {
+export default function SetPasswordForm({ fromReset = false }: { fromReset?: boolean }) {
   const [state, action, pending] = useActionState<SetPasswordState, FormData>(setPassword, {});
   const errorId = useId();
 
@@ -20,14 +20,16 @@ export default function SetPasswordForm() {
 
   return (
     <form action={action} className="card space-y-3 p-6">
-      <div>
-        <p className="font-medium">Set a password</p>
-        <p className="muted mt-1 text-sm">
-          If you signed in with an email link, your account doesn&apos;t have a
-          password yet. Set one here and you can sign in instantly from any
-          device — no waiting on an email.
-        </p>
-      </div>
+      {!fromReset && (
+        <div>
+          <p className="font-medium">Set a password</p>
+          <p className="muted mt-1 text-sm">
+            If you signed in with an email link, your account doesn&apos;t have a
+            password yet. Set one here and you can sign in instantly from any
+            device — no waiting on an email.
+          </p>
+        </div>
+      )}
 
       <div>
         <label htmlFor="new-password" className="muted mb-1 block text-xs font-medium">
