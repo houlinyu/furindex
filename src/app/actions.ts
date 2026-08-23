@@ -18,20 +18,42 @@ export async function signOut() {
   redirect("/login");
 }
 
-export async function createPet(formData: FormData) {
+export type PetFormState = {
+  error?: string;
+  /** Echoed back so a validation error doesn't wipe what was typed. */
+  values?: Record<string, string>;
+};
+
+/**
+ * Returns errors rather than throwing. A thrown error here becomes a full-page
+ * "Application error" and the user loses everything they typed — which is what a
+ * name of only spaces used to do.
+ */
+export async function createPet(
+  _prev: PetFormState,
+  formData: FormData
+): Promise<PetFormState> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const keep = (): Record<string, string> =>
+    Object.fromEntries(
+      ["name", "species", "sex", "breed", "birth_date", "microchip_id", "notes"].map((k) => [
+        k,
+        String(formData.get(k) ?? ""),
+      ])
+    );
+
   const name = str(formData, "name");
-  if (!name) throw new Error("Name is required");
+  if (!name) return { error: "Give your pet a name.", values: keep() };
 
   const birthDate = str(formData, "birth_date");
   const today = new Date().toISOString().slice(0, 10);
   if (birthDate && birthDate > today) {
-    throw new Error("Birth date can't be in the future.");
+    return { error: "Birth date can't be in the future.", values: keep() };
   }
 
   const { data, error } = await supabase
@@ -49,7 +71,7 @@ export async function createPet(formData: FormData) {
     .select("id")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message, values: keep() };
 
   revalidatePath("/pets");
   revalidatePath("/dashboard");

@@ -190,6 +190,8 @@ export type Database = {
       community_pets: Row<CommunityPet>;
       community_posts: Row<CommunityPost>;
       post_reactions: Row<PostReaction>;
+      insurance_policies: Row<InsurancePolicy>;
+      insurance_claims: Row<InsuranceClaim>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -200,7 +202,67 @@ export type Database = {
       pet_sex: PetSex;
       document_status: DocumentStatus;
       field_type: FieldType;
+      claim_status: ClaimStatus;
     };
     CompositeTypes: { [_ in never]: never };
   };
 };
+
+// --------------------------------------------------------------- insurance --
+export type ClaimStatus =
+  | "draft" | "submitted" | "in_review" | "approved"
+  | "partially_paid" | "paid" | "denied";
+
+export type InsurancePolicy = {
+  id: string;
+  pet_id: string;
+  owner_id: string;
+  provider: string;
+  policy_number: string | null;
+  plan_name: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  monthly_premium_cents: number | null;
+  deductible_cents: number | null;
+  reimbursement_pct: number | null;
+  annual_limit_cents: number | null;
+  contact_phone: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export type InsuranceClaim = {
+  id: string;
+  policy_id: string;
+  pet_id: string;
+  owner_id: string;
+  document_id: string | null;
+  claim_number: string | null;
+  service_date: string;
+  description: string | null;
+  amount_claimed_cents: number | null;
+  amount_paid_cents: number | null;
+  status: ClaimStatus;
+  submitted_on: string | null;
+  resolved_on: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export const CLAIM_STATUS_LABEL: Record<ClaimStatus, string> = {
+  draft: "Draft",
+  submitted: "Submitted",
+  in_review: "In review",
+  approved: "Approved",
+  partially_paid: "Partly paid",
+  paid: "Paid",
+  denied: "Denied",
+};
+
+/** Common US/UK providers — a datalist, so anything can still be typed. */
+export const INSURERS = [
+  "Trupanion", "Healthy Paws", "Nationwide", "Lemonade", "Embrace", "Figo",
+  "ASPCA Pet Health Insurance", "Pets Best", "MetLife Pet Insurance",
+  "Fetch by The Dodo", "Spot", "Pumpkin", "Prudent Pet", "Hartville",
+  "Petplan", "Bought By Many / ManyPets", "Agria", "Direct Line", "Animal Friends",
+];

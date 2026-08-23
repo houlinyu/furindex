@@ -504,3 +504,68 @@ alter table public.documents drop constraint if exists documents_pet_id_fkey;
 alter table public.documents
   add constraint documents_pet_id_fkey
   foreign key (pet_id) references public.pets(id) on delete set null;
+-- ============================================================================
+-- Insurance (added 2026-08-23). PURELY ADDITIVE — creates new tables only,
+-- alters nothing existing, drops nothing. Safe to run against live data.
+-- ============================================================================
+
+create table if not exists public.insurance_policies (
+  id                uuid primary key default gen_random_uuid(),
+  pet_id            uuid not null references public.pets(id) on delete cascade,
+  owner_id          uuid not null references auth.users(id) on delete cascade,
+  provider          text not null check (length(trim(provider)) > 0),
+  policy_number     text,
+  plan_name         text,
+  start_date        date,
+  end_date          date,
+  monthly_premium_cents integer check (monthly_premium_cents is null or monthly_premium_cents >= 0),
+  deductible_cents      integer check (deductible_cents is null or deductible_cents >= 0),
+  reimbursement_pct     integer check (reimbursement_pct is null or (reimbursement_pct between 0 and 100)),
+  annual_limit_cents    integer check (annual_limit_cents is null or annual_limit_cents >= 0),
+  contact_phone     text,
+  notes             text,
+  created_at        timestamptz not null default now(),
+  constraint policy_end_after_start check (end_date is null or start_date is null or end_date >= start_date)
+);
+create index if not exists insurance_policies_pet_idx on public.insurance_policies(pet_id);
+
+do $$ begin
+  create type claim_status as enum ('draft','submitted','in_review','approved','partially_paid','paid','denied');
+exception when duplicate_object then null; end $$;
+
+create table if not exists public.insurance_claims (
+  id             uuid primary key default gen_random_uuid(),
+  policy_id      uuid not null references public.insurance_policies(id) on delete cascade,
+  pet_id         uuid not null references public.pets(id) on delete cascade,
+  owner_id       uuid not null references auth.users(id) on delete cascade,
+  -- Provenance: which uploaded report backs this claim. SET NULL, never cascade —
+  -- losing a document must not silently delete the claim record.
+  document_id    uuid references public.documents(id) on delete set null,
+  claim_number   text,
+  service_date   date not null default current_date,
+  description    text,
+  amount_claimed_cents integer check (amount_claimed_cents is null or amount_claimed_cents >= 0),
+  amount_paid_cents    integer check (amount_paid_cents is null or amount_paid_cents >= 0),
+  status         claim_status not null default 'draft',
+  submitted_on   date,
+  resolved_on    date,
+  notes          text,
+  created_at     timestamptz not null default now()
+);
+create index if not exists insurance_claims_pet_idx on public.insurance_claims(pet_id, service_date desc);
+create index if not exists insurance_claims_policy_idx on public.insurance_claims(policy_id);
+
+alter table public.insurance_policies enable row level security;
+alter table public.insurance_claims   enable row level security;
+
+drop policy if exists "insurance_policies: owner all" on public.insurance_policies;
+create policy "insurance_policies: owner all" on public.insurance_policies
+  for all
+  using (owner_id = auth.uid() and public.owns_pet(pet_id))
+  with check (owner_id = auth.uid() and public.owns_pet(pet_id));
+
+drop policy if exists "insurance_claims: owner all" on public.insurance_claims;
+create policy "insurance_claims: owner all" on public.insurance_claims
+  for all
+  using (owner_id = auth.uid() and public.owns_pet(pet_id))
+  with check (owner_id = auth.uid() and public.owns_pet(pet_id));
