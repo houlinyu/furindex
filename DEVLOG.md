@@ -43,7 +43,7 @@ dashboard branches on `process.env.ANTHROPIC_API_KEY` server-side.
 - Deploy (Vercel), then `gh repo edit --homepage <url>`.
 - Register the Sundai project page and fill `SUNDAI_PROJECT_URL` in
   `src/lib/links.ts`.
-- Naming: Supabase project is "FurIndex", app is branded "Petfolio". Pick one.
+- Naming: Supabase project is "FurIndex", app is branded "FurIndex". Pick one.
 
 ---
 

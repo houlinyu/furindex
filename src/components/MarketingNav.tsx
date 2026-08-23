@@ -5,7 +5,7 @@ export default function MarketingNav({ signedIn }: { signedIn: boolean }) {
     <header className="border-b border-[var(--border)]">
       <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-4">
         <Link href="/" className="font-semibold tracking-tight">
-          🐾 Petfolio
+          🐾 FurIndex
         </Link>
         <nav className="ml-auto flex items-center gap-5 text-sm">
           <Link href="/compare" className="muted hover:text-brand-600">

@@ -3,7 +3,7 @@ import MarketingNav from "@/components/MarketingNav";
 import { getUser } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "How Petfolio is different — Petfolio",
+  title: "How FurIndex is different — FurIndex",
   description:
     "An honest look at the pet health market, what the existing categories do well, and the gap none of them fill.",
 };

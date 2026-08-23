@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Petfolio — pet health records",
+  title: "FurIndex — pet health records",
   description:
     "One place for your pet's vaccinations, medications, weight and vet visits.",
 };

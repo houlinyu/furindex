@@ -13,7 +13,7 @@ export default function AppShell({
       <header className="border-b border-[var(--border)]">
         <div className="mx-auto flex max-w-4xl items-center gap-6 px-4 py-3">
           <Link href="/dashboard" className="font-semibold tracking-tight">
-            🐾 Petfolio
+            🐾 FurIndex
           </Link>
           <nav className="flex gap-4 text-sm">
             <Link href="/dashboard" className="muted hover:text-brand-600">

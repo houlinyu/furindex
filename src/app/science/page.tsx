@@ -3,7 +3,7 @@ import MarketingNav from "@/components/MarketingNav";
 import { getUser } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Personalised medicine is coming for pets — Petfolio",
+  title: "Personalised medicine is coming for pets — FurIndex",
   description:
     "What a personalised cancer vaccine is, why veterinary oncology is a credible place for it, and what has to exist first.",
 };
@@ -175,7 +175,7 @@ export default async function SciencePage() {
 
         <p className="muted mt-3 text-sm leading-relaxed">
           We want to be exact about this, because health-tech routinely overclaims.
-          <strong> Petfolio is not a therapy, a diagnostic, or medical advice.</strong>{" "}
+          <strong> FurIndex is not a therapy, a diagnostic, or medical advice.</strong>{" "}
           We do not sequence anything. We will never tell you your animal has cancer.
         </p>
 

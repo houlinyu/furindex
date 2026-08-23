@@ -1,4 +1,4 @@
-# 🐾 Petfolio
+# 🐾 FurIndex
 
 A pet health record app — vaccinations, medications, weight trends and vet
 visits for the animals in your life. Built for **Sundai**.

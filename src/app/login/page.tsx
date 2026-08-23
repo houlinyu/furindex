@@ -7,7 +7,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="text-4xl">🐾</div>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight">Petfolio</h1>
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight">FurIndex</h1>
           <p className="muted mt-1 text-sm">
             Vaccinations, meds, weight and vet visits — in one place.
           </p>

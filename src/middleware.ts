@@ -12,6 +12,38 @@ const PUBLIC_EXACT = ["/", "/partners", "/science", "/compare"];
  * only place the refreshed session token actually gets persisted.
  */
 export async function middleware(request: NextRequest) {
+  // Optional shared-password gate for test deploys. Unset in local dev and in
+  // production, this is a no-op — the app's own auth is the real access control.
+  // Set SITE_PASSWORD in Vercel to keep a preview deploy off the open internet.
+  const gate = process.env.SITE_PASSWORD;
+  if (gate) {
+    const provided = request.cookies.get("site_gate")?.value;
+    const viaQuery = request.nextUrl.searchParams.get("k");
+
+    if (viaQuery === gate) {
+      const url = request.nextUrl.clone();
+      url.searchParams.delete("k");
+      const res = NextResponse.redirect(url);
+      res.cookies.set("site_gate", gate, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: true,
+        maxAge: 60 * 60 * 24 * 30,
+      });
+      return res;
+    }
+    if (provided !== gate) {
+      return new NextResponse(
+        "<!doctype html><meta name=viewport content='width=device-width'>" +
+          "<div style=\"font:16px system-ui;max-width:32rem;margin:20vh auto;padding:0 1.5rem;text-align:center\">" +
+          "<div style=font-size:2rem>🐾</div>" +
+          "<h1 style=\"font-size:1.1rem;margin:.75rem 0\">FurIndex — private preview</h1>" +
+          "<p style=color:#666>This build is shared with the team only. Open the link you were given, including its <code>?k=</code> part.</p></div>",
+        { status: 401, headers: { "content-type": "text/html; charset=utf-8" } }
+      );
+    }
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

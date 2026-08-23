@@ -4,7 +4,7 @@ import { CONTACT_EMAIL } from "@/lib/links";
 import { getUser } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Partners — Petfolio",
+  title: "Partners — FurIndex",
   description: "Integrate with an owner-permissioned, longitudinal pet health record.",
 };
 
@@ -131,7 +131,7 @@ export default async function PartnersPage() {
           Tell us what you&apos;d want to write into it
         </h2>
         <a
-          href={`mailto:${CONTACT_EMAIL}?subject=Petfolio%20partnership`}
+          href={`mailto:${CONTACT_EMAIL}?subject=FurIndex%20partnership`}
           className="mt-6 inline-block rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
         >
           Start a conversation

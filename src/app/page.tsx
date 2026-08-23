@@ -29,7 +29,7 @@ export default async function LandingPage() {
           <span className="text-brand-600">from a photo of the paperwork.</span>
         </h1>
         <p className="muted mx-auto mt-5 max-w-xl text-base leading-relaxed">
-          Vet visits generate paper. Petfolio reads it — the vaccinations, the
+          Vet visits generate paper. FurIndex reads it — the vaccinations, the
           dosages, the weight, the next-due dates — and turns it into a record
           that reminds you before things lapse.
         </p>
@@ -209,7 +209,7 @@ export default async function LandingPage() {
 
           <div className="mt-8">
             <a
-              href={`mailto:${CONTACT_EMAIL}?subject=Petfolio%20partnership`}
+              href={`mailto:${CONTACT_EMAIL}?subject=FurIndex%20partnership`}
               className="inline-block rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
             >
               Talk to us about integrating
@@ -233,7 +233,7 @@ export default async function LandingPage() {
           {ctaLabel}
         </Link>
         <div className="muted mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs">
-          <span>🐾 Petfolio</span>
+          <span>🐾 FurIndex</span>
           <span aria-hidden>·</span>
           <a
             href={SUNDAI_PROJECT_URL}
