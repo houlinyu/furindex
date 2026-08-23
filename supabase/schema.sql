@@ -727,3 +727,53 @@ create policy "feeding_logs: owner all" on public.feeding_logs
   for all
   using (owner_id = auth.uid() and public.owns_pet(pet_id))
   with check (owner_id = auth.uid() and public.owns_pet(pet_id));
+-- ============================================================================
+-- Rate limiting for the public, unauthenticated breed-scan endpoint.
+-- PURELY ADDITIVE.
+--
+-- The endpoint costs money per call and requires no account, so without this a
+-- single script can run up a bill overnight. Counted per hashed IP per hour.
+-- We store a SHA-256 of (ip + a server-side salt), never the address itself:
+-- enough to rate limit, not enough to identify anyone or to be worth stealing.
+-- ============================================================================
+
+create table if not exists public.scan_rate_limit (
+  ip_hash    text not null,
+  window_start timestamptz not null,
+  count      integer not null default 1 check (count >= 0),
+  primary key (ip_hash, window_start)
+);
+create index if not exists scan_rate_limit_window_idx on public.scan_rate_limit(window_start);
+
+alter table public.scan_rate_limit enable row level security;
+-- No policies at all: this table is only ever touched by the server via the
+-- SECURITY DEFINER function below. Anon and authenticated keys can do nothing.
+
+create or replace function public.claim_scan_slot(
+  p_ip_hash text,
+  p_limit   integer default 5
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_window timestamptz := date_trunc('hour', now());
+  v_count  integer;
+begin
+  insert into public.scan_rate_limit (ip_hash, window_start, count)
+  values (p_ip_hash, v_window, 1)
+  on conflict (ip_hash, window_start)
+    do update set count = public.scan_rate_limit.count + 1
+  returning count into v_count;
+
+  -- Opportunistic cleanup; this table should never grow unbounded.
+  delete from public.scan_rate_limit where window_start < now() - interval '2 days';
+
+  return v_count <= p_limit;
+end;
+$$;
+
+revoke all on function public.claim_scan_slot(text, integer) from public;
+grant execute on function public.claim_scan_slot(text, integer) to anon, authenticated;

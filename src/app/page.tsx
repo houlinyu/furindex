@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getUser } from "@/lib/supabase/server";
 import MarketingNav from "@/components/MarketingNav";
 import FeatureShowcase from "@/components/FeatureShowcase";
+import BreedScanWidget from "@/components/BreedScanWidget";
 import {
   SUNDAI_PROJECT_URL,
   GITHUB_REPO_URL,
@@ -50,6 +51,13 @@ export default async function LandingPage() {
         <p className="muted mt-4 text-xs">
           No card required · Your records stay private by default
         </p>
+
+        <div className="mx-auto mt-14 max-w-xl text-left">
+          <p className="muted mb-3 text-center text-xs font-medium uppercase tracking-widest">
+            Try it now — no sign-up
+          </p>
+          <BreedScanWidget />
+        </div>
       </section>
 
       {/* ---------------------------------------------------------- how ---- */}

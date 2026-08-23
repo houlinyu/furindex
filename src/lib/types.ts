@@ -248,6 +248,7 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       owns_pet: { Args: { p_pet_id: string }; Returns: boolean };
+      claim_scan_slot: { Args: { p_ip_hash: string; p_limit: number }; Returns: boolean };
     };
     Enums: {
       pet_species: PetSpecies;
