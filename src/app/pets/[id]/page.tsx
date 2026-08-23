@@ -4,11 +4,13 @@ import AppShell from "@/components/AppShell";
 import RecordTabs from "@/components/RecordTabs";
 import WeightChart from "@/components/WeightChart";
 import CustomFields from "@/components/CustomFields";
+import PetDocumentDrop from "@/components/PetDocumentDrop";
 import DeletePetButton from "@/components/DeletePetButton";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, SPECIES_LABEL, ageFromBirthDate, formatDate } from "@/lib/format";
 import type {
   CustomValue,
+  PetDocument,
   FieldDefinition,
   Medication,
   Pet,
@@ -25,7 +27,8 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
   const { data: pet } = await supabase.from("pets").select("*").eq("id", id).maybeSingle();
   if (!pet) notFound();
 
-  const [vaccinations, medications, weights, visits, customValues, definitions] =
+  const extractionEnabled = !!process.env.ANTHROPIC_API_KEY;
+  const [vaccinations, medications, weights, visits, customValues, definitions, docs] =
     await Promise.all([
     supabase.from("vaccinations").select("*").eq("pet_id", id).order("administered_on", { ascending: false }),
     supabase.from("medications").select("*").eq("pet_id", id).order("start_date", { ascending: false }),
@@ -37,6 +40,11 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         .eq("pet_id", id)
         .order("recorded_on", { ascending: false }),
       supabase.from("field_definitions").select("*").order("label"),
+      supabase
+        .from("documents")
+        .select("*")
+        .eq("pet_id", id)
+        .order("created_at", { ascending: false }),
     ]);
 
   const p = pet as Pet;
@@ -86,6 +94,12 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
           </div>
         </section>
       )}
+
+      <PetDocumentDrop
+        pet={p}
+        documents={(docs.data ?? []) as PetDocument[]}
+        extractionEnabled={extractionEnabled}
+      />
 
       <CustomFields
         definitions={(definitions.data ?? []) as FieldDefinition[]}

@@ -21,13 +21,22 @@ const EXT: Record<string, string> = {
 
 type Phase = "idle" | "uploading" | "reading" | "error";
 
-export default function ReportUpload({ pets }: { pets: Pet[] }) {
+export default function ReportUpload({
+  pets,
+  fixedPetId = null,
+  compact = false,
+}: {
+  pets: Pet[];
+  /** When set, the upload is filed against this pet and the picker is hidden. */
+  fixedPetId?: string | null;
+  compact?: boolean;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [petId, setPetId] = useState<string>("");
+  const [petId, setPetId] = useState<string>(fixedPetId ?? "");
 
   async function handleFile(file: File) {
     setError(null);
@@ -75,7 +84,7 @@ export default function ReportUpload({ pets }: { pets: Pet[] }) {
           filename: file.name,
           mimeType: file.type,
           sizeBytes: file.size,
-          petId: petId || null,
+          petId: fixedPetId ?? petId ?? null,
         });
       } catch (regErr) {
         // The file is already in the bucket. Without this it would sit there
@@ -122,7 +131,7 @@ export default function ReportUpload({ pets }: { pets: Pet[] }) {
         onKeyDown={(e) => {
           if ((e.key === "Enter" || e.key === " ") && !busy) inputRef.current?.click();
         }}
-        className={`card cursor-pointer border-dashed px-6 py-10 text-center transition ${
+        className={`card cursor-pointer border-dashed ${compact ? "px-4 py-6" : "px-6 py-10"} text-center transition ${
           dragging ? "border-brand-500 bg-brand-50/50" : "hover:border-brand-300"
         } ${busy ? "pointer-events-none opacity-70" : ""}`}
       >
@@ -164,7 +173,7 @@ export default function ReportUpload({ pets }: { pets: Pet[] }) {
         )}
       </div>
 
-      {pets.length > 0 && !busy && (
+      {pets.length > 0 && !busy && !fixedPetId && (
         <div className="mt-3 flex items-center gap-2 text-xs">
           <label htmlFor="upload-pet" className="muted">
             File under
