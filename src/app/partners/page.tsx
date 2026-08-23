@@ -13,16 +13,18 @@ const TRACKS = [
     icon: "⌚",
     title: "Wearables & sensors",
     lede: "Telemetry that lands beside clinical history, not in a separate app.",
-    body: `Activity, resting heart rate, sleep, respiratory rate, temperature. Our
-      user-defined field layer already stores arbitrary typed time series per
-      animal — a device partner writes into the same structure a vet report does.
-      The owner sees a resting-heart-rate trend on the same page as the vaccination
-      history, which is where it becomes clinically meaningful rather than a number
-      in a fitness app.`,
-    fit: `A natural adjacency for companies already shipping human wearables: the
-      sensing stack, the manufacturing and the app scaffolding all transfer. What
-      doesn't transfer is the health-record layer — the thing that turns a stream
-      of numbers into something a vet will read. That's what we built.`,
+    body: `Activity and sleep are near-universal on collars today; real vitals are
+      rarer than the marketing suggests — resting heart rate is mostly inferred
+      from motion, and true body temperature is essentially PetPace alone. Whatever
+      you measure, our user-defined field layer stores arbitrary typed time series
+      per animal, so a device partner writes into the same structure a vet report
+      does.`,
+    fit: `The recurring complaint in collar reviews is not the sensor — it is that
+      the app shows today's number with no weekly trend, no history beyond 90 days,
+      and no benchmark against similar animals. That layer is what we built, and
+      building it is not what hardware teams are good at. FitBark's OAuth API is
+      the one open door today; most others are closed, so realistic ingestion is
+      often owner-initiated export rather than a vendor deal.`,
   },
   {
     icon: "🩺",

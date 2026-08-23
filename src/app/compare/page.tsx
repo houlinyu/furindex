@@ -8,7 +8,7 @@ export const metadata = {
     "An honest look at the pet health market, what the existing categories do well, and the gap none of them fill.",
 };
 
-const CATEGORIES = [
+const CATEGORIES_HEAD = [
   {
     icon: "🏥",
     name: "Clinic-branded owner apps",
@@ -19,9 +19,9 @@ const CATEGORIES = [
   {
     icon: "⌚",
     name: "Wearables & trackers",
-    examples: "Whistle, Fi, Tractive",
-    good: "Genuinely good hardware. Continuous, objective signal that no owner could produce by hand — activity, location, sleep, sometimes vitals.",
-    gap: "A stream of numbers with no clinical context beside it. Resting heart rate means little without the medication list and the vet's note from March. The data lives in its own app and dies there.",
+    examples: "Tractive (1.4M+ users), Fi, FitBark, PetPace",
+    good: "Genuinely good hardware. Continuous, objective signal no owner could produce by hand — activity, location, sleep, and on a couple of devices real vitals.",
+    gap: "Closed silos, and the data dies with the device. Mars sold Whistle to Tractive in 2025 and every Whistle collar was switched off on 31 August 2025. Tractive has no public API at all. Fi's is undocumented and caps history at 90 days. Owners are told their pet's history matters, then given no way to keep it.",
   },
   {
     icon: "🧬",
@@ -46,33 +46,38 @@ const CATEGORIES = [
   },
 ];
 
+const EXTRACTION_NOTE = {
+  icon: "🤖",
+  name: "AI record-scanning apps",
+  examples: "MyPetID, VetGPT, AnimalDossier, PetVax AI, VetKeep, PawsAI, PetRecord.ai",
+  good: "They do the same core trick we do — photograph a vet document, get structured records. Several are free. MyPetID is free permanently, funded by brand partnerships.",
+  gap: "Most auto-save whatever the model returned. VetKeep advertises \u201cNo manual entry\u201d; PawsAI is \u201cone tap to save.\u201d Extraction runs 95\u201399% on clean print but 65\u201390% on handwriting \u2014 and vaccine cards are usually handwritten. Every one of them also has a fixed schema you cannot extend.",
+};
+
 const DIFFS = [
   {
-    icon: "📄",
-    t: "We read the paperwork you already have",
-    b: "Point a phone at the discharge sheet. Vaccinations, dosages, weight, next-due dates come out structured. The competing apps ask you to type it; that's the step where people quit.",
+    icon: "✅",
+    t: "Extraction proposes. You decide.",
+    b: "This is the whole argument. Accuracy is 95–99% on clean print but 65–90% on handwriting and 60–85% on prescriptions — and vaccine cards are handwritten. There are documented veterinary-AI cases of invented drug names and a dose calculated for a 60lb dog given to a 9lb Yorkie. Competitors advertise one-tap saving. We show you every line, and low-confidence reads arrive with nothing pre-ticked.",
   },
   {
     icon: "🧩",
     t: "The schema grows from your documents",
-    b: "Every other app ships a fixed set of fields someone else chose. Accept a measurement off a report — blood glucose, body condition score, dental grade — and it becomes a field you track, and the next report with that label lines up with it automatically.",
+    b: "Accept a measurement off a report — blood glucose, body condition score, dental grade — and it becomes a field you track, with the next report carrying that label lining up automatically. Apps with custom fields have no extraction; apps with extraction have fixed schemas. We could not find one with both.",
   },
   {
-    icon: "🔗",
-    t: "Owner-held, not practice-held",
-    b: "The record is yours and crosses clinics, cities and countries. Every partner integration is an explicit, revocable grant — never a default.",
+    icon: "🔓",
+    t: "Your data leaves when you do",
+    b: "The loudest complaint in this market is not typing — it is losing access. Owners of one 500k-install app woke up to their pets' history behind a new paywall. A million Whistle collars were switched off in August 2025. Portability is the promise that actually matters here.",
   },
   {
     icon: "🧾",
     t: "Provenance on every row",
-    b: "Each extracted record points back at the document it came from. You can always ask where a number came from — which matters for a claim, a second opinion, or a trial enrolment.",
-  },
-  {
-    icon: "✅",
-    t: "Extraction proposes, the owner decides",
-    b: "Nothing auto-writes. Low-confidence reads arrive with nothing pre-ticked. We would rather be slower than silently wrong about a dosage.",
+    b: "Each extracted record points back at the document it came from, so you can always ask where a number came from — for a claim, a second opinion, or a trial enrolment.",
   },
 ];
+
+const CATEGORIES = [EXTRACTION_NOTE, ...CATEGORIES_HEAD];
 
 export default async function ComparePage() {
   const user = await getUser();
@@ -86,12 +91,16 @@ export default async function ComparePage() {
           The landscape
         </p>
         <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
-          Plenty of pet apps. Almost no pet <span className="text-brand-600">records</span>.
+          Reading the paperwork is the easy part.
+          <br />
+          <span className="text-brand-600">Being trusted with it isn&apos;t.</span>
         </h1>
         <p className="muted mt-5 text-base leading-relaxed">
-          The pet health market is not empty — it is fragmented. Each category holds
-          one slice of the picture and has little reason to give it up. Below is what
-          each does well, and the specific thing none of them do.
+          We checked, honestly. As of August 2026 at least a dozen apps already
+          extract vet documents with AI, and one company sells it as an API to
+          anyone who wants it. So &ldquo;we use AI to read vet records&rdquo; is not a
+          claim worth making. Here is the real landscape, and the narrower thing we
+          think is actually ours.
         </p>
       </section>
 
@@ -146,6 +155,29 @@ export default async function ComparePage() {
         </div>
       </section>
 
+      <section className="border-y border-[var(--border)] bg-brand-50/30">
+        <div className="mx-auto max-w-3xl px-5 py-14">
+          <h2 className="text-xl font-semibold tracking-tight">
+            The lane that is actually empty
+          </h2>
+          <p className="muted mt-3 text-sm leading-relaxed">
+            Almost every pet app with real scale is one your vet chose for you.
+            PetDesk has over a million installs and is entirely clinic-gated: no
+            participating clinic, no records — and changing vets means losing them.
+            VitusVet has a six-figure install base and has not shipped an iOS
+            release since April 2023.
+          </p>
+          <p className="muted mt-3 text-sm leading-relaxed">
+            Owner-held records at scale is a lane with almost nobody in it. Two apps
+            have meaningful users; every other entrant is under a thousand installs.
+            That is not because the idea is bad — it is because owner-held records
+            are hard to fill without a clinic feeding them. Reading the owner&apos;s
+            own paperwork is the way in, which is why a dozen teams are suddenly
+            trying it.
+          </p>
+        </div>
+      </section>
+
       {/* Being straight about this is more persuasive than pretending otherwise. */}
       <section className="mx-auto max-w-3xl px-5 py-14">
         <h2 className="text-xl font-semibold tracking-tight">
@@ -160,6 +192,12 @@ export default async function ComparePage() {
             <strong>Distribution.</strong> Clinic apps are handed to owners by their
             vet at the moment of highest intent. We have no such channel yet — which
             is exactly why the clinic partnership matters more to us than to them.
+          </li>
+          <li>
+            <strong>Our core feature is not rare.</strong> A dozen apps extract vet
+            documents, and Pawssier sells the capability as an API, so any incumbent
+            can add it in a weekend. What we are betting on is not the trick — it is
+            the handling of it.
           </li>
           <li>
             <strong>No hardware.</strong> We generate no data of our own. We are a

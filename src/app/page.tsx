@@ -157,14 +157,15 @@ export default async function LandingPage() {
               <div className="text-2xl">⌚</div>
               <p className="mt-3 font-medium">Wearables &amp; sensors</p>
               <p className="muted mt-2 text-sm leading-relaxed">
-                Activity, resting heart rate, sleep, temperature. Our user-defined
-                field layer already stores arbitrary typed time series per animal —
-                a device partner writes into the same structure a vet report does,
-                so telemetry sits beside clinical history instead of in a separate app.
+                Collars measure activity and sleep well; vitals are rarer than the
+                marketing implies. Whatever a device captures, our user-defined field
+                layer stores it as a typed time series beside the clinical history,
+                instead of stranding it in a separate app.
               </p>
               <p className="muted mt-3 text-xs">
-                Natural fit for makers already shipping human wearables: the sensing
-                stack transfers, the health-record layer is what&apos;s missing.
+                Reviewers&apos; loudest complaint about these devices is the missing
+                trend layer — today&apos;s number, no weekly summary, history capped
+                at 90 days. That is the part we built.
               </p>
             </div>
 
