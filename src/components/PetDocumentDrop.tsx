@@ -39,22 +39,16 @@ export default function PetDocumentDrop({
         )}
       </p>
 
-      {extractionEnabled ? (
-        <ReportUpload pets={[]} fixedPetId={pet.id} compact />
-      ) : (
-        <div className="card p-4 text-center">
-          <div className="text-2xl">📄</div>
-          <p className="mt-2 text-sm font-medium">See how a report becomes a record</p>
-          <p className="muted mx-auto mt-1 max-w-md text-xs leading-relaxed">
-            Reading your own uploads needs an Anthropic API key, which isn&apos;t
-            configured here. The sample runs the identical review-and-confirm flow on
-            a real vet report, so you can see exactly what you would get. Records can
-            be added by hand at any time.
-          </p>
-          <div className="mt-3">
-            <SampleReportButton primary />
-          </div>
-        </div>
+      {/* Always present. Not being able to READ a document is no reason to
+          refuse to KEEP it — the stored, exportable file is most of the value,
+          and gating this on the API key removed the only upload control in the
+          app. */}
+      <ReportUpload pets={[]} fixedPetId={pet.id} compact />
+
+      {!extractionEnabled && (
+        <p className="muted mt-2 text-xs">
+          Curious what automatic reading does? <SampleReportButton primary={false} />
+        </p>
       )}
 
       {documents.length > 0 && (
