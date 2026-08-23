@@ -90,12 +90,12 @@ export default async function LandingPage() {
             ))}
           </ol>
 
-          <div className="card mx-auto mt-10 max-w-2xl p-5">
-            <p className="text-sm font-medium">Why the confirmation step is not optional</p>
+          <div className="card mx-auto mt-10 max-w-2xl p-5 text-center">
+            <p className="text-sm font-medium">You always have the last word</p>
             <p className="muted mt-2 text-sm leading-relaxed">
-              A model that misreads &ldquo;0.5 mg&rdquo; as &ldquo;5 mg&rdquo; must never write that
-              to a medication record unseen. Extraction proposes; the owner decides.
-              Low-confidence reads arrive with nothing pre-ticked.
+              Every line is yours to keep or drop before it reaches your pet&apos;s
+              record. Other apps save whatever the model returned in one tap — we
+              think a health record is worth the extra three seconds.
             </p>
           </div>
         </div>

@@ -5,11 +5,14 @@ import RecordTabs from "@/components/RecordTabs";
 import WeightChart from "@/components/WeightChart";
 import CustomFields from "@/components/CustomFields";
 import PetDocumentDrop from "@/components/PetDocumentDrop";
+import InsuranceSection from "@/components/InsuranceSection";
 import DeletePetButton from "@/components/DeletePetButton";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, SPECIES_LABEL, ageFromBirthDate, formatDate } from "@/lib/format";
 import type {
   CustomValue,
+  InsuranceClaim,
+  InsurancePolicy,
   PetDocument,
   FieldDefinition,
   Medication,
@@ -28,8 +31,17 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
   if (!pet) notFound();
 
   const extractionEnabled = !!process.env.ANTHROPIC_API_KEY;
-  const [vaccinations, medications, weights, visits, customValues, definitions, docs] =
-    await Promise.all([
+  const [
+    vaccinations,
+    medications,
+    weights,
+    visits,
+    customValues,
+    definitions,
+    docs,
+    policies,
+    claims,
+  ] = await Promise.all([
     supabase.from("vaccinations").select("*").eq("pet_id", id).order("administered_on", { ascending: false }),
     supabase.from("medications").select("*").eq("pet_id", id).order("start_date", { ascending: false }),
     supabase.from("weight_logs").select("*").eq("pet_id", id).order("recorded_on", { ascending: true }),
@@ -45,6 +57,12 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         .select("*")
         .eq("pet_id", id)
         .order("created_at", { ascending: false }),
+      supabase.from("insurance_policies").select("*").eq("pet_id", id).order("created_at"),
+      supabase
+        .from("insurance_claims")
+        .select("*")
+        .eq("pet_id", id)
+        .order("service_date", { ascending: false }),
     ]);
 
   const p = pet as Pet;
@@ -105,6 +123,21 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         definitions={(definitions.data ?? []) as FieldDefinition[]}
         values={(customValues.data ?? []) as CustomValue[]}
       />
+
+      <section className="mb-8">
+        <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
+          Insurance
+        </h2>
+        <p className="muted mb-3 text-xs">
+          Policy details and claim history, so a claim doesn&apos;t stall on paperwork
+          you can&apos;t find.
+        </p>
+        <InsuranceSection
+          petId={p.id}
+          policies={(policies.data ?? []) as InsurancePolicy[]}
+          claims={(claims.data ?? []) as InsuranceClaim[]}
+        />
+      </section>
 
       <RecordTabs
         petId={p.id}

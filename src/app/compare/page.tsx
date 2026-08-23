@@ -58,7 +58,7 @@ const DIFFS = [
   {
     icon: "✅",
     t: "Extraction proposes. You decide.",
-    b: "This is the whole argument. Accuracy is 95–99% on clean print but 65–90% on handwriting and 60–85% on prescriptions — and vaccine cards are handwritten. There are documented veterinary-AI cases of invented drug names and a dose calculated for a 60lb dog given to a 9lb Yorkie. Competitors advertise one-tap saving. We show you every line, and low-confidence reads arrive with nothing pre-ticked.",
+    b: "This is the whole argument, so here are the numbers. Extraction runs 95–99% on clean print, 65–90% on handwriting, 60–85% on prescriptions — and vaccine cards are handwritten. Veterinary AI has documented cases of invented drug names and a dose calculated for a 60lb dog given to a 9lb Yorkie. A model that reads 0.5 mg as 5 mg must never write that to a medication record unseen. Competitors advertise one-tap saving; we show you every line, and low-confidence reads arrive with nothing pre-ticked.",
   },
   {
     icon: "🧩",
