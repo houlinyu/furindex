@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { signInWithPassword, signUpWithPassword } from "@/app/auth-actions";
 
@@ -10,16 +9,18 @@ const field =
 
 type Mode = "password" | "magic";
 
-export default function LoginForm() {
-  const params = useSearchParams();
-  const next = params.get("next") ?? "/dashboard";
-  const urlError = params.get("error");
-
+export default function LoginForm({
+  next,
+  initialError,
+}: {
+  next: string;
+  initialError: string | null;
+}) {
   const [mode, setMode] = useState<Mode>("password");
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "working" | "sent">("idle");
-  const [error, setError] = useState<string | null>(urlError);
+  const [error, setError] = useState<string | null>(initialError);
 
   async function onPasswordSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

@@ -235,14 +235,20 @@ export default async function LandingPage() {
         <div className="muted mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs">
           <span>🐾 FurIndex</span>
           <span aria-hidden>·</span>
-          <a
-            href={SUNDAI_PROJECT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-4 hover:text-brand-600"
-          >
-            Built at Sundai{isPlaceholder(SUNDAI_PROJECT_URL) ? " (link TODO)" : ""}
-          </a>
+          {/* Until the project is registered, render plain text — a live link to
+              a REPLACE_ME URL is worse than no link. */}
+          {isPlaceholder(SUNDAI_PROJECT_URL) ? (
+            <span>Built at Sundai</span>
+          ) : (
+            <a
+              href={SUNDAI_PROJECT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4 hover:text-brand-600"
+            >
+              Built at Sundai
+            </a>
+          )}
           {REPO_IS_PUBLIC && (
             <>
               <span aria-hidden>·</span>

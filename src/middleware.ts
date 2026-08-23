@@ -71,9 +71,11 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+  // Segment-boundary match, not a bare startsWith — otherwise a future route
+  // called /login-admin or /authorize would silently become public.
   const isPublic =
     PUBLIC_EXACT.includes(pathname) ||
-    PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+    PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
