@@ -598,6 +598,9 @@ export type PetProfile = {
   track_interest: string[];
   completed_blocks: string[];
   created_at: string;
+  updated_at: string;
+};
+
 // ------------------------------------------------------- onboarding state --
 /**
  * Where an owner got to in the new-pet walkthrough. One row per pet.

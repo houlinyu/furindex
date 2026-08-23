@@ -23,8 +23,13 @@
  *   - a `vaccinations` row  — the medical record: this jab, this day.
  *   - a `care_reminders` row of kind 'vaccination' — the admin: poke me then.
  * Those are two different things and the schema already says so. The reminder's
- * due_on is the owner's chosen lead time BEFORE the real due date; the real due
- * date lives on the vaccination row and in the reminder's note.
+ * due_on is the vaccine's REAL due date. reminder_lead_days says how early to
+ * start surfacing it. An earlier version stored the poke date in due_on, which
+ * meant the reminders list, the dashboard and the printable vet summary all
+ * displayed a date two weeks before the vaccine was actually due — and those
+ * surfaces know nothing about this feature, so they had no way to correct it.
+ * A document someone hands their vet must not carry a date we shifted.
+ * The real due date also lives on the vaccination row and in the reminder note.
  *
  * ── WHAT IT DOES NOT DO ────────────────────────────────────────────────────
  * It does not decide anything medical. Every interval it uses arrived in the
@@ -351,10 +356,11 @@ export async function saveVaccineBlock(
       vaccine_key: def.key,
       title: reminderTitleFor(def),
       kind: "vaccination" as const,
-      // The "poke me" date, deliberately earlier than the real due date by the
-      // owner's chosen lead. The real one is recoverable as due_on +
-      // reminder_lead_days and is spelled out in the note below.
-      due_on: remindOn,
+      // The REAL due date. reminder_lead_days below controls how early it starts
+      // showing as coming up; it must not move the date itself — the reminders
+      // list, dashboard and printable vet summary all render due_on directly and
+      // know nothing about lead times.
+      due_on: computedDue,
       repeat_interval: repeatIntervalFor(intervalMonths),
       interval_months: intervalMonths,
       reminder_lead_days: leadDays,

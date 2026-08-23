@@ -7,6 +7,9 @@ import CustomFields from "@/components/CustomFields";
 import PetDocumentDrop from "@/components/PetDocumentDrop";
 import HealthSignals from "@/components/HealthSignals";
 import ReminderList from "@/components/ReminderList";
+import VaccineBlock from "@/components/VaccineBlock";
+import OnboardingNudge from "@/components/OnboardingNudge";
+import { loadOnboarding } from "@/lib/onboarding-store";
 import ReminderForm from "@/components/ReminderForm";
 import { todayISO } from "@/lib/reminders";
 import ActivityLogger from "@/components/ActivityLogger";
@@ -118,6 +121,8 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
 
   const p = pet as Pet;
   const journalEntries = (journal.data ?? []) as JournalEntry[];
+  // never throws — degrades to "not started" if the table is absent
+  const { progress: onboardingProgress } = await loadOnboarding(supabase, id);
   const photoUrl = await signedPetPhotoUrl(supabase, p.photo_url);
   const weightRows = (weights.data ?? []) as WeightLog[];
   const latestWeight = weightRows.at(-1);
@@ -187,6 +192,8 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         documentCount={docs.data?.length ?? 0}
       />
 
+      <OnboardingNudge pet={p} progress={onboardingProgress} />
+
       <PetProfileCard petId={p.id} petName={p.name} />
 
       <BreedFacts species={p.species} breed={p.breed} />
@@ -199,6 +206,13 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
           </div>
         </section>
       )}
+
+      <VaccineBlock
+        petId={p.id}
+        species={p.species}
+        vaccinations={(vaccinations.data ?? []) as Vaccination[]}
+        reminders={(reminders.data ?? []) as CareReminder[]}
+      />
 
       <section className="mb-8">
         <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
