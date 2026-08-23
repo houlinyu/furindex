@@ -39,7 +39,7 @@ const errored = async () => {
 };
 
 try {
-  for (const path of ["/", "/compare", "/science", "/partners", "/login"]) {
+  for (const path of ["/", "/compare", "/writing", "/writing/cancer-vaccine-for-one-dog", "/science", "/partners", "/login"]) {
     await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
     (await errored()) ? bad(`public ${path}`) : ok(`public ${path}`);
   }
