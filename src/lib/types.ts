@@ -251,6 +251,7 @@ export type Database = {
       feeding_plans: Row<FeedingPlan>;
       feeding_logs: Row<FeedingLog>;
       care_reminders: Row<CareReminder>;
+      pet_profiles: Row<PetProfile>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -268,6 +269,7 @@ export type Database = {
       food_unit: FoodUnit;
       care_kind: CareKind;
       care_interval: CareInterval;
+      profile_tristate: ProfileTristate;
     };
     CompositeTypes: { [_ in never]: never };
   };
@@ -541,3 +543,35 @@ export const REMINDER_PRESETS: ReminderPreset[] = [
     hint: "Clip, nails, or a wash — whatever you book on a cycle.",
   },
 ];
+
+// ------------------------------------------------------- profile questionnaire --
+/**
+ * yes / no / not sure. NULL on the column means "not answered" — which is a
+ * different thing from `not_sure`, and the questionnaire relies on the
+ * difference: everything in it is optional, so "didn't say" has to survive.
+ */
+export type ProfileTristate = "yes" | "no" | "not_sure";
+
+/**
+ * One row per pet. The array columns hold stable option KEYS from
+ * src/lib/pet-profile.ts, never display labels — see the schema comment.
+ * An empty array means "asked, nothing applied"; `completed_blocks` is what
+ * tells that apart from "never asked".
+ */
+export type PetProfile = {
+  pet_id: string;
+  owner_id: string;
+  personality: string[];
+  enjoys: string[];
+  has_conditions: ProfileTristate | null;
+  conditions: string[];
+  diet: string[];
+  routine: string[];
+  home_type: string[];
+  lives_with: string[];
+  uses_wearable: ProfileTristate | null;
+  track_interest: string[];
+  completed_blocks: string[];
+  created_at: string;
+  updated_at: string;
+};

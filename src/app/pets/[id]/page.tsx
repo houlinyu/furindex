@@ -18,6 +18,7 @@ import DeletePetButton from "@/components/DeletePetButton";
 import PetAvatar from "@/components/PetAvatar";
 import PetPhotoUpload from "@/components/PetPhotoUpload";
 import PetProgress from "@/components/PetProgress";
+import PetProfileCard from "@/components/PetProfileCard";
 import JournalTimeline from "@/components/JournalTimeline";
 import JournalPatterns from "@/components/JournalPatterns";
 import { hasEnoughTimedEntries } from "@/lib/journal-patterns";
@@ -185,6 +186,8 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         observationCount={journalEntries.length + (customValues.data?.length ?? 0)}
         documentCount={docs.data?.length ?? 0}
       />
+
+      <PetProfileCard petId={p.id} petName={p.name} />
 
       <BreedFacts species={p.species} breed={p.breed} />
 

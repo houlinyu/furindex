@@ -882,3 +882,113 @@ create policy "care_reminders: owner all" on public.care_reminders
   for all
   using (owner_id = auth.uid() and public.owns_pet(pet_id))
   with check (owner_id = auth.uid() and public.owns_pet(pet_id));
+
+-- ============================================================================
+-- Pet profile questionnaire (added 2026-08-23)
+--
+-- Seven short blocks of optional questions an owner answers about their animal:
+-- temperament, what it enjoys, reported conditions, diet, daily routine, home,
+-- and what they'd want a wearable to track. None of it is clinical and none of
+-- it is required.
+--
+-- WHY ONE ROW PER PET rather than a row per answer: every question here has
+-- exactly one answer per pet at a time, and the questions are a fixed set we
+-- author. A tall answers table would buy flexibility we don't need and cost a
+-- pivot on every read.
+--
+-- WHY text[] AND NOT jsonb: the whole point of collecting this is to be able to
+-- ask "how many anxious cats live in apartments" later. That is
+--   ... where 'anxious' = any(personality) and 'apartment' = any(home_type)
+-- against a GIN index, in SQL, with no JSON path expressions and no chance of
+-- a typo in a key silently matching nothing. jsonb would make the same question
+-- a string-matching exercise.
+--
+-- WHY KEYS AND NOT LABELS: the values stored are the stable keys defined in
+-- src/lib/pet-profile.ts ('joint_mobility'), never the display label
+-- ("Joint / mobility"). Labels get reworded — a reworded label must never
+-- fork a cohort in two.
+--
+-- Purely additive: nothing here alters or drops an existing object.
+-- ============================================================================
+
+-- yes / no / not sure. 'not_sure' is a real answer to "any current health
+-- conditions?", not a missing one — most owners genuinely don't know, and
+-- collapsing that into null would lose the difference between "I don't know"
+-- and "I didn't answer". NULL still means unanswered.
+do $$ begin
+  create type profile_tristate as enum ('yes','no','not_sure');
+exception when duplicate_object then null; end $$;
+
+create table if not exists public.pet_profiles (
+  -- Primary key, not a separate id: one profile per pet, enforced by the
+  -- database rather than by remembering to upsert correctly everywhere.
+  pet_id           uuid primary key references public.pets(id) on delete cascade,
+  owner_id         uuid not null references auth.users(id) on delete cascade,
+
+  -- Block 2 — personality & behaviour
+  personality      text[] not null default '{}',
+  enjoys           text[] not null default '{}',
+
+  -- Block 3 — health & medical history. Owner-reported, never a diagnosis.
+  -- `conditions` is only meaningful when has_conditions = 'yes'; the action
+  -- clears it otherwise so a stored list can never contradict the gate.
+  has_conditions   profile_tristate,
+  conditions       text[] not null default '{}',
+
+  -- Block 4 — nutrition. Multi-select on purpose: "dry + wet" is the common
+  -- real answer, and 'mixed' alone doesn't say mixed with what.
+  diet             text[] not null default '{}',
+
+  -- Block 5 — daily routine
+  routine          text[] not null default '{}',
+
+  -- Block 6 — environment & lifestyle
+  home_type        text[] not null default '{}',
+  lives_with       text[] not null default '{}',
+
+  -- Block 7 — activity & wearables
+  uses_wearable    profile_tristate,
+  track_interest   text[] not null default '{}',
+
+  -- Which blocks the owner has actually been through, including the ones they
+  -- skipped. WHY: an empty text[] cannot tell "asked, nothing applied" apart
+  -- from "never asked", and without that difference the pet page would go on
+  -- offering the questionnaire to someone who has already declined every block.
+  completed_blocks text[] not null default '{}',
+
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+
+-- The cohort questions this table exists to answer are "which pets have X in
+-- this array", which is a containment test — GIN, not btree. Only on the four
+-- columns worth slicing a population by; the rest are read per-pet through the
+-- primary key and would just be index to maintain.
+create index if not exists pet_profiles_personality_idx
+  on public.pet_profiles using gin (personality);
+create index if not exists pet_profiles_conditions_idx
+  on public.pet_profiles using gin (conditions);
+create index if not exists pet_profiles_home_type_idx
+  on public.pet_profiles using gin (home_type);
+create index if not exists pet_profiles_lives_with_idx
+  on public.pet_profiles using gin (lives_with);
+create index if not exists pet_profiles_owner_idx on public.pet_profiles(owner_id);
+
+-- Saving one block at a time means this row is written seven times over, so
+-- "when did they last touch this" has to come from a trigger rather than from
+-- whichever action remembered to set it.
+drop trigger if exists pet_profiles_touch_updated_at on public.pet_profiles;
+create trigger pet_profiles_touch_updated_at
+  before update on public.pet_profiles
+  for each row execute function public.touch_updated_at();
+
+alter table public.pet_profiles enable row level security;
+
+-- Same shape as custom_values: owner-scoped AND reachable only through a pet
+-- the caller owns. Both halves matter — owner_id alone would let a forged
+-- pet_id write a row pointing at someone else's animal.
+drop policy if exists "pet_profiles: owner all" on public.pet_profiles;
+create policy "pet_profiles: owner all" on public.pet_profiles
+  for all
+  using (owner_id = auth.uid() and public.owns_pet(pet_id))
+  with check (owner_id = auth.uid() and public.owns_pet(pet_id));

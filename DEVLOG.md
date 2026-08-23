@@ -55,6 +55,45 @@ the pet and leaves nothing behind for the next one. `npm run smoke` passes.
 has none — the breed-carrying branch was exercised by injecting the same intent
 the scanner writes). Magic-link sign-in that opens in a NEW tab loses the
 intent by design; the form simply arrives blank.
+## 2026-08-23 (pet profile questionnaire) — hyu
+
+**Seven-block optional profile questionnaire, resumed from an interrupted
+session and finished.** Branch `feat/profile-quiz`.
+
+**What it is.** `/pets/[id]/profile`, one block per screen: basics (the pet row
+itself), personality & behaviour, health & medical history, nutrition, daily
+routine, environment & lifestyle, activity & wearables. Every block has a real
+Skip in the same row and at the same size as Continue, Back is a submit so
+going back saves the screen on the way out, and each block writes on its own —
+closing the tab loses at most the screen on the display. Progress is stated as
+"3 of 7", never as a percentage; there is nothing here to score.
+
+**Storage.** New `pet_profiles` table, one row per pet, `text[]` per
+multi-select and a `profile_tristate` enum per yes/no/not-sure. Stores stable
+option keys, never labels. See DECISIONS #7 for why arrays and not jsonb.
+**The migration has NOT been applied to the shared Supabase project** — the
+schema.sql addition is purely additive (no ALTER, no DROP) and needs pasting
+into the project before this branch does anything on a deploy. Until then the
+quiz renders and says plainly that saving will fail; it does not crash.
+
+**Not wired into the pet page.** `PetProfileCard` exists and is ready, but
+`src/app/pets/[id]/page.tsx` was off-limits this session. Two-line wiring
+instructions are in the PR description.
+
+**Also fixed, unrelated but latent:** `src/app/search-actions.ts` exported a
+constant (`HIT_ICON`) from a `"use server"` module — the exact shape that 500'd
+the dashboard in e9fb36d. Nothing imported it. `scripts/check-server-actions.mjs`
+now runs as part of `npm run build` and fails the build on that pattern, and on
+a server module importing a non-component value from a `"use client"` module.
+It was written for this and caught that on its first run.
+
+**Verified in a real browser** against the live project (registration, pet
+creation, graceful degradation with the table absent) and against a local
+PostgREST stand-in for `pet_profiles` (all seven blocks, persistence across a
+reload, Skip storing nothing, Back losing nothing, re-entry showing existing
+answers). What is NOT verified: the SQL itself has never been run — no Postgres
+on this box and no service-role key. Read the additive block once before pasting
+it.
 
 ---
 
