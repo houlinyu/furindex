@@ -13,7 +13,12 @@ export default async function SciencePage() {
 
   return (
     <div className="min-h-screen">
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
       <MarketingNav signedIn={!!user} />
+
+      <main id="main">
 
       {/* ---------------------------------------------------------- hero --- */}
       <section className="mx-auto max-w-3xl px-5 pb-10 pt-16">
@@ -23,7 +28,7 @@ export default async function SciencePage() {
         <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
           Personalised cancer medicine is arriving for humans.
           <br />
-          <span className="text-brand-600">Dogs may get there faster.</span>
+          <span className="text-[var(--brand-text)]">Dogs may get there faster.</span>
         </h1>
         <p className="muted mt-5 text-base leading-relaxed">
           Not as a metaphor. Veterinary oncology already has a licensed therapeutic
@@ -223,13 +228,13 @@ export default async function SciencePage() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/partners"
-            className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
+            className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
           >
             Partner with us
           </Link>
           <Link
             href={user ? "/dashboard" : "/login"}
-            className="rounded-lg border border-[var(--border)] px-5 py-2.5 text-sm font-medium hover:border-brand-500 hover:text-brand-600"
+            className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-5 py-2.5 text-sm font-medium hover:border-brand-500 hover:text-[var(--brand-text)]"
           >
             Start a record
           </Link>
@@ -249,6 +254,7 @@ export default async function SciencePage() {
           </p>
         </div>
       </section>
+      </main>
     </div>
   );
 }

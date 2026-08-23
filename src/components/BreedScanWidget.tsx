@@ -123,11 +123,11 @@ export default function BreedScanWidget() {
           </p>
           <Link
             href="/login"
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >
             Start a free record
           </Link>
-          <button onClick={reset} className="muted text-xs underline underline-offset-4">
+          <button onClick={reset} className="inline-flex min-h-11 items-center muted text-xs underline underline-offset-4">
             Try another
           </button>
         </div>
@@ -198,7 +198,7 @@ export default function BreedScanWidget() {
 
       {error && (
         <p
-          className={`mt-3 text-sm ${phase === "off" ? "muted" : "text-red-600"}`}
+          className={`mt-3 text-sm ${phase === "off" ? "muted" : "text-red-600 dark:text-red-400"}`}
           role="alert"
         >
           {error}

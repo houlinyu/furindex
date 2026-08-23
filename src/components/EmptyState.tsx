@@ -21,7 +21,7 @@ export default function EmptyState({
       {href && cta && (
         <Link
           href={href}
-          className="mt-5 inline-block rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          className="inline-flex min-h-11 items-center mt-5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
         >
           {cta}
         </Link>

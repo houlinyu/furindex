@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { removePetPhoto, setPetPhoto } from "@/app/pet-actions";
@@ -37,6 +37,7 @@ export default function PetPhotoUpload({
   const [url, setUrl] = useState<string | null>(photoUrl);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorId = useId();
 
   async function handleFile(file: File) {
     setError(null);
@@ -114,13 +115,19 @@ export default function PetPhotoUpload({
         <PetAvatar pet={pet} photoUrl={url} size="lg" />
 
         <div className="min-w-0">
+          {/* sr-only, so a focus ring on it would land on nothing visible —
+              tabIndex={-1} takes it out of the tab order. The <label for> above
+              and the button below both still activate it. */}
           <input
             ref={inputRef}
             id="pet-photo"
             type="file"
             accept={ACCEPT}
             className="sr-only"
+            tabIndex={-1}
             disabled={busy}
+            aria-describedby={error ? errorId : undefined}
+            aria-invalid={error ? true : undefined}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) handleFile(file);
@@ -134,7 +141,7 @@ export default function PetPhotoUpload({
               type="button"
               disabled={busy}
               onClick={() => inputRef.current?.click()}
-              className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium hover:border-brand-500 hover:text-brand-600 disabled:opacity-60"
+              className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium hover:border-brand-500 hover:text-[var(--brand-text)] disabled:opacity-60"
             >
               {busy ? "Working…" : url ? "Replace photo" : "Upload a photo"}
             </button>
@@ -143,7 +150,7 @@ export default function PetPhotoUpload({
               <button
                 type="button"
                 onClick={handleRemove}
-                className="muted text-xs underline underline-offset-4 hover:text-red-600"
+                className="muted inline-flex min-h-11 items-center text-xs underline underline-offset-4 hover:text-red-600 dark:hover:text-red-400"
               >
                 Remove
               </button>
@@ -158,7 +165,7 @@ export default function PetPhotoUpload({
       </div>
 
       {error && (
-        <p className="mt-2 text-sm text-red-600" role="alert">
+        <p id={errorId} className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">
           {error}
         </p>
       )}

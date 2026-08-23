@@ -7,7 +7,7 @@ import { FOOD_UNITS, FOOD_UNIT_LABEL, type FeedingPlan } from "@/lib/types";
 const field =
   "w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm outline-none focus:border-brand-500";
 const submit =
-  "shrink-0 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60";
+  "inline-flex min-h-11 items-center shrink-0 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60";
 const labelText = "mb-1 block text-xs font-medium";
 
 /** `new Date()` → the value a datetime-local input wants, in the viewer's zone. */
@@ -108,7 +108,7 @@ export default function FeedingLogForm({
           <button
             type="button"
             onClick={openDetail}
-            className="muted shrink-0 pb-2 text-xs underline underline-offset-4 hover:text-brand-600"
+            className="inline-flex min-h-11 items-center muted shrink-0 pb-2 text-xs underline underline-offset-4 hover:text-[var(--brand-text)]"
           >
             Add time, who fed, notes
           </button>
@@ -178,7 +178,7 @@ export default function FeedingLogForm({
               setDetail(false);
               setWhen("");
             }}
-            className="muted text-xs underline underline-offset-4"
+            className="inline-flex min-h-11 items-center muted text-xs underline underline-offset-4"
           >
             Hide details
           </button>
@@ -186,7 +186,7 @@ export default function FeedingLogForm({
       </div>
 
       {state.error && (
-        <p className="mt-3 text-sm text-red-600" role="alert">
+        <p className="mt-3 text-sm text-red-600 dark:text-red-400" role="alert">
           {state.error}
         </p>
       )}

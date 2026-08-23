@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { submitInquiry, type InquiryState } from "@/app/inquiry-actions";
 
 const field =
@@ -8,6 +8,12 @@ const field =
 
 export default function PartnerInquiryForm({ sourcePage = "/partners" }: { sourcePage?: string }) {
   const [state, formAction, pending] = useActionState<InquiryState, FormData>(submitInquiry, {});
+  const errorId = useId();
+  // submitInquiry validates name, email and message and returns a single
+  // message for whichever failed, so all three required fields point at it.
+  const errorLink = state.error
+    ? { "aria-invalid": true as const, "aria-describedby": errorId }
+    : {};
 
   if (state.ok) {
     return (
@@ -28,16 +34,16 @@ export default function PartnerInquiryForm({ sourcePage = "/partners" }: { sourc
 
       <div>
         <label htmlFor="iq-name" className="mb-1 block text-sm font-medium">
-          Your name <span className="text-red-500">*</span>
+          Your name <span className="text-red-600 dark:text-red-400">*</span>
         </label>
-        <input id="iq-name" name="name" required maxLength={120} autoComplete="name" className={field} />
+        <input id="iq-name" name="name" required maxLength={120} autoComplete="name" className={field} {...errorLink} />
       </div>
 
       <div>
         <label htmlFor="iq-email" className="mb-1 block text-sm font-medium">
-          Email <span className="text-red-500">*</span>
+          Email <span className="text-red-600 dark:text-red-400">*</span>
         </label>
-        <input id="iq-email" name="email" type="email" required maxLength={254} autoComplete="email" className={field} />
+        <input id="iq-email" name="email" type="email" required maxLength={254} autoComplete="email" className={field} {...errorLink} />
       </div>
 
       <div>
@@ -62,7 +68,7 @@ export default function PartnerInquiryForm({ sourcePage = "/partners" }: { sourc
 
       <div className="sm:col-span-2">
         <label htmlFor="iq-msg" className="mb-1 block text-sm font-medium">
-          What would you want to write into the record? <span className="text-red-500">*</span>
+          What would you want to write into the record? <span className="text-red-600 dark:text-red-400">*</span>
         </label>
         <textarea
           id="iq-msg"
@@ -73,11 +79,12 @@ export default function PartnerInquiryForm({ sourcePage = "/partners" }: { sourc
           maxLength={4000}
           placeholder="A sentence or two is plenty."
           className={field}
+          {...errorLink}
         />
       </div>
 
       {state.error && (
-        <p className="text-sm text-red-600 sm:col-span-2" role="alert">
+        <p id={errorId} className="text-sm text-red-600 sm:col-span-2 dark:text-red-400" role="alert">
           {state.error}
         </p>
       )}
@@ -86,7 +93,7 @@ export default function PartnerInquiryForm({ sourcePage = "/partners" }: { sourc
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+          className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
         >
           {pending ? "Sending…" : "Send"}
         </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { addJournalEntry, type JournalFormState } from "@/app/journal-actions";
 import { JOURNAL_CATEGORY_EMOJI, JOURNAL_CATEGORY_LABEL, type JournalCategory } from "@/lib/types";
@@ -46,6 +46,12 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
   const today = new Date().toISOString().slice(0, 10);
   const v = state.values ?? {};
   const busy = uploading || pending;
+  const errorId = useId();
+  // One alert serves both the server-side error and the local photo error, so
+  // it is linked to whichever field the message is actually about.
+  const titleErrorLink = state.error
+    ? { "aria-invalid": true as const, "aria-describedby": errorId }
+    : {};
 
   useEffect(() => {
     if (state.ok) {
@@ -134,7 +140,7 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
 
       <div className="sm:col-span-2">
         <label htmlFor="journal-title" className="mb-1 block text-sm font-medium">
-          What did you notice? <span className="text-red-500">*</span>
+          What did you notice? <span className="text-red-600 dark:text-red-400">*</span>
         </label>
         <input
           id="journal-title"
@@ -144,6 +150,7 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
           placeholder="Off her food again"
           defaultValue={v.title ?? ""}
           className={field}
+          {...titleErrorLink}
         />
       </div>
 
@@ -227,7 +234,10 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
           type="file"
           accept={ACCEPT}
           disabled={busy || !!photo}
-          aria-describedby="journal-photo-hint"
+          aria-describedby={
+            photoError ? `journal-photo-hint ${errorId}` : "journal-photo-hint"
+          }
+          aria-invalid={photoError ? true : undefined}
           className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 disabled:opacity-60"
         />
         <p id="journal-photo-hint" className="muted mt-1 text-xs">
@@ -238,7 +248,7 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
                 type="button"
                 onClick={() => discardPhoto(photo.path)}
                 disabled={busy}
-                className="text-brand-600 underline underline-offset-2 hover:text-brand-700 disabled:opacity-60"
+                className="inline-flex min-h-11 items-center text-[var(--brand-text)] underline underline-offset-2 disabled:opacity-60"
               >
                 Remove
               </button>
@@ -250,7 +260,7 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
       </div>
 
       {(state.error || photoError) && (
-        <p className="text-sm text-red-600 sm:col-span-2" role="alert">
+        <p id={errorId} className="text-sm text-red-600 sm:col-span-2 dark:text-red-400" role="alert">
           {state.error ?? photoError}
         </p>
       )}
@@ -259,7 +269,7 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
         <button
           type="submit"
           disabled={busy}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+          className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
         >
           {uploading ? "Attaching photo…" : pending ? "Saving…" : "Add entry"}
         </button>

@@ -56,7 +56,7 @@ export default function PetDocumentDrop({
               <span className="muted shrink-0 text-xs">{formatDate(d.created_at.slice(0, 10))}</span>
               <Link
                 href={`/documents/${d.id}`}
-                className="muted shrink-0 text-xs underline underline-offset-4 hover:text-brand-600"
+                className="inline-flex min-h-11 items-center muted shrink-0 text-xs underline underline-offset-4 hover:text-[var(--brand-text)]"
               >
                 {d.status === "applied" ? "view" : "review"}
               </Link>

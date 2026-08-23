@@ -33,7 +33,11 @@ export default function DashboardArt() {
           <Spark pts={s.pts} tone={s.tone} />
           <span
             className={`ml-auto text-xs font-medium ${
-              s.tone === "red" ? "text-red-600" : s.tone === "amber" ? "text-amber-600" : "muted"
+              s.tone === "red"
+                ? "text-red-600 dark:text-red-400"
+                : s.tone === "amber"
+                  ? "text-amber-700 dark:text-amber-400"
+                  : "muted"
             }`}
           >
             {s.tone === "red" ? "↓ 18%" : s.tone === "amber" ? "↑ 8%" : "steady"}

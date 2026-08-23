@@ -91,7 +91,7 @@ export default function CommunityFeed({
                       className="ml-auto"
                     >
                       <input type="hidden" name="post_id" value={post.id} />
-                      <button className="muted text-xs underline underline-offset-4 hover:text-red-600">
+                      <button className="inline-flex min-h-11 items-center muted text-xs underline underline-offset-4 hover:text-red-600 dark:hover:text-red-400">
                         Delete
                       </button>
                     </form>

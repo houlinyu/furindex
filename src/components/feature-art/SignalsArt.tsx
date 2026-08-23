@@ -18,7 +18,11 @@ export default function SignalsArt() {
           <span className="flex-1 truncate text-xs">{s.label}</span>
           <span
             className={`text-xs font-medium ${
-              s.tone === "red" ? "text-red-600" : s.tone === "amber" ? "text-amber-600" : "muted"
+              s.tone === "red"
+                ? "text-red-600 dark:text-red-400"
+                : s.tone === "amber"
+                  ? "text-amber-700 dark:text-amber-400"
+                  : "muted"
             }`}
           >
             {s.delta}

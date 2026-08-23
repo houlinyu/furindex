@@ -42,7 +42,7 @@ export default function TrendCard({
   const tone = !notable
     ? "muted"
     : change!.direction === "up"
-      ? "text-amber-600 dark:text-amber-400"
+      ? "text-amber-700 dark:text-amber-400"
       : "text-sky-700 dark:text-sky-400";
 
   const sentence = change
@@ -59,7 +59,7 @@ export default function TrendCard({
       </div>
 
       <div className="mt-1 flex items-baseline gap-2">
-        <p className="text-lg font-semibold text-brand-600">
+        <p className="text-lg font-semibold text-[var(--brand-text)]">
           {baseline.latestValue == null ? "—" : `${trimNumber(baseline.latestValue)}${suffix}`}
         </p>
         {change && (

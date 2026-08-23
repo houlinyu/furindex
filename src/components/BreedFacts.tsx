@@ -100,7 +100,7 @@ export default async function BreedFacts({
           href={credit.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="underline underline-offset-2 hover:text-brand-600"
+          className="underline underline-offset-2 hover:text-[var(--brand-text)]"
         >
           {credit.label}
         </a>
@@ -111,7 +111,7 @@ export default async function BreedFacts({
               href={facts.wikipediaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline underline-offset-2 hover:text-brand-600"
+              className="underline underline-offset-2 hover:text-[var(--brand-text)]"
             >
               Wikipedia
             </a>

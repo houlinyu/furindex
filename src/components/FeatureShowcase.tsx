@@ -111,7 +111,7 @@ export default function FeatureShowcase() {
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 text-sm font-medium text-brand-600">{f.lede}</p>
+                  <p className="mt-1 text-sm font-medium text-[var(--brand-text)]">{f.lede}</p>
                   <p className="muted mt-3 text-sm leading-relaxed">{f.body}</p>
                   <ul className="mt-4 space-y-1.5">
                     {f.points.map((pt) => (

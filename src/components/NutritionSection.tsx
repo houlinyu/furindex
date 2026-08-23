@@ -88,7 +88,7 @@ export default function NutritionSection({
                 <span
                   className={`rounded-full border px-2 py-0.5 text-xs ${
                     fedToday >= current.meals_per_day
-                      ? "border-brand-300 text-brand-700"
+                      ? "border-brand-300 text-[var(--brand-text)]"
                       : "border-[var(--border)] muted"
                   }`}
                 >
@@ -98,7 +98,7 @@ export default function NutritionSection({
               {!changing && (
                 <button
                   onClick={() => setChanging(true)}
-                  className="muted text-xs underline underline-offset-4 hover:text-brand-600"
+                  className="inline-flex min-h-11 items-center muted text-xs underline underline-offset-4 hover:text-[var(--brand-text)]"
                 >
                   Change food
                 </button>
@@ -170,7 +170,7 @@ export default function NutritionSection({
             {logs.length > RECENT && (
               <button
                 onClick={() => setShowAllLogs((v) => !v)}
-                className="muted mt-2 text-xs underline underline-offset-4 hover:text-brand-600"
+                className="inline-flex min-h-11 items-center muted mt-2 text-xs underline underline-offset-4 hover:text-[var(--brand-text)]"
               >
                 {showAllLogs ? "Show recent only" : `Show all ${logs.length} feeds`}
               </button>
@@ -227,7 +227,7 @@ function EndPlanButton({ petId, plan }: { petId: string; plan: FeedingPlan }) {
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="muted text-xs underline underline-offset-4 hover:text-red-600"
+        className="muted inline-flex min-h-11 items-center text-xs underline underline-offset-4 hover:text-red-600 dark:hover:text-red-400"
       >
         End this diet
       </button>
@@ -253,20 +253,20 @@ function EndPlanButton({ petId, plan }: { petId: string; plan: FeedingPlan }) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs hover:border-red-400 hover:text-red-600 disabled:opacity-60"
+          className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-2 py-1 text-xs hover:border-red-400 hover:text-red-600 disabled:opacity-60 dark:hover:text-red-400"
         >
           {pending ? "Ending…" : "Confirm"}
         </button>
         <button
           type="button"
           onClick={() => setConfirming(false)}
-          className="muted text-xs underline underline-offset-4"
+          className="inline-flex min-h-11 items-center muted text-xs underline underline-offset-4"
         >
           Cancel
         </button>
       </div>
       {state.error && (
-        <p className="text-xs text-red-600" role="alert">
+        <p className="text-xs text-red-600 dark:text-red-400" role="alert">
           {state.error}
         </p>
       )}

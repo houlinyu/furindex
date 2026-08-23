@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { joinCommunity, type CommunityState } from "@/app/community-actions";
 import type { CommunityProfile } from "@/lib/types";
 
@@ -9,6 +9,12 @@ const field =
 
 export default function JoinCommunity({ existing }: { existing: CommunityProfile | null }) {
   const [state, formAction, pending] = useActionState<CommunityState, FormData>(joinCommunity, {});
+  const errorId = useId();
+  // joinCommunity returns one form-level message; the only required field is
+  // the display name, so that is where the link goes.
+  const errorLink = state.error
+    ? { "aria-invalid": true as const, "aria-describedby": errorId }
+    : {};
 
   return (
     <div className="card p-6">
@@ -39,7 +45,7 @@ export default function JoinCommunity({ existing }: { existing: CommunityProfile
           </div>
           <div>
             <label htmlFor="display_name" className="mb-1 block text-sm font-medium">
-              Display name <span className="text-red-500">*</span>
+              Display name <span className="text-red-600 dark:text-red-400">*</span>
             </label>
             <input
               id="display_name"
@@ -49,6 +55,7 @@ export default function JoinCommunity({ existing }: { existing: CommunityProfile
               maxLength={40}
               defaultValue={existing?.display_name ?? ""}
               className={field}
+              {...errorLink}
             />
           </div>
         </div>
@@ -75,13 +82,13 @@ export default function JoinCommunity({ existing }: { existing: CommunityProfile
         </div>
 
         {state.error && (
-          <p className="text-sm text-red-600" role="alert">
+          <p id={errorId} className="text-sm text-red-600 dark:text-red-400" role="alert">
             {state.error}
           </p>
         )}
         <button
           disabled={pending}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+          className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
         >
           {pending ? "Joining…" : "Join the community"}
         </button>

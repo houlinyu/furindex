@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { createPet, type PetFormState } from "@/app/actions";
 import BreedInput from "@/components/BreedInput";
 
@@ -14,12 +14,18 @@ export default function NewPetForm() {
   );
   const today = new Date().toISOString().slice(0, 10);
   const v = state.values ?? {};
+  const errorId = useId();
+  // createPet returns one form-level message, so the link goes on the only
+  // required field.
+  const errorLink = state.error
+    ? { "aria-invalid": true as const, "aria-describedby": errorId }
+    : {};
 
   return (
     <form action={formAction} className="card space-y-4 p-6">
       <div>
         <label htmlFor="name" className="mb-1 block text-sm font-medium">
-          Name <span className="text-red-500">*</span>
+          Name <span className="text-red-600 dark:text-red-400">*</span>
         </label>
         <input
           id="name"
@@ -28,6 +34,7 @@ export default function NewPetForm() {
           maxLength={80}
           defaultValue={v.name ?? ""}
           className={field}
+          {...errorLink}
         />
       </div>
 
@@ -88,7 +95,7 @@ export default function NewPetForm() {
       </div>
 
       {state.error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p id={errorId} className="text-sm text-red-600 dark:text-red-400" role="alert">
           {state.error}
         </p>
       )}
@@ -96,7 +103,7 @@ export default function NewPetForm() {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+        className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
       >
         {pending ? "Saving…" : "Save pet"}
       </button>
