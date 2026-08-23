@@ -569,3 +569,43 @@ create policy "insurance_claims: owner all" on public.insurance_claims
   for all
   using (owner_id = auth.uid() and public.owns_pet(pet_id))
   with check (owner_id = auth.uid() and public.owns_pet(pet_id));
+
+-- ============================================================================
+-- Health & behaviour journal (added 2026-08-23). PURELY ADDITIVE — creates one
+-- new enum, one new table and its policy. Alters nothing, drops nothing.
+--
+-- The clinical tables record events a vet produced. This one records what the
+-- owner noticed: "off her food again", "limping after the walk". Individually
+-- trivial, but a date-ordered run of them is the history a vet asks for and an
+-- owner can never reconstruct from memory.
+-- ============================================================================
+
+do $$ begin
+  create type journal_category as enum ('symptom','behaviour','mood','appetite','energy','other');
+exception when duplicate_object then null; end $$;
+
+create table if not exists public.journal_entries (
+  id           uuid primary key default gen_random_uuid(),
+  pet_id       uuid not null references public.pets(id) on delete cascade,
+  owner_id     uuid not null references auth.users(id) on delete cascade,
+  occurred_on  date not null default current_date,
+  category     journal_category not null default 'symptom',
+  title        text not null check (length(trim(title)) between 1 and 120),
+  body         text,
+  -- 1 = barely noticeable, 5 = call the vet. Null because most observations
+  -- aren't severe enough to rate, and forcing a number would invent data.
+  severity     smallint check (severity is null or severity between 1 and 5),
+  -- Object key in the existing private 'vet-reports' bucket, same
+  -- <auth.uid()>/<uuid>.<ext> convention the storage policies key off.
+  photo_path   text,
+  created_at   timestamptz not null default now()
+);
+create index if not exists journal_entries_pet_idx on public.journal_entries(pet_id, occurred_on desc);
+
+alter table public.journal_entries enable row level security;
+
+drop policy if exists "journal_entries: owner all" on public.journal_entries;
+create policy "journal_entries: owner all" on public.journal_entries
+  for all
+  using (owner_id = auth.uid() and public.owns_pet(pet_id))
+  with check (owner_id = auth.uid() and public.owns_pet(pet_id));

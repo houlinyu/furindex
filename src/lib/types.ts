@@ -164,6 +164,41 @@ export type PostReaction = {
 export type ReactionEmoji = "❤️" | "🐾" | "😂" | "💪" | "🙏";
 export const REACTION_EMOJI: ReactionEmoji[] = ["❤️", "🐾", "😂", "💪", "🙏"];
 
+// ------------------------------------------------------------------ journal --
+export type JournalCategory =
+  | "symptom" | "behaviour" | "mood" | "appetite" | "energy" | "other";
+
+export type JournalEntry = {
+  id: string;
+  pet_id: string;
+  owner_id: string;
+  occurred_on: string;
+  category: JournalCategory;
+  title: string;
+  body: string | null;
+  severity: number | null;
+  photo_path: string | null;
+  created_at: string;
+};
+
+export const JOURNAL_CATEGORY_LABEL: Record<JournalCategory, string> = {
+  symptom: "Symptom",
+  behaviour: "Behaviour",
+  mood: "Mood",
+  appetite: "Appetite",
+  energy: "Energy",
+  other: "Other",
+};
+
+export const JOURNAL_CATEGORY_EMOJI: Record<JournalCategory, string> = {
+  symptom: "🩺",
+  behaviour: "🐾",
+  mood: "🙂",
+  appetite: "🍽️",
+  energy: "⚡",
+  other: "📝",
+};
+
 // ----------------------------------------------------------------- schema ---
 type Row<T> = { Row: T; Insert: Partial<T>; Update: Partial<T>; Relationships: [] };
 
@@ -192,6 +227,7 @@ export type Database = {
       post_reactions: Row<PostReaction>;
       insurance_policies: Row<InsurancePolicy>;
       insurance_claims: Row<InsuranceClaim>;
+      journal_entries: Row<JournalEntry>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -203,6 +239,7 @@ export type Database = {
       document_status: DocumentStatus;
       field_type: FieldType;
       claim_status: ClaimStatus;
+      journal_category: JournalCategory;
     };
     CompositeTypes: { [_ in never]: never };
   };
