@@ -76,6 +76,12 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
     .eq("id", documentId)
     .maybeSingle();
   if (!doc) throw new Error("Document not found");
+  // Being able to READ a document is not authority to write records from it.
+  // RLS scopes the select, but once caretaker sharing exists a shared reader can
+  // see an owner's upload — and a silent write filter is not a permission check.
+  if (doc.owner_id !== user.id) {
+    throw new Error("Only the person who uploaded this report can save it to a pet.");
+  }
   if (!doc.extracted) throw new Error("This document has not been read yet");
   // Without this, a second tab (or a retry after a mid-way failure) writes the
   // whole set again — duplicate vaccinations, and a second copy of the pet.
@@ -230,13 +236,21 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
     if (error) throw new Error(error.message);
   }
 
-  const { error: latchError } = await supabase
+  // Atomic: `.is("applied_at", null)` makes the latch itself the guard, and
+  // `.select()` returns the affected rows. Without the row count this cannot
+  // detect a write RLS silently filtered to zero — that returns no error, so the
+  // earlier read-then-write version believed it had succeeded and the same
+  // report could be applied over and over.
+  const { data: latched, error: latchError } = await supabase
     .from("documents")
     .update({ status: "applied", pet_id: petId, applied_at: new Date().toISOString() })
-    .eq("id", documentId);
-  // Previously unchecked: if this failed, the review UI still rendered and Save
-  // wrote everything a second time.
+    .eq("id", documentId)
+    .is("applied_at", null)
+    .select("id");
   if (latchError) throw new Error(latchError.message);
+  if (!latched?.length) {
+    throw new Error("These records have already been saved to a pet.");
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/pets");

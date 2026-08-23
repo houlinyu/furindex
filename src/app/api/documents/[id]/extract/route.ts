@@ -19,8 +19,7 @@ export async function POST(
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  // RLS scopes this to the caller's own documents — a foreign id returns null,
-  // not someone else's row.
+  // RLS scopes the read; the owner check below scopes the ACTION.
   const { data: doc } = await supabase
     .from("documents")
     .select("*")
@@ -28,6 +27,11 @@ export async function POST(
     .maybeSingle();
 
   if (!doc) {
+    return NextResponse.json({ error: "Document not found" }, { status: 404 });
+  }
+  // Each call bills a real extraction and returns the extracted content, so
+  // reading rights are not enough — this must be the uploader.
+  if (doc.owner_id !== user.id) {
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
   if (!process.env.ANTHROPIC_API_KEY) {

@@ -24,6 +24,9 @@ export default async function DocumentPage({
   if (!doc) notFound();
 
   const d = doc as PetDocument;
+  // Someone who can see a document must not be offered the button that writes
+  // records from it onto a pet.
+  const isUploader = d.owner_id === user?.id;
 
   async function discard() {
     "use server";
@@ -104,7 +107,7 @@ export default async function DocumentPage({
         </div>
       )}
 
-      {d.status === "extracted" && d.extracted != null && (
+      {isUploader && d.status === "extracted" && d.extracted != null && (
         <ExtractionReview
           documentId={d.id}
           report={d.extracted as ExtractedReport}
