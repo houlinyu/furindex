@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getUser } from "@/lib/supabase/server";
 import MarketingNav from "@/components/MarketingNav";
+import FeatureShowcase from "@/components/FeatureShowcase";
 import {
   SUNDAI_PROJECT_URL,
   GITHUB_REPO_URL,
@@ -101,39 +102,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ------------------------------------------------------ features ---- */}
-      <section className="mx-auto max-w-5xl px-5 py-16">
-        <div className="grid gap-6 sm:grid-cols-2">
-          {[
-            {
-              icon: "🔔",
-              title: "Reminders that actually fire",
-              body: "Due and overdue vaccinations surface on the dashboard, colour-coded by urgency. The thing you forget is the thing this is for.",
-            },
-            {
-              icon: "📈",
-              title: "Weight, tracked over time",
-              body: "Every reading plots on a trend line. Gradual loss in an older cat is the kind of thing a chart catches and memory doesn't.",
-            },
-            {
-              icon: "🧩",
-              title: "Fields you define, not fields we picked",
-              body: "Accept a measurement from a report — blood glucose, body condition score, dental grade — and it becomes a field you track from then on. The next report lines up with it automatically.",
-            },
-            {
-              icon: "👋",
-              title: "A community, opt-in only",
-              body: "Meet other owners and their animals. Joining is a deliberate action, and it shares no health data — only what you choose to post.",
-            },
-          ].map((f) => (
-            <div key={f.title} className="card p-6">
-              <div className="text-2xl">{f.icon}</div>
-              <p className="mt-3 font-medium">{f.title}</p>
-              <p className="muted mt-2 text-sm leading-relaxed">{f.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <FeatureShowcase />
 
       {/* ------------------------------------------------------ partners ---- */}
       <section id="partners" className="border-y border-[var(--border)]">
