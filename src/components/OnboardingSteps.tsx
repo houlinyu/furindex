@@ -1,14 +1,26 @@
+"use client";
+
 import Link from "next/link";
+import { useSelectedLayoutSegment } from "next/navigation";
 import {
   ONBOARDING_STEPS,
+  isStepKey,
   onboardingHref,
   stepNumber,
   type OnboardingProgress,
-  type OnboardingStepKey,
 } from "@/lib/onboarding";
 
 /**
  * The persistent step indicator across the top of the walkthrough.
+ *
+ * Lives in the onboarding LAYOUT, so it is mounted once and survives every
+ * step transition rather than being torn down and rebuilt per page. That is
+ * also why it reads the current step from `useSelectedLayoutSegment()` instead
+ * of taking it as a prop: a layout in the App Router is not re-rendered with
+ * its child's params, and the only honest way for it to know which step is on
+ * screen is to ask the router. The segment is narrowed through `isStepKey`, so
+ * an unknown one (which the page 404s on) simply highlights nothing rather
+ * than indexing off the end of the list.
  *
  * Every dot is a link, on purpose. The owner can see the whole shape of what is
  * being asked before they start, jump straight to the block they care about,
@@ -21,20 +33,19 @@ import {
  *     "incomplete", and never in red. Nothing here is a failure state.
  *   - a block nobody has answered yet is simply not annotated. Naming an
  *     absence is what turns a map into a chore list.
- *
- * Server component: pure render over data the layout already has.
  */
 export default function OnboardingSteps({
   petId,
-  current,
   progress,
 }: {
   petId: string;
-  current: OnboardingStepKey;
   progress: OnboardingProgress;
 }) {
+  const segment = useSelectedLayoutSegment();
+  const current = isStepKey(segment) ? segment : null;
+
   const total = ONBOARDING_STEPS.length;
-  const position = stepNumber(current);
+  const position = current ? stepNumber(current) : 0;
 
   return (
     <nav aria-label="Onboarding steps" className="mb-6">
@@ -92,9 +103,11 @@ export default function OnboardingSteps({
         })}
       </ol>
 
-      <p className="muted mt-1 px-2 text-xs tabular-nums">
-        Step {position} of {total}
-      </p>
+      {position > 0 && (
+        <p className="muted mt-1 px-2 text-xs tabular-nums">
+          Step {position} of {total}
+        </p>
+      )}
     </nav>
   );
 }

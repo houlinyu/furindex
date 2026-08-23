@@ -98,7 +98,10 @@ export default function OnboardingNav({
         <p className="mt-3 text-sm" role="status">
           {state.error}{" "}
           {state.continueHref && (
-            <Link href={state.continueHref} className="underline underline-offset-4">
+            <Link
+              href={state.continueHref}
+              className="inline-flex min-h-11 items-center underline underline-offset-4"
+            >
               Carry on anyway →
             </Link>
           )}

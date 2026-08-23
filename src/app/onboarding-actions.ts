@@ -3,12 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { loadOnboarding, saveStepStatus } from "@/lib/onboarding-store";
+import { saveStepStatus } from "@/lib/onboarding-store";
 import {
   isStepKey,
   nextStep,
   onboardingHref,
-  resumeStepKey,
   stepByKey,
   type OnboardingStepKey,
   type OnboardingStepStatus,
@@ -29,6 +28,12 @@ import {
  * hands back the URL of the next step (`continueHref`) and the UI offers it.
  * An owner who cannot get past block two because our database is having a bad
  * day is an owner who does not come back.
+ *
+ * There is deliberately no `resumeOnboarding` action. "Where was I" is a GET,
+ * not a mutation: /pets/[id]/onboarding resolves it server-side on the way
+ * through, which works without JavaScript and cannot go stale the way a link
+ * baked at render time can. Exporting an action for it would have added a
+ * callable endpoint that did nothing a plain link doesn't.
  */
 export type OnboardingState = {
   error?: string;
@@ -130,23 +135,4 @@ export async function skipStep(
   formData: FormData
 ): Promise<OnboardingState> {
   return recordStep(formData, "skipped");
-}
-
-/**
- * Sends the owner back to wherever they left off.
- *
- * Resolved server-side at click time rather than baked into a link at render
- * time: the pet page is cached and the honest answer to "where was I" can have
- * moved on in another tab since it was rendered.
- */
-export async function resumeOnboarding(
-  _prev: OnboardingState,
-  formData: FormData
-): Promise<OnboardingState> {
-  const petId = text(formData, "pet_id");
-  if (!petId) return { error: "Missing pet." };
-
-  const { supabase } = await requireUser();
-  const { progress, lastStep } = await loadOnboarding(supabase, petId);
-  redirect(onboardingHref(petId, resumeStepKey(progress, lastStep)));
 }

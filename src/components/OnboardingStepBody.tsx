@@ -4,8 +4,6 @@ import {
   completedSteps,
   onboardingHref,
   percentComplete,
-  skippedSteps,
-  openSteps,
   type OnboardingProgress,
   type OnboardingStep,
 } from "@/lib/onboarding";
@@ -133,13 +131,13 @@ function Placeholder({
       <dl className="muted mt-4 grid gap-1 text-xs">
         <div className="flex gap-2">
           <dt className="w-24 shrink-0">Feeds</dt>
-          <dd className="min-w-0">{step.feeds}</dd>
+          <dd className="min-w-0 break-words">{step.feeds}</dd>
         </div>
         <div className="flex gap-2">
           <dt className="w-24 shrink-0">Waiting on</dt>
-          <dd className="min-w-0">
+          <dd className="min-w-0 break-words">
             {awaiting ? (
-              <code>{awaiting}</code>
+              <code className="break-all">{awaiting}</code>
             ) : (
               "No branch has claimed this block yet."
             )}
@@ -147,9 +145,9 @@ function Placeholder({
         </div>
         <div className="flex gap-2">
           <dt className="w-24 shrink-0">Drop-in</dt>
-          <dd className="min-w-0">
-            <code>src/components/OnboardingStepBody.tsx</code>, case{" "}
-            <code>&quot;{step.key}&quot;</code>
+          <dd className="min-w-0 break-words">
+            <code className="break-all">src/components/OnboardingStepBody.tsx</code>, case{" "}
+            <code className="break-all">&quot;{step.key}&quot;</code>
           </dd>
         </div>
       </dl>
@@ -172,9 +170,8 @@ function Placeholder({
  */
 function Finish({ pet, progress }: { pet: Pet; progress: OnboardingProgress }) {
   const done = completedSteps(progress);
-  const forLater = skippedSteps(progress);
-  const open = openSteps(progress);
-  const stillOpen = [...open, ...forLater];
+  // Walk order — see the same note in OnboardingNudge.
+  const stillOpen = ONBOARDING_DATA_STEPS.filter((s) => progress[s.key] !== "complete");
   const pct = percentComplete(progress);
 
   return (
