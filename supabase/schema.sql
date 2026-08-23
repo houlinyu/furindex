@@ -992,3 +992,114 @@ create policy "pet_profiles: owner all" on public.pet_profiles
   for all
   using (owner_id = auth.uid() and public.owns_pet(pet_id))
   with check (owner_id = auth.uid() and public.owns_pet(pet_id));
+-- Block 2 — Vaccines & preventive care (added 2026-08-23)
+--
+-- PURELY ADDITIVE. Four nullable columns and two unique indexes. Nothing here
+-- alters a type, changes a default, tightens a constraint, or touches a row.
+-- Every existing query, insert and policy behaves exactly as it did before this
+-- ran, because every column added is nullable with no default and every index
+-- added is unique only over tuples that contain a value this feature writes.
+--
+-- Not added, on purpose:
+--   * No new table. The two facts this feature produces — "this jab happened"
+--     and "poke me about it then" — are already what vaccinations and
+--     care_reminders are for. A third table would have been a parallel truth.
+--   * No new RLS policy. Columns inherit their table's policies, and both
+--     tables are already owner-scoped through public.owns_pet(pet_id). Adding
+--     a policy here would only risk loosening one that already works.
+--   * No new value on the care_interval enum. See interval_months below.
+-- ============================================================================
+
+-- ---------------------------------------------------------------------------
+-- vaccinations.vaccine_key
+--
+-- Which of the known core vaccines this row is, as a STABLE KEY ('rabies',
+-- 'dhpp', 'fvrcp', …) and never as a display label — labels get reworded and a
+-- reworded label would orphan every row that stored the old wording.
+--
+-- Null for every row that already exists and for anything typed by hand into
+-- the free-text vaccinations form, which stays exactly as it was. `name` is
+-- still the human-readable record; this is only the machine tie-back that lets
+-- the block recognise a jab it wrote earlier.
+--
+-- Deliberately NOT a foreign key or an enum: the authoritative list lives in
+-- src/lib/vaccines.ts, it will grow, and a database enum would turn "add a
+-- vaccine to the list" into a migration.
+-- ---------------------------------------------------------------------------
+alter table public.vaccinations
+  add column if not exists vaccine_key text;
+
+-- The idempotency guard for the block's save. Same pet, same vaccine, same day
+-- is the same jab, and re-submitting the form must not write it twice.
+-- administered_on is part of the key because a dog genuinely does get rabies
+-- again in three years and that is a second, wanted row.
+--
+-- Safe to create over live data: every pre-existing row has vaccine_key NULL,
+-- NULLs are distinct in a unique index, so no existing pair can collide and the
+-- index cannot fail to build.
+create unique index if not exists vaccinations_vaccine_key_uidx
+  on public.vaccinations(pet_id, vaccine_key, administered_on);
+
+-- ---------------------------------------------------------------------------
+-- care_reminders.reminder_lead_days
+--
+-- How many days BEFORE the real due date this reminder deliberately lands.
+--
+-- The reminder's own due_on is the "poke me" date, not the vaccine's due date —
+-- an owner asked to be told two weeks early wants it in the list two weeks
+-- early, and care_reminders is the only thing that puts anything in that list.
+-- Storing the lead alongside it keeps the truth recoverable: the real due date
+-- is always exactly due_on + reminder_lead_days, for every lead including the
+-- calendar-month one where the number is 28, 29, 30 or 31.
+--
+-- Null on every existing reminder, which is correct — a hand-written reminder
+-- has no lead, its due_on IS its due date, and nothing about it changes.
+-- ---------------------------------------------------------------------------
+alter table public.care_reminders
+  add column if not exists reminder_lead_days smallint
+  check (reminder_lead_days is null or (reminder_lead_days >= 0 and reminder_lead_days <= 62));
+
+-- ---------------------------------------------------------------------------
+-- care_reminders.vaccine_key
+--
+-- Which core vaccine this reminder is about, same stable keys as above.
+--
+-- Earns its place twice: it is what makes re-running the block update the one
+-- existing reminder instead of adding a sixth copy, and it is what lets a
+-- future surface answer "when is the rabies one" without string-matching a
+-- title that someone will eventually reword.
+-- ---------------------------------------------------------------------------
+alter table public.care_reminders
+  add column if not exists vaccine_key text;
+
+-- One reminder per vaccine per pet. This is the constraint that actually makes
+-- the save idempotent under a double-tap, rather than merely usually idempotent
+-- the way a read-then-write is.
+--
+-- Same safety argument as above: existing reminders all have vaccine_key NULL,
+-- NULLs are distinct, nothing pre-existing can collide.
+create unique index if not exists care_reminders_vaccine_key_uidx
+  on public.care_reminders(pet_id, vaccine_key);
+
+-- ---------------------------------------------------------------------------
+-- care_reminders.interval_months
+--
+-- The vaccine interval the owner actually chose, in months.
+--
+-- WHY THIS EXISTS RATHER THAN A NEW care_interval ENUM VALUE: the enum stops at
+-- 'annual', and the published adult intervals for DHPP and FVRCP are about
+-- three years. There is no honest existing value for that. Adding one would
+-- mean ALTER TYPE on live data, which this migration will not do — and enum
+-- values in Postgres can never be removed once added, so it is the one kind of
+-- "additive" change that is genuinely irreversible.
+--
+-- So the truthful number lives here, and repeat_interval is set to 'annual'
+-- only when the interval really is twelve months, and to 'none' otherwise. The
+-- consequence is visible and intended: ticking off a three-year reminder
+-- retires it rather than silently rescheduling it a year out, which would have
+-- been the app inventing a rhythm nobody agreed to. The next one gets scheduled
+-- when the next jab is actually recorded.
+-- ---------------------------------------------------------------------------
+alter table public.care_reminders
+  add column if not exists interval_months smallint
+  check (interval_months is null or (interval_months >= 1 and interval_months <= 120));
