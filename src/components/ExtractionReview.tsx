@@ -239,13 +239,13 @@ export default function ExtractionReview({
         </Section>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="flex items-center gap-3">
         <button
           onClick={save}
           disabled={pending || selectedCount === 0 || (!createNew && !petId)}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+          className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
         >
           {pending ? "Saving…" : `Save ${selectedCount} record${selectedCount === 1 ? "" : "s"}`}
         </button>

@@ -9,6 +9,10 @@ const field =
 
 type Mode = "password" | "magic";
 
+// Only one of the two forms is mounted at a time, so a single fixed id is
+// unambiguous and keeps aria-describedby readable.
+const ERROR_ID = "login-error";
+
 export default function LoginForm({
   next,
   initialError,
@@ -21,6 +25,12 @@ export default function LoginForm({
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "working" | "sent">("idle");
   const [error, setError] = useState<string | null>(initialError);
+
+  // Sign-in failures come back as one message for the whole form — there is no
+  // per-field detail to attach, so both credential fields point at it.
+  const errorLink = error
+    ? { "aria-invalid": true as const, "aria-describedby": ERROR_ID }
+    : {};
 
   async function onPasswordSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -83,7 +93,7 @@ export default function LoginForm({
             setStatus("idle");
             setMode("password");
           }}
-          className="muted mt-4 text-xs underline underline-offset-4"
+          className="muted mt-4 inline-flex min-h-11 items-center text-xs underline underline-offset-4"
         >
           Use a password
         </button>
@@ -95,16 +105,20 @@ export default function LoginForm({
     <div className="card p-6">
       <div className="mb-4 flex gap-1 rounded-lg border border-[var(--border)] p-1 text-xs">
         <button
+          type="button"
+          aria-pressed={mode === "password"}
           onClick={() => setMode("password")}
-          className={`flex-1 rounded-md px-2 py-1.5 transition ${
+          className={`inline-flex min-h-11 flex-1 items-center justify-center rounded-md px-2 py-1.5 transition ${
             mode === "password" ? "bg-brand-600 font-medium text-white" : "muted"
           }`}
         >
           Password
         </button>
         <button
+          type="button"
+          aria-pressed={mode === "magic"}
           onClick={() => setMode("magic")}
-          className={`flex-1 rounded-md px-2 py-1.5 transition ${
+          className={`inline-flex min-h-11 flex-1 items-center justify-center rounded-md px-2 py-1.5 transition ${
             mode === "magic" ? "bg-brand-600 font-medium text-white" : "muted"
           }`}
         >
@@ -126,6 +140,7 @@ export default function LoginForm({
               autoComplete="email"
               placeholder="you@example.com"
               className={field}
+              {...errorLink}
             />
           </div>
           <div>
@@ -140,12 +155,22 @@ export default function LoginForm({
               minLength={isRegister ? 8 : undefined}
               autoComplete={isRegister ? "new-password" : "current-password"}
               className={field}
+              aria-describedby={
+                [isRegister ? "password-hint" : null, error ? ERROR_ID : null]
+                  .filter(Boolean)
+                  .join(" ") || undefined
+              }
+              aria-invalid={error ? true : undefined}
             />
-            {isRegister && <p className="muted mt-1 text-xs">At least 8 characters.</p>}
+            {isRegister && (
+              <p id="password-hint" className="muted mt-1 text-xs">
+                At least 8 characters.
+              </p>
+            )}
           </div>
 
           {error && (
-            <p className="text-sm text-red-600" role="alert">
+            <p id={ERROR_ID} className="text-sm text-red-600 dark:text-red-400" role="alert">
               {error}
             </p>
           )}
@@ -153,7 +178,7 @@ export default function LoginForm({
           <button
             type="submit"
             disabled={status === "working"}
-            className="w-full rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
           >
             {status === "working" ? "…" : isRegister ? "Create account" : "Sign in"}
           </button>
@@ -164,7 +189,7 @@ export default function LoginForm({
               setIsRegister(!isRegister);
               setError(null);
             }}
-            className="muted w-full text-center text-xs underline underline-offset-4"
+            className="muted inline-flex min-h-11 w-full items-center justify-center text-center text-xs underline underline-offset-4"
           >
             {isRegister ? "I already have an account" : "New here? Create an account"}
           </button>
@@ -177,6 +202,7 @@ export default function LoginForm({
             </label>
             <input
               id="magic-email"
+              name="email"
               type="email"
               required
               autoComplete="email"
@@ -184,11 +210,12 @@ export default function LoginForm({
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               className={field}
+              {...errorLink}
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-600" role="alert">
+            <p id={ERROR_ID} className="text-sm text-red-600 dark:text-red-400" role="alert">
               {error}
             </p>
           )}
@@ -196,7 +223,7 @@ export default function LoginForm({
           <button
             type="submit"
             disabled={status === "working"}
-            className="w-full rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
           >
             {status === "working" ? "Sending…" : "Email me a link"}
           </button>

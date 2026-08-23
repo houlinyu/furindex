@@ -14,7 +14,7 @@ import {
 const field =
   "w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm outline-none focus:border-brand-500";
 const submit =
-  "rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60";
+  "inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60";
 const labelText = "mb-1 block text-xs font-medium";
 
 /**
@@ -222,7 +222,7 @@ export default function FeedingPlanForm({
       )}
 
       {state.error && (
-        <p className="text-sm text-red-600 sm:col-span-2" role="alert">
+        <p className="text-sm text-red-600 sm:col-span-2 dark:text-red-400" role="alert">
           {state.error}
         </p>
       )}
@@ -235,7 +235,7 @@ export default function FeedingPlanForm({
           <button
             type="button"
             onClick={onCancel}
-            className="muted text-xs underline underline-offset-4"
+            className="inline-flex min-h-11 items-center muted text-xs underline underline-offset-4"
           >
             Cancel
           </button>

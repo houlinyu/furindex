@@ -35,7 +35,7 @@ export default function PublishPet({
               <span className="flex-1 truncate">{p.name}</span>
               <form action={unpublishPet}>
                 <input type="hidden" name="community_pet_id" value={p.id} />
-                <button className="muted text-xs underline underline-offset-4 hover:text-red-600">
+                <button className="inline-flex min-h-11 items-center muted text-xs underline underline-offset-4 hover:text-red-600 dark:hover:text-red-400">
                   Remove
                 </button>
               </form>
@@ -57,7 +57,7 @@ export default function PublishPet({
                 maxLength={280}
                 className="hidden w-56 rounded-lg border border-[var(--border)] bg-transparent px-2 py-1 text-xs outline-none focus:border-brand-500 sm:block"
               />
-              <button className="rounded-lg border border-[var(--border)] px-3 py-1 text-xs hover:border-brand-500 hover:text-brand-600">
+              <button className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-3 py-1 text-xs hover:border-brand-500 hover:text-[var(--brand-text)]">
                 Publish
               </button>
             </form>

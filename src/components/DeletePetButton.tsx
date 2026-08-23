@@ -19,7 +19,7 @@ export default function DeletePetButton({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="muted rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs hover:border-red-400 hover:text-red-600"
+        className="muted inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs hover:border-red-400 hover:text-red-600 dark:hover:text-red-400"
       >
         Delete
       </button>
@@ -42,24 +42,26 @@ export default function DeletePetButton({
         name="confirm_name"
         required
         autoComplete="off"
+        aria-describedby={state.error ? "delete-pet-error" : undefined}
+        aria-invalid={state.error ? true : undefined}
         className="mt-1 w-full rounded-lg border border-[var(--border)] bg-transparent px-2 py-1 text-xs outline-none focus:border-red-400"
       />
       {state.error && (
-        <p className="mt-2 text-xs text-red-600" role="alert">
+        <p id="delete-pet-error" className="mt-2 text-xs text-red-600 dark:text-red-400" role="alert">
           {state.error}
         </p>
       )}
       <div className="mt-2 flex gap-2">
         <button
           disabled={pending}
-          className="rounded-lg bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
+          className="inline-flex min-h-11 items-center rounded-lg bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
         >
           {pending ? "Deleting…" : "Delete"}
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="muted px-2 text-xs underline underline-offset-4"
+          className="muted inline-flex min-h-11 items-center px-2 text-xs underline underline-offset-4"
         >
           Cancel
         </button>

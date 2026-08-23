@@ -67,7 +67,12 @@ export default async function PartnersPage() {
 
   return (
     <div className="min-h-screen">
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
       <MarketingNav signedIn={!!user} />
+
+      <main id="main">
 
       <section className="mx-auto max-w-5xl px-5 pb-12 pt-16">
         <p className="muted text-xs font-medium uppercase tracking-widest">Partnerships</p>
@@ -89,7 +94,7 @@ export default async function PartnersPage() {
             <div key={t.title} className="card flex flex-col p-6">
               <div className="text-2xl">{t.icon}</div>
               <p className="mt-3 font-medium">{t.title}</p>
-              <p className="mt-1 text-sm font-medium text-brand-600">{t.lede}</p>
+              <p className="mt-1 text-sm font-medium text-[var(--brand-text)]">{t.lede}</p>
               <p className="muted mt-3 text-sm leading-relaxed">{t.body}</p>
               <p className="muted mt-3 border-t border-[var(--border)] pt-3 text-xs leading-relaxed">
                 {t.fit}
@@ -97,7 +102,7 @@ export default async function PartnersPage() {
               {t.href && (
                 <Link
                   href={t.href}
-                  className="mt-3 text-xs font-medium text-brand-600 hover:underline"
+                  className="mt-3 inline-flex min-h-11 items-center text-xs font-medium text-[var(--brand-text)] hover:underline"
                 >
                   {t.hrefLabel}
                 </Link>
@@ -137,6 +142,7 @@ export default async function PartnersPage() {
         </div>
 
       </section>
+      </main>
     </div>
   );
 }

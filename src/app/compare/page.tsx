@@ -84,7 +84,12 @@ export default async function ComparePage() {
 
   return (
     <div className="min-h-screen">
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
       <MarketingNav signedIn={!!user} />
+
+      <main id="main">
 
       <section className="mx-auto max-w-3xl px-5 pb-10 pt-16">
         <p className="muted text-xs font-medium uppercase tracking-widest">
@@ -93,7 +98,7 @@ export default async function ComparePage() {
         <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
           Reading the paperwork is the easy part.
           <br />
-          <span className="text-brand-600">Being trusted with it isn&apos;t.</span>
+          <span className="text-[var(--brand-text)]">Being trusted with it isn&apos;t.</span>
         </h1>
         <p className="muted mt-5 text-base leading-relaxed">
           We checked, honestly. As of August 2026 at least a dozen apps already
@@ -115,13 +120,13 @@ export default async function ComparePage() {
                   <p className="muted text-xs">{c.examples}</p>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <div>
-                      <p className="text-xs font-medium text-brand-600">
+                      <p className="text-xs font-medium text-[var(--brand-text)]">
                         What it does well
                       </p>
                       <p className="muted mt-1 text-sm leading-relaxed">{c.good}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-amber-600">
+                      <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
                         What it leaves open
                       </p>
                       <p className="muted mt-1 text-sm leading-relaxed">{c.gap}</p>
@@ -217,18 +222,19 @@ export default async function ComparePage() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href={user ? "/dashboard" : "/login"}
-            className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
+            className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
           >
             Try the upload
           </Link>
           <Link
             href="/partners"
-            className="rounded-lg border border-[var(--border)] px-5 py-2.5 text-sm font-medium hover:border-brand-500 hover:text-brand-600"
+            className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-5 py-2.5 text-sm font-medium hover:border-brand-500 hover:text-[var(--brand-text)]"
           >
             Partner with us
           </Link>
         </div>
       </section>
+      </main>
     </div>
   );
 }

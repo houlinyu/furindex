@@ -55,6 +55,31 @@ body {
   color: var(--muted);
 }
 
+/* Keyboard escape hatch past the navigation. Off-screen until focused, which
+   is the only state in which it is any use. */
+@utility skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: -4rem;
+  z-index: 50;
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  border-radius: 0.5rem;
+  background: var(--color-brand-600);
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #ffffff;
+  transition: top 120ms ease;
+
+  &:focus-visible {
+    top: 0.75rem;
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
+  }
+}
+
 /* Visually hidden but available to screen readers — used for labels on inputs
    whose purpose is obvious sighted but not announced otherwise. */
 @utility sr-only {

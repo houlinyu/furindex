@@ -47,7 +47,7 @@ export default function CustomFields({
                 )}
               </div>
 
-              <p className="mt-1 text-lg font-semibold text-brand-600">
+              <p className="mt-1 text-lg font-semibold text-[var(--brand-text)]">
                 {renderValue(latest, def)}
               </p>
               <p className="muted text-xs">{formatDate(latest.recorded_on)}</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { registerDocument } from "@/app/document-actions";
@@ -37,6 +37,7 @@ export default function ReportUpload({
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [petId, setPetId] = useState<string>(fixedPetId ?? "");
+  const errorId = useId();
 
   async function handleFile(file: File) {
     setError(null);
@@ -128,8 +129,12 @@ export default function ReportUpload({
         onClick={() => !busy && inputRef.current?.click()}
         role="button"
         tabIndex={0}
+        aria-describedby={error ? errorId : undefined}
         onKeyDown={(e) => {
-          if ((e.key === "Enter" || e.key === " ") && !busy) inputRef.current?.click();
+          if (e.key !== "Enter" && e.key !== " ") return;
+          // Space on a role="button" must not fall through to the page scroll.
+          e.preventDefault();
+          if (!busy) inputRef.current?.click();
         }}
         className={`card cursor-pointer border-dashed ${compact ? "px-4 py-6" : "px-6 py-10"} text-center transition ${
           dragging ? "border-brand-500 bg-brand-50/50" : "hover:border-brand-300"
@@ -181,6 +186,8 @@ export default function ReportUpload({
           <select
             id="upload-pet"
             value={petId}
+            aria-describedby={error ? errorId : undefined}
+            aria-invalid={error ? true : undefined}
             onChange={(e) => setPetId(e.target.value)}
             className="rounded-lg border border-[var(--border)] bg-transparent px-2 py-1 text-xs outline-none focus:border-brand-500"
           >
@@ -195,7 +202,7 @@ export default function ReportUpload({
       )}
 
       {error && (
-        <p className="mt-3 text-sm text-red-600" role="alert">
+        <p id={errorId} className="mt-3 text-sm text-red-600 dark:text-red-400" role="alert">
           {error}
         </p>
       )}

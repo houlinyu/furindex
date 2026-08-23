@@ -35,7 +35,7 @@ export default function CalendarArt() {
                 <>
                   <span className="text-base leading-none">{ev.icon}</span>
                   <span className="muted mt-0.5 text-[8px] leading-none">{ev.who}</span>
-                  {ev.done && <span className="text-[9px] leading-none text-brand-600">✓</span>}
+                  {ev.done && <span className="text-[9px] leading-none text-[var(--brand-text)]">✓</span>}
                 </>
               )}
             </div>
@@ -48,7 +48,7 @@ export default function CalendarArt() {
             <span aria-hidden>{e.icon}</span>
             <span className="flex-1 truncate">{e.label}</span>
             <span className="muted text-[10px]">{e.who}</span>
-            <span className={e.done ? "text-brand-600" : "muted"}>{e.done ? "done" : "due"}</span>
+            <span className={e.done ? "text-[var(--brand-text)]" : "muted"}>{e.done ? "done" : "due"}</span>
           </li>
         ))}
       </ul>

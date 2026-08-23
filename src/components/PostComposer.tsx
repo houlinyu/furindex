@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useId, useRef } from "react";
 import { createPost, type CommunityState } from "@/app/community-actions";
 import type { CommunityPet } from "@/lib/types";
 
 export default function PostComposer({ pets }: { pets: CommunityPet[] }) {
   const [state, formAction, pending] = useActionState<CommunityState, FormData>(createPost, {});
   const ref = useRef<HTMLFormElement>(null);
+  const errorId = useId();
   if (state.ok && ref.current) ref.current.reset();
 
   return (
@@ -17,10 +18,13 @@ export default function PostComposer({ pets }: { pets: CommunityPet[] }) {
         rows={3}
         maxLength={1000}
         placeholder="How's your animal today?"
+        aria-label="What's on your mind?"
+        aria-describedby={state.error ? errorId : undefined}
+        aria-invalid={state.error ? true : undefined}
         className="w-full resize-none rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 focus:border-brand-500"
       />
       {state.error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p id={errorId} className="text-sm text-red-600 dark:text-red-400" role="alert">
           {state.error}
         </p>
       )}
@@ -29,6 +33,7 @@ export default function PostComposer({ pets }: { pets: CommunityPet[] }) {
           <select
             name="community_pet_id"
             defaultValue=""
+            aria-label="Tag a pet"
             className="rounded-lg border border-[var(--border)] bg-transparent px-2 py-1.5 text-xs outline-none focus:border-brand-500"
           >
             <option value="">No pet tagged</option>
@@ -41,7 +46,7 @@ export default function PostComposer({ pets }: { pets: CommunityPet[] }) {
         )}
         <button
           disabled={pending}
-          className="ml-auto rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+          className="ml-auto inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
         >
           {pending ? "Posting…" : "Post"}
         </button>

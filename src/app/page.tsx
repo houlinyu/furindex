@@ -17,7 +17,12 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen">
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
       <MarketingNav signedIn={!!user} />
+
+      <main id="main">
 
       {/* --------------------------------------------------------- hero ---- */}
       <section className="mx-auto max-w-5xl px-5 pb-16 pt-20 text-center">
@@ -27,7 +32,7 @@ export default async function LandingPage() {
         <h1 className="mx-auto max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
           Your pet&apos;s health record,
           <br />
-          <span className="text-brand-600">from a photo of the paperwork.</span>
+          <span className="text-[var(--brand-text)]">from a photo of the paperwork.</span>
         </h1>
         <p className="muted mx-auto mt-5 max-w-xl text-base leading-relaxed">
           Vet visits generate paper. FurIndex reads it — the vaccinations, the
@@ -37,13 +42,13 @@ export default async function LandingPage() {
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href={cta}
-            className="rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
+            className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
           >
             {ctaLabel}
           </Link>
           <a
             href="#how"
-            className="rounded-lg border border-[var(--border)] px-6 py-3 text-sm font-medium hover:border-brand-500 hover:text-brand-600"
+            className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-6 py-3 text-sm font-medium hover:border-brand-500 hover:text-[var(--brand-text)]"
           >
             See how it works
           </a>
@@ -187,7 +192,7 @@ export default async function LandingPage() {
           <div className="mt-8">
             <Link
               href="/partners"
-              className="inline-block rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
+              className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
             >
               Talk to us about integrating
             </Link>
@@ -198,6 +203,8 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      </main>
+
       {/* -------------------------------------------------------- footer ---- */}
       <footer className="mx-auto max-w-5xl px-5 py-12 text-center">
         <p className="text-lg font-semibold tracking-tight">
@@ -205,7 +212,7 @@ export default async function LandingPage() {
         </p>
         <Link
           href={cta}
-          className="mt-5 inline-block rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
+          className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
         >
           {ctaLabel}
         </Link>
@@ -221,7 +228,7 @@ export default async function LandingPage() {
               href={SUNDAI_PROJECT_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline underline-offset-4 hover:text-brand-600"
+              className="underline underline-offset-4 hover:text-[var(--brand-text)]"
             >
               A Sundai project
             </a>
@@ -233,7 +240,7 @@ export default async function LandingPage() {
                 href={GITHUB_REPO_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline underline-offset-4 hover:text-brand-600"
+                className="underline underline-offset-4 hover:text-[var(--brand-text)]"
               >
                 Source
               </a>

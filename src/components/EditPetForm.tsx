@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { updatePet, type PetFormState } from "@/app/pet-actions";
 import BreedInput from "@/components/BreedInput";
 import PetPhotoUpload from "@/components/PetPhotoUpload";
@@ -27,6 +27,12 @@ export default function EditPetForm({
   // After a rejected submit the action echoes back what was typed; before that
   // there is nothing to echo, so fall back to what's on record.
   const v = state.values ?? {};
+  const errorId = useId();
+  // updatePet returns one form-level message, so the link goes on the only
+  // required field.
+  const errorLink = state.error
+    ? { "aria-invalid": true as const, "aria-describedby": errorId }
+    : {};
   const val = (key: keyof Pet, fallback = "") =>
     v[key] ?? (pet[key] == null ? fallback : String(pet[key]));
 
@@ -39,7 +45,7 @@ export default function EditPetForm({
 
       <div>
         <label htmlFor="name" className="mb-1 block text-sm font-medium">
-          Name <span className="text-red-500">*</span>
+          Name <span className="text-red-600 dark:text-red-400">*</span>
         </label>
         <input
           id="name"
@@ -48,6 +54,7 @@ export default function EditPetForm({
           maxLength={80}
           defaultValue={val("name")}
           className={field}
+          {...errorLink}
         />
       </div>
 
@@ -116,7 +123,7 @@ export default function EditPetForm({
       </div>
 
       {state.error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p id={errorId} className="text-sm text-red-600 dark:text-red-400" role="alert">
           {state.error}
         </p>
       )}
@@ -125,13 +132,13 @@ export default function EditPetForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+          className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
         >
           {pending ? "Saving…" : "Save changes"}
         </button>
         <Link
           href={`/pets/${pet.id}`}
-          className="muted text-sm underline underline-offset-4 hover:text-brand-600"
+          className="muted inline-flex min-h-11 items-center text-sm underline underline-offset-4 hover:text-[var(--brand-text)]"
         >
           Cancel
         </Link>
