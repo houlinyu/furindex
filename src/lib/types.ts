@@ -251,6 +251,7 @@ export type Database = {
       feeding_plans: Row<FeedingPlan>;
       feeding_logs: Row<FeedingLog>;
       care_reminders: Row<CareReminder>;
+      pet_onboarding: Row<PetOnboarding>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -541,3 +542,22 @@ export const REMINDER_PRESETS: ReminderPreset[] = [
     hint: "Clip, nails, or a wash — whatever you book on a cycle.",
   },
 ];
+
+// ------------------------------------------------------- onboarding state --
+/**
+ * Where an owner got to in the new-pet walkthrough. One row per pet.
+ *
+ * `steps` is a jsonb map of step key -> "complete" | "skipped"; a key that is
+ * absent has never been answered, which is NOT the same as skipped. Typed loose
+ * here on purpose — the step vocabulary lives in src/lib/onboarding.ts, which
+ * client components import and this file should not depend on. Narrow it with
+ * `parseProgress()` before using it.
+ */
+export type PetOnboarding = {
+  pet_id: string;
+  owner_id: string;
+  steps: Record<string, string>;
+  /** The step they were last on. A hint for resuming, never authoritative. */
+  last_step: string | null;
+  updated_at: string;
+};

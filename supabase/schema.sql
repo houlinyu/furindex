@@ -882,3 +882,68 @@ create policy "care_reminders: owner all" on public.care_reminders
   for all
   using (owner_id = auth.uid() and public.owns_pet(pet_id))
   with check (owner_id = auth.uid() and public.owns_pet(pet_id));
+
+-- ============================================================================
+-- Onboarding progress (added 2026-08-23)
+--
+-- New-pet onboarding walks the owner through a handful of blocks — basics,
+-- behaviour & health, vaccines, photos, wearable — and finishes on a dashboard.
+-- Every one of those blocks is skippable on purpose: this is behavioural data
+-- collection, not a gate, and a forced-completion funnel is the fastest way to
+-- lose the owner on block two. So the app has to be able to record "we asked,
+-- they passed" as a first-class answer, distinct from "we never asked".
+--
+-- WHY A SEPARATE TABLE, NOT A COLUMN ON pets
+-- `add column if not exists pets.onboarding_progress jsonb` would have been one
+-- line, and it was the wrong line:
+--   - `pets` is the hottest, most-shared row in the app; six components and
+--     every other in-flight branch consume the `Pet` type. Widening it makes a
+--     funnel-analytics concern part of the identity record everyone reads.
+--   - Onboarding state has a different lifecycle from the pet. It is written on
+--     every step transition, it is uninteresting after the first week, and it
+--     is the sort of thing a future migration may well want to drop wholesale.
+--     Dropping a table is safe; dropping a column from a live `pets` is not.
+--   - This shape matches `custom_values` exactly — owner_id + pet_id + the same
+--     `for all` RLS policy — so there is one ownership rule to reason about.
+-- The per-step statuses themselves ARE jsonb rather than one column per step,
+-- because the step list is a product decision that will move (the questionnaire
+-- is already seven blocks behind three of these steps). Adding a step should be
+-- an edit to src/lib/onboarding.ts, not a migration.
+--
+-- PURELY ADDITIVE: nothing above this line is altered or dropped.
+-- ============================================================================
+
+create table if not exists public.pet_onboarding (
+  -- One row per pet, so "where are they up to" is a primary-key lookup and
+  -- there is no way to end up with two disagreeing progress rows.
+  pet_id     uuid primary key references public.pets(id) on delete cascade,
+  owner_id   uuid not null references auth.users(id) on delete cascade,
+  -- { "basics": "complete", "behavior-health": "skipped" }
+  -- Absent key = never answered, which is deliberately NOT the same as
+  -- "skipped": one of them is worth a gentle nudge later, the other is the
+  -- owner having already said no.
+  steps      jsonb not null default '{}'::jsonb
+             check (jsonb_typeof(steps) = 'object'),
+  -- The step they were last on. Only a tiebreak for resuming: the real answer
+  -- is derived from `steps` (see resumeStepKey in src/lib/onboarding.ts), so a
+  -- null or stale value here degrades to "first block they haven't answered".
+  last_step  text,
+  updated_at timestamptz not null default now()
+);
+
+-- The dashboard's question is "which of MY pets are mid-onboarding", which is
+-- an owner-wide scan; the per-pet lookup is already the primary key.
+create index if not exists pet_onboarding_owner_idx on public.pet_onboarding(owner_id);
+
+drop trigger if exists pet_onboarding_touch_updated_at on public.pet_onboarding;
+create trigger pet_onboarding_touch_updated_at
+  before update on public.pet_onboarding
+  for each row execute function public.touch_updated_at();
+
+alter table public.pet_onboarding enable row level security;
+
+drop policy if exists "pet_onboarding: owner all" on public.pet_onboarding;
+create policy "pet_onboarding: owner all" on public.pet_onboarding
+  for all
+  using (owner_id = auth.uid() and public.owns_pet(pet_id))
+  with check (owner_id = auth.uid() and public.owns_pet(pet_id));
