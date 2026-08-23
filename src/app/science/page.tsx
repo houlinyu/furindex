@@ -31,10 +31,11 @@ export default async function SciencePage() {
           <span className="text-[var(--brand-text)]">Dogs may get there faster.</span>
         </h1>
         <p className="muted mt-5 text-base leading-relaxed">
-          Not as a metaphor. Veterinary oncology already has a licensed therapeutic
-          cancer vaccine, and dogs develop spontaneous cancers that resemble human
-          disease more closely than any engineered mouse. The bottleneck is not the
-          biology. It is that almost no dog has a health record worth analysing.
+          It worked well enough to be worth a proper trial — which is now running.
+          Veterinary oncology already has a licensed therapeutic cancer vaccine, and
+          dogs develop spontaneous cancers that resemble human disease far more
+          closely than any engineered mouse. The bottleneck is not the biology. It
+          is that almost no dog has a health record worth analysing.
         </p>
       </section>
 
@@ -42,59 +43,63 @@ export default async function SciencePage() {
       <section className="border-y border-[var(--border)] bg-brand-50/30">
         <div className="mx-auto max-w-3xl px-5 py-14">
           <h2 className="text-xl font-semibold tracking-tight">
-            The case that made people pay attention
+            It has already been done for one dog
           </h2>
 
           <p className="muted mt-4 text-sm leading-relaxed">
-            In June 2023 the Australian pathologist <strong>Richard Scolyer</strong> —
-            one of the world&apos;s leading melanoma pathologists, and then
-            co-medical director of Melanoma Institute Australia — was diagnosed
-            with glioblastoma, IDH wild-type. It is a brain cancer with a grim and
-            famously unmoved prognosis, typically measured in months.
+            <strong>Rosie</strong> was Paul Conyngham&apos;s dog. Surgery, then
+            chemotherapy, then immunotherapy — all of it failed, and she was given
+            months. Conyngham is not an oncologist; he is a machine-learning
+            engineer, seventeen years of it, who had previously co-founded an
+            applied-AI company.
           </p>
 
           <p className="muted mt-3 text-sm leading-relaxed">
-            He did something unusual. With his colleague Georgina Long, he applied
-            to his own brain the approach his career had helped develop for
-            melanoma: combination immunotherapy given <em>before</em> surgery
-            rather than after, plus a vaccine built from the specific mutations
-            found in his own tumour tissue. He was the first brain cancer patient
-            in the world to receive either. The two were named Australians of the
-            Year in 2024.
+            So he sequenced her tumour and her healthy tissue, used the difference
+            to work out which mutated proteins her immune system might be taught to
+            recognise, and — with scientists at UNSW — had a vaccine made against
+            that specific list. It is believed to be the first fully computationally
+            designed mRNA cancer vaccine given to a dog. Doing it by hand took
+            roughly <strong>a year and about $20,000</strong>.
           </p>
 
           <div className="card mt-6 p-5">
-            <p className="text-sm font-medium">What actually happened</p>
+            <p className="text-sm font-medium">What happened, and what it isn&apos;t</p>
             <p className="muted mt-2 text-sm leading-relaxed">
-              He went <strong>22 months without recurrence</strong>, against a
-              median time to recurrence for this cancer of roughly six months. In
-              March 2025 the tumour returned; some of it could not be removed, and
-              he described the prognosis as poor. <strong>He died on 7 June 2026,
-              aged 59</strong>, about three years after a diagnosis that normally
-              allows months. He had stepped down from his role at the Institute
-              shortly before.
+              Rosie&apos;s responsive tumours shrank by a reported{" "}
+              <strong>50–75%</strong>, with substantial immune-cell infiltration,
+              and her quality of life improved. That is one dog. It is not a trial,
+              it has no control arm, and it is not evidence that this works — it is
+              evidence that it is <em>possible</em>, which is a different and much
+              earlier claim.
+            </p>
+            <p className="muted mt-2 text-sm leading-relaxed">
+              The honest next step is the one being taken: Conyngham&apos;s company{" "}
+              <strong>Gamgee</strong> (Y Combinator, Summer 2026) has a
+              second-generation vaccine and a <strong>30-dog clinical trial</strong>{" "}
+              under way in Australia, measuring safety, immune response and outcome.
+              Those results do not exist yet. When they do, they will mean far more
+              than Rosie does.
             </p>
           </div>
 
-          <div className="card mt-4 p-5">
-            <p className="text-sm font-medium">
-              Be honest about what this was, and wasn&apos;t
-            </p>
-            <p className="muted mt-2 text-sm leading-relaxed">
-              This was <strong>n = 1</strong>. Not a trial, no control arm, and not
-              evidence of efficacy — a scientist consenting to an untested protocol
-              on himself, with full knowledge of the odds. It did not cure him.
-            </p>
-            <p className="muted mt-2 text-sm leading-relaxed">
-              We think the story is worth telling precisely because of how it
-              ended. The interesting claim is not that this beats cancer. It is
-              that a therapy can now be built against one individual&apos;s tumour
-              at all — and that what limits it is increasingly data and
-              manufacturing logistics rather than fundamental science. The
-              neoadjuvant immunotherapy data from that work was published in
-              Nature Medicine; the approach outlived the patient.
-            </p>
-          </div>
+          <p className="muted mt-6 text-sm leading-relaxed">
+            The reason to tell this story rather than a human one: the same approach
+            was attempted on a person at almost the same time — the Australian
+            pathologist Richard Scolyer, who applied his own melanoma research to his
+            glioblastoma, went 22 months without recurrence against a median of about
+            six, and{" "}
+            <a
+              href="https://www.abc.net.au/news/2026-06-08/professor-richard-scolyer-dies-from-brain-cancer-aged-59/104442396"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4 hover:text-[var(--brand-text)]"
+            >
+              died in June 2026
+            </a>
+            . Personalised cancer vaccines are early everywhere. Dogs are simply
+            where the work can move fastest.
+          </p>
         </div>
       </section>
 
@@ -227,10 +232,10 @@ export default async function SciencePage() {
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            href="/partners"
+            href="/collaborate"
             className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
           >
-            Partner with us
+            Work with us
           </Link>
           <Link
             href={user ? "/dashboard" : "/login"}
@@ -247,10 +252,14 @@ export default async function SciencePage() {
           </p>
           <p className="mt-2">
             Facts on this page were checked against public reporting on 23 August
-            2026. Sources: ABC News (Scolyer diagnosis, 22-month remission, March
-            2025 recurrence, death 7 June 2026); Merial/USDA announcement of full
-            ONCEPT licensure, February 2010; Paoloni &amp; Khanna, &ldquo;The
-            Comparative Oncology Trials Consortium,&rdquo; PLOS Medicine 2009.
+            2026. Sources: Y Combinator company profile for Gamgee (founder
+            background, the Rosie case, 50&ndash;75% shrinkage, the 30-dog trial,
+            S2026 batch); ABC News (Scolyer&apos;s 22-month remission and his death
+            on 7 June 2026); Merial/USDA announcement of full ONCEPT licensure,
+            February 2010; Paoloni &amp; Khanna, &ldquo;The Comparative Oncology
+            Trials Consortium,&rdquo; PLOS Medicine 2009. Gamgee&apos;s figures are
+            the company&apos;s own account of a single case and are not
+            peer-reviewed.
           </p>
         </div>
       </section>

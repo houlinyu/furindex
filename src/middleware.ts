@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Prefix-matched. "/" is handled separately below — as a prefix it would make
 // every route public.
 const PUBLIC_PREFIXES = ["/login", "/auth"];
-const PUBLIC_EXACT = ["/", "/partners", "/science", "/compare"];
+const PUBLIC_EXACT = ["/", "/collaborate", "/partners", "/science", "/compare"];
 
 /**
  * Refreshes the Supabase auth cookie on every request and bounces signed-out

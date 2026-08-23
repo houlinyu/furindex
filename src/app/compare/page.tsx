@@ -227,10 +227,10 @@ export default async function ComparePage() {
             Try the upload
           </Link>
           <Link
-            href="/partners"
+            href="/collaborate"
             className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-5 py-2.5 text-sm font-medium hover:border-brand-500 hover:text-[var(--brand-text)]"
           >
-            Partner with us
+            Work with us
           </Link>
         </div>
       </section>

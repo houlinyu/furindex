@@ -66,8 +66,8 @@ export default function AppShell({
           <Link href="/compare" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
             Compare
           </Link>
-          <Link href="/partners" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
-            Partners
+          <Link href="/collaborate" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
+            Collaborate
           </Link>
           <span className="muted ml-auto">FurIndex — a Sundai project</span>
         </div>

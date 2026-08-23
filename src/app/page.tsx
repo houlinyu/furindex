@@ -191,7 +191,7 @@ export default async function LandingPage() {
 
           <div className="mt-8">
             <Link
-              href="/partners"
+              href="/collaborate"
               className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
             >
               Talk to us about integrating

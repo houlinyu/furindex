@@ -6,7 +6,7 @@ import { submitInquiry, type InquiryState } from "@/app/inquiry-actions";
 const field =
   "w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 focus:border-brand-500";
 
-export default function PartnerInquiryForm({ sourcePage = "/partners" }: { sourcePage?: string }) {
+export default function PartnerInquiryForm({ sourcePage = "/collaborate" }: { sourcePage?: string }) {
   const [state, formAction, pending] = useActionState<InquiryState, FormData>(submitInquiry, {});
   const errorId = useId();
   // submitInquiry validates name, email and message and returns a single
