@@ -11,6 +11,53 @@ pick up. If you leave the project mid-thought, write the thought down here.
 
 ---
 
+## 2026-08-23 (funnel) — hyu
+
+**Front half of the onboarding funnel: photo/species drop → cat-or-dog → a
+pre-filled pet form.** Branch `feat/funnel`.
+
+**The gap.** Everything the landing-page widget worked out (species, breed, the
+photo) was thrown away at the "Start a free record" link, and the visitor met a
+bare login form, an empty dashboard and a blank pet form in a row.
+
+**What crosses the sign-up boundary.** One sessionStorage key,
+`furindex.funnel-intent.v1` (`src/lib/funnel-intent.ts`): species (`dog`/`cat`
+only), breed (or null), source, and a downscaled JPEG preview of the photo.
+sessionStorage rather than localStorage because it is a single intent, not a
+preference — it must die with the tab and must not leak between visitors on a
+shared machine. 30-minute expiry, strict re-validation on every read (bad
+species, wrong version, corrupt JSON, future/expired timestamps and non-`data:`
+photo URLs are all dropped, not half-trusted), and the server is unchanged and
+still the authority.
+
+**The photo is carried but NOT uploaded — deliberate.** `createPet` owns the
+redirect to `/pets/{id}` and is off-limits on this branch, so the client never
+learns the new pet's id; the only place the upload could be completed is the
+post-create page, which the questionnaire session is working in. The dropped
+photo is therefore shown on the pre-filled form as a local thumbnail, labelled
+"we never uploaded it" — which is also what the landing page already promises.
+Finishing it later is small: mount a component on `/pets/{id}` that reads the
+intent and reuses `PetPhotoUpload`'s upload + `setPetPhoto` + orphan-cleanup.
+
+**Bug found and fixed on the way.** `/api/breed-scan` was not in the
+middleware's public list, so a signed-out POST got a 307 to `/login`; a 307
+keeps the method, so the browser re-POSTed the photo at the login page and got
+a 500. The landing widget could never reach its own "scanning is off" branch —
+the dropzone was dead for every logged-out visitor, key or no key.
+
+**Verified in a browser** (production build, 1280 and 375, light and dark): land
+→ drop a photo → 503 fallback → cat/dog → sign up → `/pets/new` arrives
+pre-filled with species, breed and the thumbnail; clearing it resets those two
+fields, wipes the stored key, and keeps a name already typed; submitting creates
+the pet and leaves nothing behind for the next one. `npm run smoke` passes.
+
+**Not verified.** The scan path with a real `ANTHROPIC_API_KEY` (this deployment
+has none — the breed-carrying branch was exercised by injecting the same intent
+the scanner writes). Magic-link sign-in that opens in a NEW tab loses the
+intent by design; the form simply arrives blank.
+
+---
+
 ## 2026-08-23 (hardening) — hyu
 
 **Password auth added; five stress-test defects fixed. All verified live.**

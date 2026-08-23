@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SampleReportButton from "@/components/SampleReportButton";
+import FunnelResume from "@/components/FunnelResume";
 
 /**
  * What a brand-new account sees instead of an empty dashboard.
@@ -49,6 +50,11 @@ export default function FirstRun({ sampleEnabled }: { sampleEnabled: boolean }) 
   return (
     <section className="card overflow-hidden">
       <div className="p-6 sm:p-8">
+        {/* If the landing-page funnel carried an answer in, say so before the
+            pitch: being asked the same question twice is what makes a signed-up
+            visitor feel the sign-up lost their place. Renders nothing when there
+            is no funnel state, which is the ordinary first run. */}
+        <FunnelResume />
         <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
           A health record for your pet that a vet can actually read
         </h2>

@@ -4,8 +4,34 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import type { ScanResult } from "@/lib/breed-scan";
 import { factOfTheDay } from "@/lib/pet-facts";
+import SpeciesChoice from "@/components/SpeciesChoice";
+import {
+  clearFunnelIntent,
+  isFunnelSpecies,
+  previewDataUrl,
+  saveFunnelIntent,
+  type FunnelSpecies,
+} from "@/lib/funnel-intent";
 
 type Phase = "idle" | "scanning" | "done" | "error" | "off";
+
+/**
+ * The funnel's first step, and the only one a visitor sees before signing up.
+ *
+ * WHAT CHANGED AND WHY
+ * This widget used to be a cul-de-sac: it worked out the species, often the
+ * breed, held the photo — and then handed the visitor a link to a bare login
+ * form, after which they retyped everything it had just established. Now every
+ * exit from here records what we learned (see lib/funnel-intent) and points at
+ * /pets/new, so the work carries across the sign-up boundary.
+ *
+ * Every call to action goes to /pets/new rather than /login: middleware sends a
+ * signed-out visitor to /login?next=/pets/new and brings them back, so one href
+ * is correct in both auth states.
+ */
+
+/** Where every "yes, keep this" in this widget goes. */
+const FUNNEL_HREF = "/pets/new";
 
 export default function BreedScanWidget() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -14,7 +40,12 @@ export default function BreedScanWidget() {
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [species, setSpecies] = useState<"dog" | "cat" | null>(null);
+  const [species, setSpecies] = useState<FunnelSpecies | null>(null);
+  /**
+   * A small JPEG copy of what they dropped, handed to the funnel. Not the
+   * original file — see lib/funnel-intent for the size reasoning.
+   */
+  const [carriedPhoto, setCarriedPhoto] = useState<string | null>(null);
 
   async function handle(file: File) {
     setError(null);
@@ -32,9 +63,15 @@ export default function BreedScanWidget() {
     setPreview(URL.createObjectURL(file));
     setPhase("scanning");
 
+    // Kicked off before the request and awaited after it, so the downscale runs
+    // alongside the round trip rather than adding to it.
+    const previewPromise = previewDataUrl(file);
+
     const body = new FormData();
     body.append("photo", file);
     const res = await fetch("/api/breed-scan", { method: "POST", body }).catch(() => null);
+    const carried = await previewPromise;
+    setCarriedPhoto(carried);
 
     if (!res) {
       setError("Network trouble — try again.");
@@ -53,17 +90,53 @@ export default function BreedScanWidget() {
       setPhase("error");
       return;
     }
-    setResult(json.result as ScanResult);
+
+    const scan = json.result as ScanResult;
+    setResult(scan);
     setPhase("done");
+
+    // Only carry what the scan is actually sure of. A "low"-confidence breed
+    // pre-filled into a form reads as a statement about someone's animal, and a
+    // wrong guess presented as fact is worse than no guess — so at low
+    // confidence the species travels and the breed stays behind.
+    if (scan.is_pet && isFunnelSpecies(scan.species)) {
+      saveFunnelIntent({
+        species: scan.species,
+        breed: scan.breed_confidence === "low" ? null : scan.breed,
+        source: "scan",
+        photo: carried,
+      });
+    }
+  }
+
+  /** Shared by the no-key path and the "we couldn't tell" path. */
+  function chooseSpecies(chosen: FunnelSpecies) {
+    setSpecies(chosen);
+    saveFunnelIntent({ species: chosen, source: "choice", photo: carriedPhoto });
   }
 
   function reset() {
     setPhase("idle");
     setResult(null);
     setError(null);
+    setSpecies(null);
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
+    setCarriedPhoto(null);
+    // Starting over means the last answer was wrong, or about a different
+    // animal. Leaving it behind would pre-fill the form with the pet they just
+    // rejected.
+    clearFunnelIntent();
   }
+
+  const startCta = (
+    <Link
+      href={FUNNEL_HREF}
+      className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+    >
+      Start a free record
+    </Link>
+  );
 
   // ---- scanning unavailable: ask instead of read -------------------------
   if (phase === "off") {
@@ -77,19 +150,11 @@ export default function BreedScanWidget() {
             <p className="text-sm font-medium">Tell us what you&apos;ve got</p>
             <p className="muted mt-1 text-sm">
               Reading photos is switched off on this deployment — but we can still
-              tell you something you probably didn&apos;t know.
+              tell you something you probably didn&apos;t know, and start their
+              record from here.
             </p>
-            <div className="mt-4 flex gap-3">
-              {(["dog", "cat"] as const).map((s2) => (
-                <button
-                  key={s2}
-                  onClick={() => setSpecies(s2)}
-                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-[var(--border)] text-sm font-medium hover:border-brand-500 hover:text-[var(--brand-text)]"
-                >
-                  <span aria-hidden>{s2 === "dog" ? "🐕" : "🐈"}</span>
-                  {s2 === "dog" ? "A dog" : "A cat"}
-                </button>
-              ))}
+            <div className="mt-4">
+              <SpeciesChoice onChoose={chooseSpecies} size="sm" />
             </div>
           </>
         ) : (
@@ -98,19 +163,16 @@ export default function BreedScanWidget() {
               {fact.topic}
             </p>
             <p className="mt-2 text-sm leading-relaxed">{fact.body}</p>
+            <p className="muted mt-3 text-xs">
+              We&apos;ll carry {species === "cat" ? "“cat”" : "“dog”"}
+              {carriedPhoto ? " and your photo" : ""} through to the form, so
+              there&apos;s less to type.
+            </p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <Link
-                href="/login"
-                className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
-              >
-                Start a free record
-              </Link>
+              {startCta}
               <button
-                onClick={() => {
-                  setSpecies(null);
-                  setPhase("idle");
-                }}
-                className="muted text-xs underline underline-offset-4"
+                onClick={reset}
+                className="muted inline-flex min-h-11 items-center text-xs underline underline-offset-4"
               >
                 Start over
               </button>
@@ -123,6 +185,14 @@ export default function BreedScanWidget() {
 
   // ---- result ------------------------------------------------------------
   if (phase === "done" && result) {
+    // A scan can come back sure it is an animal but unsure which, or sure it is
+    // neither. Both get the same two buttons the no-key path gets: an unsure
+    // answer must not be a dead end.
+    const scanned = result.is_pet && isFunnelSpecies(result.species) ? result.species : null;
+    const carriedSpecies = scanned ?? species;
+    const carriedBreed =
+      scanned && result.breed && result.breed_confidence !== "low" ? result.breed : null;
+
     return (
       <div className="card overflow-hidden">
         <div className="flex flex-col gap-5 p-6 sm:flex-row">
@@ -182,24 +252,42 @@ export default function BreedScanWidget() {
                   That doesn&apos;t look like a cat or a dog
                 </h3>
                 <p className="muted mt-2 text-sm">
-                  Try a photo where the animal&apos;s face is reasonably clear.
+                  Try a photo where the animal&apos;s face is reasonably clear — or
+                  tell us below and carry on anyway.
                 </p>
               </>
+            )}
+
+            {/* Unsure is a fork, not a failure: the same question, asked plainly. */}
+            {!scanned && !species && (
+              <div className="mt-4 border-t border-[var(--border)] pt-4">
+                <p className="text-sm font-medium">Which is it?</p>
+                <div className="mt-3">
+                  <SpeciesChoice onChoose={chooseSpecies} size="sm" />
+                </div>
+              </div>
             )}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 border-t border-[var(--border)] bg-brand-50/40 px-6 py-4">
-          <p className="muted flex-1 text-sm">
-            Want to keep this — with their vaccinations, weight and vet visits?
-          </p>
-          <Link
-            href="/login"
-            className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+        <div className="flex flex-wrap items-center gap-3 border-t border-[var(--border)] bg-brand-50/40 px-6 py-4 dark:bg-brand-500/10">
+          <div className="min-w-0 flex-1 basis-56">
+            <p className="muted text-sm">
+              Want to keep this — with their vaccinations, weight and vet visits?
+            </p>
+            {carriedSpecies && (
+              <p className="muted mt-1 text-xs">
+                We&apos;ll carry {carriedSpecies === "cat" ? "“cat”" : "“dog”"}
+                {carriedBreed ? ` and “${carriedBreed}”` : ""}
+                {carriedPhoto ? " and your photo" : ""} through to the form.
+              </p>
+            )}
+          </div>
+          {startCta}
+          <button
+            onClick={reset}
+            className="inline-flex min-h-11 items-center muted text-xs underline underline-offset-4"
           >
-            Start a free record
-          </Link>
-          <button onClick={reset} className="inline-flex min-h-11 items-center muted text-xs underline underline-offset-4">
             Try another
           </button>
         </div>
@@ -234,7 +322,7 @@ export default function BreedScanWidget() {
         tabIndex={0}
         aria-label="Upload a photo of your pet to identify the breed"
         className={`card cursor-pointer border-dashed px-6 py-10 text-center transition ${
-          dragging ? "border-brand-500 bg-brand-50/50" : "hover:border-brand-300"
+          dragging ? "border-brand-500 bg-brand-50/50 dark:bg-brand-500/10" : "hover:border-brand-300"
         } ${busy ? "pointer-events-none opacity-70" : ""}`}
       >
         <input
@@ -276,6 +364,17 @@ export default function BreedScanWidget() {
           {error}
         </p>
       )}
+
+      {/* The photos are on the phone and the visitor is on a laptop. Without
+          this, that person's only way in is the generic "Start free" button that
+          drops them on a blank form. */}
+      <p className="muted mt-3 text-center text-xs">
+        No photo to hand?{" "}
+        <Link href="/start" className="underline underline-offset-4 hover:text-[var(--brand-text)]">
+          Just tell us cat or dog
+        </Link>
+        .
+      </p>
     </div>
   );
 }
