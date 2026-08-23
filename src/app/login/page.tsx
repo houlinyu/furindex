@@ -16,7 +16,8 @@ export default function LoginPage() {
           <LoginForm />
         </Suspense>
         <p className="muted mt-6 text-center text-xs leading-relaxed">
-          We email you a one-time sign-in link. No password to forget.
+          Password sign-in works instantly. Email links also work, but this
+          project can only send two per hour.
         </p>
       </div>
     </main>
