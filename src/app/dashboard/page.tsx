@@ -4,6 +4,8 @@ import EmptyState from "@/components/EmptyState";
 import ReportUpload from "@/components/ReportUpload";
 import DailyFactPanel from "@/components/DailyFactPanel";
 import SampleReportButton from "@/components/SampleReportButton";
+import PetAvatar from "@/components/PetAvatar";
+import { signedPetPhotoUrls } from "@/lib/photos";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, ageFromBirthDate, daysUntil, formatDate } from "@/lib/format";
 import type { Pet, Vaccination } from "@/lib/types";
@@ -28,6 +30,7 @@ export default async function DashboardPage() {
   const extractionEnabled = !!process.env.ANTHROPIC_API_KEY;
   const petList = (pets ?? []) as Pet[];
   const petNameById = new Map(petList.map((p) => [p.id, p.name]));
+  const photoUrls = await signedPetPhotoUrls(supabase, petList);
   const upcoming = ((dueVaccines ?? []) as Vaccination[])
     .filter((v) => v.due_on && daysUntil(v.due_on) <= 60)
     .slice(0, 6);
@@ -158,7 +161,7 @@ export default async function DashboardPage() {
                   href={`/pets/${pet.id}`}
                   className="card flex items-center gap-4 p-4 transition hover:border-brand-300"
                 >
-                  <span className="text-3xl">{SPECIES_EMOJI[pet.species] ?? "🐾"}</span>
+                  <PetAvatar pet={pet} photoUrl={photoUrls[pet.id] ?? null} size="md" />
                   <div className="min-w-0">
                     <p className="truncate font-medium">{pet.name}</p>
                     <p className="muted truncate text-xs">

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import EmptyState from "@/components/EmptyState";
+import PetAvatar from "@/components/PetAvatar";
+import { signedPetPhotoUrls } from "@/lib/photos";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, SPECIES_LABEL, ageFromBirthDate } from "@/lib/format";
 import type { Pet } from "@/lib/types";
@@ -10,6 +12,7 @@ export default async function PetsPage() {
   const supabase = await createClient();
   const { data } = await supabase.from("pets").select("*").order("name");
   const pets = (data ?? []) as Pet[];
+  const photoUrls = await signedPetPhotoUrls(supabase, pets);
 
   return (
     <AppShell email={user?.email}>
@@ -35,7 +38,7 @@ export default async function PetsPage() {
           {pets.map((pet) => (
             <li key={pet.id}>
               <Link href={`/pets/${pet.id}`} className="flex items-center gap-4 px-4 py-4 hover:bg-brand-50/40">
-                <span className="text-2xl">{SPECIES_EMOJI[pet.species] ?? "🐾"}</span>
+                <PetAvatar pet={pet} photoUrl={photoUrls[pet.id] ?? null} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{pet.name}</p>
                   <p className="muted truncate text-xs">

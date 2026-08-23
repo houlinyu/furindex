@@ -7,6 +7,9 @@ import CustomFields from "@/components/CustomFields";
 import PetDocumentDrop from "@/components/PetDocumentDrop";
 import InsuranceSection from "@/components/InsuranceSection";
 import DeletePetButton from "@/components/DeletePetButton";
+import PetAvatar from "@/components/PetAvatar";
+import PetPhotoUpload from "@/components/PetPhotoUpload";
+import { signedPetPhotoUrl } from "@/lib/photos";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, SPECIES_LABEL, ageFromBirthDate, formatDate } from "@/lib/format";
 import type {
@@ -66,6 +69,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
     ]);
 
   const p = pet as Pet;
+  const photoUrl = await signedPetPhotoUrl(supabase, p.photo_url);
   const weightRows = (weights.data ?? []) as WeightLog[];
   const latestWeight = weightRows.at(-1);
 
@@ -76,7 +80,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
       </Link>
 
       <header className="mb-8 mt-3 flex flex-wrap items-start gap-4">
-        <span className="text-5xl">{SPECIES_EMOJI[p.species] ?? "🐾"}</span>
+        <PetAvatar pet={p} photoUrl={photoUrl} size="lg" />
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold tracking-tight">{p.name}</h1>
           <p className="muted mt-1 text-sm">
@@ -97,7 +101,15 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
             <p className="muted mt-0.5 text-xs">Born {formatDate(p.birth_date)}</p>
           )}
         </div>
-        <DeletePetButton petId={p.id} petName={p.name} />
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href={`/pets/${p.id}/edit`}
+            className="muted rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs hover:border-brand-500 hover:text-brand-600"
+          >
+            Edit
+          </Link>
+          <DeletePetButton petId={p.id} petName={p.name} />
+        </div>
       </header>
 
       {p.notes && (
@@ -112,6 +124,10 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
           </div>
         </section>
       )}
+
+      <div className="mb-8">
+        <PetPhotoUpload pet={p} photoUrl={photoUrl} />
+      </div>
 
       <PetDocumentDrop
         pet={p}

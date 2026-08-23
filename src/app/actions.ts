@@ -87,7 +87,11 @@ export async function deletePet(formData: FormData) {
   // Typed-name confirmation. Deleting a pet takes its vaccinations, medications,
   // weight history and vet visits with it, and none of that is recoverable.
   const typed = str(formData, "confirm_name") ?? "";
-  const { data: pet } = await supabase.from("pets").select("name").eq("id", id).maybeSingle();
+  const { data: pet } = await supabase
+    .from("pets")
+    .select("name, photo_url")
+    .eq("id", id)
+    .maybeSingle();
   if (!pet) throw new Error("Pet not found");
   if (typed.trim().toLowerCase() !== pet.name.trim().toLowerCase()) {
     throw new Error(`Type "${pet.name}" exactly to confirm deletion.`);
@@ -102,6 +106,11 @@ export async function deletePet(formData: FormData) {
   if (docs?.length) {
     await supabase.storage.from("vet-reports").remove(docs.map((d) => d.storage_path));
     await supabase.from("documents").delete().eq("pet_id", id);
+  }
+
+  // The pet's own photo lives in the same bucket and would otherwise be orphaned.
+  if (pet.photo_url) {
+    await supabase.storage.from("vet-reports").remove([pet.photo_url]);
   }
 
   // RLS restricts this to pets the caller owns; no extra ownership check needed.

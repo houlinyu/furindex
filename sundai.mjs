@@ -1,0 +1,12 @@
+import { chromium } from "playwright-core";
+const b = await chromium.launch({ executablePath: process.env.CHROME_PATH, args: ["--no-sandbox"] });
+const p = await (await b.newContext()).newPage();
+await p.goto("https://www.sundai.club/projects", { waitUntil: "networkidle", timeout: 60000 });
+await p.waitForTimeout(4000);
+const text = await p.innerText("body");
+console.log("=== rendered length:", text.length, "===");
+console.log(text.slice(0, 5000));
+console.log("\n=== links ===");
+const links = await p.$$eval("a[href]", els => [...new Set(els.map(e=>e.getAttribute("href")))].filter(h=>h && h.includes("project")).slice(0,25));
+links.forEach(l=>console.log("  "+l));
+await b.close();
