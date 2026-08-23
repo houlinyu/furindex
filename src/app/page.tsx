@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { getUser } from "@/lib/supabase/server";
 import MarketingNav from "@/components/MarketingNav";
-import { SUNDAI_PROJECT_URL, GITHUB_REPO_URL, CONTACT_EMAIL, isPlaceholder } from "@/lib/links";
+import {
+  SUNDAI_PROJECT_URL,
+  GITHUB_REPO_URL,
+  CONTACT_EMAIL,
+  REPO_IS_PUBLIC,
+  isPlaceholder,
+} from "@/lib/links";
 
 export default async function LandingPage() {
   const user = await getUser();
@@ -237,15 +243,19 @@ export default async function LandingPage() {
           >
             Built at Sundai{isPlaceholder(SUNDAI_PROJECT_URL) ? " (link TODO)" : ""}
           </a>
-          <span aria-hidden>·</span>
-          <a
-            href={GITHUB_REPO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-4 hover:text-brand-600"
-          >
-            Source{isPlaceholder(GITHUB_REPO_URL) ? " (link TODO)" : ""}
-          </a>
+          {REPO_IS_PUBLIC && (
+            <>
+              <span aria-hidden>·</span>
+              <a
+                href={GITHUB_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 hover:text-brand-600"
+              >
+                Source
+              </a>
+            </>
+          )}
         </div>
         <p className="muted mt-3 text-xs">
           Animal records are not PHI, and we still treat them like they matter.
