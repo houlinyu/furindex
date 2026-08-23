@@ -86,9 +86,9 @@ export default function BreedScanWidget() {
                       ? `A mix — maybe ${result.looks_like.slice(0, 2).join(" and ")}`
                       : "A lovely mix")}
                 </h3>
-                {result.temperament.length > 0 && (
+                {result.traits.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {result.temperament.map((t) => (
+                    {result.traits.map((t) => (
                       <span
                         key={t}
                         className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs muted"
@@ -103,6 +103,14 @@ export default function BreedScanWidget() {
                   {result.fun_fact}
                 </p>
                 {result.note && <p className="muted mt-2 text-sm">{result.note}</p>}
+                {result.breed && (
+                  <p className="muted mt-3 border-t border-[var(--border)] pt-2 text-xs leading-relaxed">
+                    Breed tells you a lot about how a dog looks and very little
+                    about who they are — about 9% of the behavioural differences
+                    between individual dogs, in a study of 18,385 of them. Whatever
+                    yours turns out to be, they&apos;ll mostly be themselves.
+                  </p>
+                )}
               </>
             ) : (
               <>

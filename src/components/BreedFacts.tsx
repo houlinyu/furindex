@@ -51,9 +51,14 @@ export default async function BreedFacts({
 
       {facts.temperament.length > 0 && (
         <>
-          {/* The visible chips read as decoration; name the group for screen readers. */}
+          {/* The visible chips read as decoration; name the group for screen readers.
+              Worded as what the breed is DESCRIBED as, not what this animal is:
+              breed accounts for roughly 9% of behavioural variation between
+              individual dogs (Morrill et al., Science 2022, n=18,385), and a 2025
+              PNAS study of 3,287 dogs found none of 135 candidate behaviour
+              variants associated with behaviour at all. */}
           <h3 className="sr-only" id="breed-temperament-heading">
-            Typical temperament
+            Words often used to describe the breed
           </h3>
           <ul
             aria-labelledby="breed-temperament-heading"
@@ -69,6 +74,14 @@ export default async function BreedFacts({
             ))}
           </ul>
         </>
+      )}
+
+      {facts.temperament.length > 0 && (
+        <p className="muted mt-2 text-xs leading-relaxed">
+          Words often used of the breed — not a prediction about your pet. Breed
+          explains around 9% of the behavioural differences between individual
+          dogs, and most dogs of any breed sit close to the average for all dogs.
+        </p>
       )}
 
       {stats.length > 0 && (
