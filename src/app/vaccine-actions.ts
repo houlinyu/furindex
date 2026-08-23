@@ -118,6 +118,32 @@ function isDuplicate(err: { code?: string } | null): boolean {
   return err?.code === "23505";
 }
 
+/**
+ * "This branch is deployed and its migration is not."
+ *
+ * Not a hypothetical. The team shares one Supabase project and applies
+ * supabase/schema.sql by hand, so there is always a window — hours, sometimes a
+ * day — where this code is live and `vaccinations.vaccine_key` is not. Postgres
+ * answers with 42703 and PostgREST with PGRST204/PGRST205, and the raw strings
+ * ("column vaccinations.vaccine_key does not exist") would reach an owner who
+ * has just typed five dates off a paper card and can do precisely nothing with
+ * that sentence.
+ *
+ * So it is translated into something addressed to the person who can fix it.
+ * Same handling as loadOnboarding in the onboarding branch, for the same reason.
+ */
+const MISSING_SCHEMA = new Set(["42703", "PGRST204", "PGRST205"]);
+
+function schemaError(err: { code?: string; message?: string } | null): string | null {
+  if (!err?.code || !MISSING_SCHEMA.has(err.code)) return null;
+  return "This build needs supabase/schema.sql applying to the database before the vaccine block can save — the new columns aren't there yet. Nothing you typed has been lost; try again once it's run.";
+}
+
+/** Every write goes through here, so the translation cannot be forgotten on one path. */
+function saveError(err: { code?: string; message?: string } | null): string {
+  return schemaError(err) ?? err?.message ?? "Couldn't save that.";
+}
+
 // -------------------------------------------------------------- per-row ----
 
 type ParsedRow = {
@@ -213,7 +239,7 @@ export async function saveVaccineBlock(
     .select("id, name, species")
     .eq("id", petId)
     .maybeSingle();
-  if (petError) return { error: petError.message };
+  if (petError) return { error: saveError(petError) };
   if (!petRow) return { error: "That pet no longer exists." };
   const pet = petRow as Pick<Pet, "id" | "name" | "species">;
 
@@ -260,7 +286,7 @@ export async function saveVaccineBlock(
         .update({ is_active: false })
         .eq("pet_id", petId)
         .eq("vaccine_key", def.key);
-      if (error) return { error: error.message };
+      if (error) return { error: saveError(error) };
       continue;
     }
 
@@ -276,7 +302,7 @@ export async function saveVaccineBlock(
       .eq("vaccine_key", def.key)
       .eq("administered_on", administeredOn)
       .maybeSingle();
-    if (vaxLookupError) return { error: vaxLookupError.message };
+    if (vaxLookupError) return { error: saveError(vaxLookupError) };
 
     const computedDue = row.dueOn ?? nextDueFrom(administeredOn, intervalMonths);
     if (!computedDue) {
@@ -299,13 +325,13 @@ export async function saveVaccineBlock(
         .from("vaccinations")
         .update(vaxFields)
         .eq("id", existingVax.id);
-      if (error) return { error: error.message };
+      if (error) return { error: saveError(error) };
     } else {
       const { error } = await supabase.from("vaccinations").insert(vaxFields);
       // A duplicate here means the owner double-tapped and the first submit
       // already wrote it. That is the outcome we wanted; it is not an error to
       // show them.
-      if (error && !isDuplicate(error)) return { error: error.message };
+      if (error && !isDuplicate(error)) return { error: saveError(error) };
       if (!error) saved += 1;
     }
 
@@ -342,17 +368,17 @@ export async function saveVaccineBlock(
       .eq("pet_id", petId)
       .eq("vaccine_key", def.key)
       .maybeSingle();
-    if (remLookupError) return { error: remLookupError.message };
+    if (remLookupError) return { error: saveError(remLookupError) };
 
     if (existingReminder) {
       const { error } = await supabase
         .from("care_reminders")
         .update(reminderFields)
         .eq("id", existingReminder.id);
-      if (error) return { error: error.message };
+      if (error) return { error: saveError(error) };
     } else {
       const { error } = await supabase.from("care_reminders").insert(reminderFields);
-      if (error && !isDuplicate(error)) return { error: error.message };
+      if (error && !isDuplicate(error)) return { error: saveError(error) };
     }
     scheduled += 1;
   }
