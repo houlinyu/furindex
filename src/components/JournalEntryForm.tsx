@@ -64,6 +64,15 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
     }
   }, [state]);
 
+  /** Picking the wrong photo is common; the upload already happened, so undoing
+   *  it means deleting the object, not just clearing the input. */
+  function discardPhoto(path: string) {
+    setPhoto(null);
+    setPhotoError(null);
+    if (fileRef.current) fileRef.current.value = "";
+    createClient().storage.from("vet-reports").remove([path]);
+  }
+
   /**
    * The photo goes straight from the browser to storage — same path as
    * ReportUpload — so a large image never has to cross a Server Action's body
@@ -222,9 +231,21 @@ export default function JournalEntryForm({ petId }: { petId: string }) {
           className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 disabled:opacity-60"
         />
         <p id="journal-photo-hint" className="muted mt-1 text-xs">
-          {photo
-            ? `${photo.name} attached — it saves with this entry.`
-            : "Optional. A rash or a limp is easier to show than describe. PNG, JPG or WebP up to 10 MB."}
+          {photo ? (
+            <>
+              {photo.name} attached — it saves with this entry.{" "}
+              <button
+                type="button"
+                onClick={() => discardPhoto(photo.path)}
+                disabled={busy}
+                className="text-brand-600 underline underline-offset-2 hover:text-brand-700 disabled:opacity-60"
+              >
+                Remove
+              </button>
+            </>
+          ) : (
+            "Optional. A rash or a limp is easier to show than describe. PNG, JPG or WebP up to 10 MB."
+          )}
         </p>
       </div>
 
