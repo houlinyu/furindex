@@ -15,6 +15,7 @@ import DeletePetButton from "@/components/DeletePetButton";
 import PetAvatar from "@/components/PetAvatar";
 import PetPhotoUpload from "@/components/PetPhotoUpload";
 import JournalTimeline from "@/components/JournalTimeline";
+import JournalPatterns, { hasEnoughTimedEntries } from "@/components/JournalPatterns";
 import JournalEntryForm from "@/components/JournalEntryForm";
 import { signedPetPhotoUrl } from "@/lib/photos";
 import { createClient, getUser } from "@/lib/supabase/server";
@@ -23,13 +24,13 @@ import type {
   CustomValue,
   FeedingLog,
   FeedingPlan,
-  JournalEntry,
+  FieldDefinition,
   InsuranceClaim,
   InsurancePolicy,
-  PetDocument,
-  FieldDefinition,
+  JournalEntry,
   Medication,
   Pet,
+  PetDocument,
   Vaccination,
   VetVisit,
   WeightLog,
@@ -102,6 +103,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
     ]);
 
   const p = pet as Pet;
+  const journalEntries = (journal.data ?? []) as JournalEntry[];
   const photoUrl = await signedPetPhotoUrl(supabase, p.photo_url);
   const weightRows = (weights.data ?? []) as WeightLog[];
   const latestWeight = weightRows.at(-1);
@@ -224,7 +226,12 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
           when it started, how often, what it looked like.
         </p>
         <JournalEntryForm petId={p.id} />
-        <JournalTimeline entries={(journal.data ?? []) as JournalEntry[]} />
+        {hasEnoughTimedEntries(journalEntries) && (
+          <div className="mb-4">
+            <JournalPatterns entries={journalEntries} />
+          </div>
+        )}
+        <JournalTimeline entries={journalEntries} />
       </section>
 
       <section className="mb-8">

@@ -71,7 +71,8 @@ export default function HealthSignals({
                 {ready.length === 1 ? "" : "s"} moved outside {petName}&apos;s usual
                 range.{" "}
                 <span className="muted">
-                  Worth mentioning to your vet if it keeps up.
+                  Changes are worth knowing about, not worrying about — a quiet
+                  week is usually just a quiet week.
                 </span>
               </>
             )}
