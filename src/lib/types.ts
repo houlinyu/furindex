@@ -33,6 +33,14 @@ export type Vaccination = {
   lot_number: string | null;
   notes: string | null;
   created_at: string;
+  /**
+   * Stable key of a known core vaccine ('rabies', 'dhpp', 'fvrcp', …) when this
+   * row came from the vaccines block, null when it was typed into the free-text
+   * form or predates the feature. `name` remains the human-readable record;
+   * this is only the machine tie-back. Never store a display label here.
+   * See src/lib/vaccines.ts.
+   */
+  vaccine_key: string | null;
 };
 
 export type Medication = {
@@ -445,6 +453,22 @@ export type CareReminder = {
   notes: string | null;
   is_active: boolean;
   created_at: string;
+  /**
+   * Days between this reminder's `due_on` and the real due date of the thing it
+   * is about. Non-null only for reminders written by the vaccines block, which
+   * deliberately sets `due_on` EARLY so the owner is poked ahead of time; the
+   * real due date is `due_on` plus this. Null on every hand-written reminder,
+   * whose `due_on` is simply its due date.
+   */
+  reminder_lead_days: number | null;
+  /** Which known core vaccine this is about, if any. See src/lib/vaccines.ts. */
+  vaccine_key: string | null;
+  /**
+   * The true interval in months for a vaccine reminder. Exists because
+   * `repeat_interval` tops out at 'annual' and the usual adult DHPP/FVRCP
+   * interval is about three years — see the schema comment.
+   */
+  interval_months: number | null;
 };
 
 export const CARE_KINDS: CareKind[] = [

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import RecordTabs from "@/components/RecordTabs";
+import VaccineBlock from "@/components/VaccineBlock";
 import WeightChart from "@/components/WeightChart";
 import CustomFields from "@/components/CustomFields";
 import PetDocumentDrop from "@/components/PetDocumentDrop";
@@ -196,6 +197,13 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
           </div>
         </section>
       )}
+
+      <VaccineBlock
+        petId={p.id}
+        species={p.species}
+        vaccinations={(vaccinations.data ?? []) as Vaccination[]}
+        reminders={(reminders.data ?? []) as CareReminder[]}
+      />
 
       <section className="mb-8">
         <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">
