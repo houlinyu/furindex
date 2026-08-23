@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import type { ScanResult } from "@/lib/breed-scan";
+import { factOfTheDay } from "@/lib/pet-facts";
 
 type Phase = "idle" | "scanning" | "done" | "error" | "off";
 
@@ -13,6 +14,7 @@ export default function BreedScanWidget() {
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [species, setSpecies] = useState<"dog" | "cat" | null>(null);
 
   async function handle(file: File) {
     setError(null);
@@ -41,8 +43,14 @@ export default function BreedScanWidget() {
     }
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
+      // A dead box on the primary call to action is worse than a smaller
+      // promise kept, so fall back to asking rather than reading.
+      if (json.disabled) {
+        setPhase("off");
+        return;
+      }
       setError(json.error ?? "That didn't work.");
-      setPhase(json.disabled ? "off" : "error");
+      setPhase("error");
       return;
     }
     setResult(json.result as ScanResult);
@@ -55,6 +63,62 @@ export default function BreedScanWidget() {
     setError(null);
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
+  }
+
+  // ---- scanning unavailable: ask instead of read -------------------------
+  if (phase === "off") {
+    const today = new Date().toISOString().slice(0, 10);
+    const fact = species ? factOfTheDay(species, today) : null;
+
+    return (
+      <div className="card p-6">
+        {!fact ? (
+          <>
+            <p className="text-sm font-medium">Tell us what you&apos;ve got</p>
+            <p className="muted mt-1 text-sm">
+              Reading photos is switched off on this deployment — but we can still
+              tell you something you probably didn&apos;t know.
+            </p>
+            <div className="mt-4 flex gap-3">
+              {(["dog", "cat"] as const).map((s2) => (
+                <button
+                  key={s2}
+                  onClick={() => setSpecies(s2)}
+                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-[var(--border)] text-sm font-medium hover:border-brand-500 hover:text-[var(--brand-text)]"
+                >
+                  <span aria-hidden>{s2 === "dog" ? "🐕" : "🐈"}</span>
+                  {s2 === "dog" ? "A dog" : "A cat"}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="muted text-xs font-medium uppercase tracking-widest">
+              {fact.topic}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed">{fact.body}</p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Link
+                href="/login"
+                className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
+              >
+                Start a free record
+              </Link>
+              <button
+                onClick={() => {
+                  setSpecies(null);
+                  setPhase("idle");
+                }}
+                className="muted text-xs underline underline-offset-4"
+              >
+                Start over
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
   }
 
   // ---- result ------------------------------------------------------------
