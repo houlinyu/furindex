@@ -70,3 +70,23 @@ Demos use synthetic pets. `.gitignore` blocks `data/` and `*.csv`.
 (name, email, address, payment) are ordinary personal data, and several US
 states impose confidentiality duties on veterinary records. A public hackathon
 repo is the worst possible place for any of it.
+
+---
+
+## 5. A feeding plan is superseded, never overwritten or deleted
+
+**Date:** 2026-08-23 · **Status:** accepted
+
+Changing a pet's food inserts a new `feeding_plans` row and marks the previous
+one `is_current = false` with an `ended_on` date. Nothing updates a plan in
+place, and nothing deletes one.
+
+**Why:** "when did you change her food?" is one of the first questions asked
+about a skin, gut or weight problem, and the answer is usually months old. An
+in-place edit destroys exactly the dates that make the history diagnostic, and
+the owner has no way to reconstruct them.
+
+**Consequence:** the plan table grows one row per diet change, and every read
+has to pick the current plan rather than assuming one row per pet. A "correct a
+typo" affordance would need a genuine update path — add it deliberately, don't
+reach for it by turning supersede into overwrite.
