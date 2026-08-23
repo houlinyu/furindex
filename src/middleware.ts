@@ -4,7 +4,26 @@ import { NextResponse, type NextRequest } from "next/server";
 // Prefix-matched. "/" is handled separately below — as a prefix it would make
 // every route public.
 const PUBLIC_PREFIXES = ["/login", "/auth"];
-const PUBLIC_EXACT = ["/", "/collaborate", "/partners", "/science", "/compare"];
+// "/start" is the funnel's cat-or-dog step. It has to be public: it is asked
+// BEFORE sign-up, and bouncing it to /login would put the wall back exactly
+// where this funnel exists to remove it.
+//
+// "/api/breed-scan" was missing here, which broke the landing page's own
+// dropzone for exactly the people it is for. A signed-out POST was answered
+// with a 307 to /login; a 307 preserves the method, so the browser re-POSTed
+// the photo at the login page and got a 500 back — the widget could never even
+// reach its own "scanning is switched off" branch. The endpoint is built to be
+// public (it rate limits guests by hashed IP, and schema.sql grants
+// claim_scan_slot to `anon`), so the exemption belongs here.
+const PUBLIC_EXACT = [
+  "/",
+  "/start",
+  "/api/breed-scan",
+  "/collaborate",
+  "/partners",
+  "/science",
+  "/compare",
+];
 
 /**
  * Refreshes the Supabase auth cookie on every request and bounces signed-out
