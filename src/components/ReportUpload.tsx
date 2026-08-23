@@ -99,9 +99,11 @@ export default function ReportUpload({
       const res = await fetch(`/api/documents/${documentId}/extract`, { method: "POST" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        // The upload survived — send them to the review page, which shows the
-        // failure and offers a retry rather than losing the file.
-        setError(body.error ?? "Couldn't read that document.");
+        // The file is already stored either way. A reader that is switched off is
+        // not a failed upload, and saying so would be a lie about what happened.
+        if (!body.disabled) {
+          setError(body.error ?? "Couldn't read that document.");
+        }
       }
       router.push(`/documents/${documentId}`);
     } catch (err) {

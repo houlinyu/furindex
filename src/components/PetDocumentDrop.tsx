@@ -23,9 +23,20 @@ export default function PetDocumentDrop({
         Add a document
       </h2>
       <p className="muted mb-3 text-xs">
-        Drop a vet report, invoice, lab result or vaccination card — PDF or a photo.
-        We read it and propose records for {pet.name}; nothing is saved until you
-        confirm each line.
+        {extractionEnabled ? (
+          <>
+            Drop a vet report, invoice, lab result or vaccination card — PDF or a
+            photo. We read it and propose records for {pet.name}; nothing is saved
+            until you confirm each line.
+          </>
+        ) : (
+          <>
+            Drop a vet report, invoice, lab result or vaccination card — PDF or a
+            photo. It&apos;s filed against {pet.name} and stays available to open,
+            print or export. Automatic reading is switched off on this deployment,
+            so records aren&apos;t filled in for you yet.
+          </>
+        )}
       </p>
 
       {extractionEnabled ? (
