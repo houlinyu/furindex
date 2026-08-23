@@ -3,7 +3,7 @@
  * Anything still holding a REPLACE_ME value renders a visible "(link TODO)".
  */
 export const SUNDAI_PROJECT_URL = "https://www.sundai.club/projects/REPLACE_ME";
-export const GITHUB_REPO_URL = "https://github.com/houlinyu/petfolio";
+export const GITHUB_REPO_URL = "https://github.com/houlinyu/furindex";
 export const CONTACT_EMAIL = "yuhoulin737@gmail.com";
 
 /**

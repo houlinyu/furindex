@@ -12,18 +12,6 @@ export type SearchHit = {
   href: string;
 };
 
-const ICON: Record<SearchHit["kind"], string> = {
-  pet: "🐾",
-  vaccination: "💉",
-  medication: "💊",
-  visit: "🩺",
-  journal: "📔",
-  document: "📄",
-  field: "🧩",
-};
-
-export const HIT_ICON = ICON;
-
 /**
  * Cross-record search. Every query below runs under the caller's session, so RLS
  * scopes results to their own pets — there is no owner filter in application
