@@ -77,8 +77,14 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
     .maybeSingle();
   if (!doc) throw new Error("Document not found");
   if (!doc.extracted) throw new Error("This document has not been read yet");
+  // Without this, a second tab (or a retry after a mid-way failure) writes the
+  // whole set again — duplicate vaccinations, and a second copy of the pet.
+  if (doc.applied_at || doc.status === "applied") {
+    throw new Error("These records have already been saved to a pet.");
+  }
 
   const report = doc.extracted as ExtractedReport;
+  const today = new Date().toISOString().slice(0, 10);
 
   // ---- 1. Decide which pet these records belong to -------------------------
   let petId = plan.petId;
@@ -91,7 +97,10 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
         species: plan.createPet.species,
         breed: plan.createPet.breed,
         sex: plan.createPet.sex,
-        birth_date: plan.createPet.birth_date,
+        birth_date:
+          plan.createPet.birth_date && plan.createPet.birth_date <= today
+            ? plan.createPet.birth_date
+            : null,
         microchip_id: plan.createPet.microchip_id,
       })
       .select("id")
@@ -104,17 +113,28 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
   // ---- 2. Write only what was ticked ---------------------------------------
   const visitDate = report.visit_date ?? new Date().toISOString().slice(0, 10);
 
+  // These are model outputs with DB CHECK constraints behind them and no way for
+  // the user to correct them in the review UI. Drop the offending field rather
+  // than let the whole save fail on a constraint the user cannot see.
+  const clampDue = (administered: string, due: string | null) =>
+    due && due >= administered ? due : null;
+  const clampEnd = (start: string, end: string | null) =>
+    end && end >= start ? end : null;
+
   const vaccineRows = plan.vaccinations
     .map((i) => report.vaccinations[i])
     .filter(Boolean)
-    .map((v) => ({
-      pet_id: petId!,
-      name: v.name,
-      administered_on: v.administered_on ?? visitDate,
-      due_on: v.due_on,
-      vet_clinic: report.clinic_name,
-      lot_number: v.lot_number,
-    }));
+    .map((v) => {
+      const administered = v.administered_on ?? visitDate;
+      return {
+        pet_id: petId!,
+        name: v.name,
+        administered_on: administered,
+        due_on: clampDue(administered, v.due_on),
+        vet_clinic: report.clinic_name,
+        lot_number: v.lot_number,
+      };
+    });
   if (vaccineRows.length) {
     const { error } = await supabase.from("vaccinations").insert(vaccineRows);
     if (error) throw new Error(error.message);
@@ -123,20 +143,23 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
   const medRows = plan.medications
     .map((i) => report.medications[i])
     .filter(Boolean)
-    .map((m) => ({
-      pet_id: petId!,
-      name: m.name,
-      dosage: m.dosage,
-      frequency: m.frequency,
-      start_date: m.start_date ?? visitDate,
-      end_date: m.end_date,
-    }));
+    .map((m) => {
+      const start = m.start_date ?? visitDate;
+      return {
+        pet_id: petId!,
+        name: m.name,
+        dosage: m.dosage,
+        frequency: m.frequency,
+        start_date: start,
+        end_date: clampEnd(start, m.end_date),
+      };
+    });
   if (medRows.length) {
     const { error } = await supabase.from("medications").insert(medRows);
     if (error) throw new Error(error.message);
   }
 
-  if (plan.weight && report.weight_kg != null) {
+  if (plan.weight && report.weight_kg != null && report.weight_kg > 0 && report.weight_kg < 1000) {
     const { error } = await supabase.from("weight_logs").upsert(
       { pet_id: petId, recorded_on: visitDate, weight_kg: report.weight_kg },
       { onConflict: "pet_id,recorded_on" }
@@ -152,7 +175,10 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
       reason: report.reason,
       diagnosis: report.diagnosis,
       notes: report.notes,
-      cost_cents: report.cost_usd != null ? Math.round(report.cost_usd * 100) : null,
+      cost_cents:
+        report.cost_usd != null && report.cost_usd >= 0
+          ? Math.round(report.cost_usd * 100)
+          : null,
     });
     if (error) throw new Error(error.message);
   }
@@ -204,10 +230,13 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
     if (error) throw new Error(error.message);
   }
 
-  await supabase
+  const { error: latchError } = await supabase
     .from("documents")
     .update({ status: "applied", pet_id: petId, applied_at: new Date().toISOString() })
     .eq("id", documentId);
+  // Previously unchecked: if this failed, the review UI still rendered and Save
+  // wrote everything a second time.
+  if (latchError) throw new Error(latchError.message);
 
   revalidatePath("/dashboard");
   revalidatePath("/pets");
@@ -221,7 +250,11 @@ function coerceValue(raw: string, type: FieldType) {
   if (!v) return null;
 
   if (type === "number") {
-    const n = Number(v.replace(/[^0-9.eE+-]/g, ""));
+    const stripped = v.replace(/[^0-9.eE+-]/g, "");
+    // Number("") is 0 and finite, so words vet reports actually print in numeric
+    // columns — "normal", "WNL", "N/A" — used to be stored as a real 0.
+    if (!stripped || !/\d/.test(stripped)) return null;
+    const n = Number(stripped);
     return Number.isFinite(n) ? { value_number: n } : null;
   }
   if (type === "date") {
@@ -245,8 +278,12 @@ export async function deleteDocument(documentId: string) {
     .maybeSingle();
   if (!doc) return;
 
+  // Row first. If the object removal fails we leak a file, which is recoverable.
+  // The other order leaves a row pointing at a dead path, and storage_path is
+  // unique — so it can never be re-uploaded or repaired.
+  const { error: rowError } = await supabase.from("documents").delete().eq("id", documentId);
+  if (rowError) throw new Error(rowError.message);
   await supabase.storage.from("vet-reports").remove([doc.storage_path]);
-  await supabase.from("documents").delete().eq("id", documentId);
 
   revalidatePath("/dashboard");
   if (doc.pet_id) revalidatePath(`/pets/${doc.pet_id}`);

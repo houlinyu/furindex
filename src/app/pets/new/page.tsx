@@ -48,7 +48,13 @@ export default async function NewPetPage() {
           </div>
           <div>
             <label htmlFor="birth_date" className="mb-1 block text-sm font-medium">Birth date</label>
-            <input id="birth_date" name="birth_date" type="date" className={field} />
+            <input
+              id="birth_date"
+              name="birth_date"
+              type="date"
+              max={new Date().toISOString().slice(0, 10)}
+              className={field}
+            />
           </div>
         </div>
 

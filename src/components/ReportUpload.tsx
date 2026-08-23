@@ -39,6 +39,11 @@ export default function ReportUpload({ pets }: { pets: Pet[] }) {
     }
     const isPdf = file.type === "application/pdf";
     const cap = isPdf ? MAX_PDF_BYTES : MAX_IMAGE_BYTES;
+    if (file.size === 0) {
+      setError("That file is empty.");
+      setPhase("error");
+      return;
+    }
     if (file.size > cap) {
       setError(
         isPdf
@@ -63,13 +68,22 @@ export default function ReportUpload({ pets }: { pets: Pet[] }) {
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) throw new Error(upErr.message);
 
-      const documentId = await registerDocument({
-        storagePath: path,
-        filename: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size,
-        petId: petId || null,
-      });
+      let documentId: string;
+      try {
+        documentId = await registerDocument({
+          storagePath: path,
+          filename: file.name,
+          mimeType: file.type,
+          sizeBytes: file.size,
+          petId: petId || null,
+        });
+      } catch (regErr) {
+        // The file is already in the bucket. Without this it would sit there
+        // forever with nothing referencing it — and storage_path is unique, so
+        // that exact path could never be reused.
+        await supabase.storage.from("vet-reports").remove([path]);
+        throw regErr;
+      }
 
       setPhase("reading");
       const res = await fetch(`/api/documents/${documentId}/extract`, { method: "POST" });

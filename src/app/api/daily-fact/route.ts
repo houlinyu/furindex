@@ -13,6 +13,12 @@ export async function GET() {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
+  // Without a key there is no fact to generate. 204 lets the panel hide itself
+  // quietly instead of logging a 500 in the console on every dashboard load.
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   const today = new Date().toISOString().slice(0, 10);
 
   const { data: cached } = await supabase

@@ -5,6 +5,14 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { PetSpecies } from "@/lib/types";
 
+/** Slice by code point, not UTF-16 unit — .slice(0,8) can cut a surrogate pair
+ *  in half and produce a lone surrogate that Postgres rejects. */
+function trimEmoji(raw: FormDataEntryValue | null): string {
+  const s = String(raw ?? "").trim();
+  if (!s) return "🐾";
+  return [...s].slice(0, 4).join("") || "🐾";
+}
+
 async function requireUser() {
   const supabase = await createClient();
   const {
@@ -20,13 +28,14 @@ export async function joinCommunity(formData: FormData) {
 
   const displayName = String(formData.get("display_name") ?? "").trim();
   if (displayName.length < 2) throw new Error("Pick a display name of at least 2 characters");
+  if (displayName.length > 40) throw new Error("Display names are limited to 40 characters");
 
   const { error } = await supabase.from("community_profiles").upsert({
     id: user.id,
     display_name: displayName,
     bio: String(formData.get("bio") ?? "").trim() || null,
     city: String(formData.get("city") ?? "").trim() || null,
-    avatar_emoji: String(formData.get("avatar_emoji") ?? "🐾").slice(0, 8) || "🐾",
+    avatar_emoji: trimEmoji(formData.get("avatar_emoji")),
     is_public: true,
   });
   if (error) throw new Error(error.message);
@@ -53,7 +62,20 @@ export async function createPost(formData: FormData) {
   if (!body) throw new Error("Say something first");
   if (body.length > 1000) throw new Error("Keep it under 1000 characters");
 
-  const communityPetId = String(formData.get("community_pet_id") ?? "") || null;
+  let communityPetId = String(formData.get("community_pet_id") ?? "") || null;
+
+  // The composer only offers your own pets, but nothing stopped a forged id —
+  // the posts policy constrains author_id only, and the FK just requires the row
+  // to exist. Without this a post could render as "you · with someone else's pet".
+  if (communityPetId) {
+    const { data: owned } = await supabase
+      .from("community_pets")
+      .select("id")
+      .eq("id", communityPetId)
+      .eq("owner_id", user.id)
+      .maybeSingle();
+    if (!owned) communityPetId = null;
+  }
 
   const { error } = await supabase.from("community_posts").insert({
     author_id: user.id,
@@ -127,6 +149,17 @@ export async function publishPet(formData: FormData) {
   }
   if (!name) throw new Error("A name is required");
 
+  // A double-submit would otherwise publish the same pet twice and show both.
+  if (sourcePetId) {
+    const { data: already } = await supabase
+      .from("community_pets")
+      .select("id")
+      .eq("owner_id", user.id)
+      .eq("source_pet_id", sourcePetId)
+      .maybeSingle();
+    if (already) return;
+  }
+
   const { error } = await supabase.from("community_pets").insert({
     owner_id: user.id,
     source_pet_id: sourcePetId,
@@ -134,7 +167,7 @@ export async function publishPet(formData: FormData) {
     species,
     breed,
     bio: String(formData.get("bio") ?? "").trim() || null,
-    avatar_emoji: String(formData.get("avatar_emoji") ?? "🐾").slice(0, 8) || "🐾",
+    avatar_emoji: trimEmoji(formData.get("avatar_emoji")),
   });
   if (error) throw new Error(error.message);
 

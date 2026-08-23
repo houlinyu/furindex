@@ -492,3 +492,15 @@ alter table public.community_posts
 --   select count(*) from public.community_posts;    -- 0 (authenticated-only)
 --   reset role;
 -- ============================================================================
+
+-- ---------------------------------------------------------------------------
+-- 2026-08-23 fix: deleting a pet must not destroy the scanned reports.
+-- documents.pet_id was ON DELETE CASCADE, so removing a pet permanently deleted
+-- the original vet paperwork — the one artifact an owner cannot reconstruct —
+-- and orphaned the private PDFs in storage. The column is already nullable and
+-- the app already handles unfiled documents, so SET NULL is the correct rule.
+-- ---------------------------------------------------------------------------
+alter table public.documents drop constraint if exists documents_pet_id_fkey;
+alter table public.documents
+  add constraint documents_pet_id_fkey
+  foreign key (pet_id) references public.pets(id) on delete set null;

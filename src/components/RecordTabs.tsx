@@ -147,7 +147,7 @@ export default function RecordTabs({
             <input type="hidden" name="pet_id" value={petId} />
             <label className="muted text-xs">
               Weight (kg)
-              <input name="weight_kg" type="number" step="0.01" min="0.01" required className={field} />
+              <input name="weight_kg" type="number" step="0.01" min="0.01" max="999.99" required className={field} />
             </label>
             <label className="muted text-xs">
               Date

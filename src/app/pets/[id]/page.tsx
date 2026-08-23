@@ -4,8 +4,8 @@ import AppShell from "@/components/AppShell";
 import RecordTabs from "@/components/RecordTabs";
 import WeightChart from "@/components/WeightChart";
 import CustomFields from "@/components/CustomFields";
+import DeletePetButton from "@/components/DeletePetButton";
 import { createClient, getUser } from "@/lib/supabase/server";
-import { deletePet } from "@/app/actions";
 import { SPECIES_EMOJI, SPECIES_LABEL, ageFromBirthDate, formatDate } from "@/lib/format";
 import type {
   CustomValue,
@@ -71,12 +71,7 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
             <p className="muted mt-0.5 text-xs">Born {formatDate(p.birth_date)}</p>
           )}
         </div>
-        <form action={deletePet}>
-          <input type="hidden" name="pet_id" value={p.id} />
-          <button className="muted rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs hover:border-red-400 hover:text-red-600">
-            Delete
-          </button>
-        </form>
+        <DeletePetButton petId={p.id} petName={p.name} />
       </header>
 
       {p.notes && (

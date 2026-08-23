@@ -3,6 +3,7 @@ import JoinCommunity from "@/components/JoinCommunity";
 import PostComposer from "@/components/PostComposer";
 import CommunityFeed from "@/components/CommunityFeed";
 import PublishPet from "@/components/PublishPet";
+import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { leaveCommunity } from "@/app/community-actions";
 import { SPECIES_EMOJI } from "@/lib/format";
@@ -15,12 +16,15 @@ import type {
 
 export default async function CommunityPage() {
   const user = await getUser();
+  // Middleware normally prevents this, but a session expiring between the
+  // middleware check and this render would otherwise 500 instead of redirecting.
+  if (!user) redirect("/login");
   const supabase = await createClient();
 
   const { data: me } = await supabase
     .from("community_profiles")
     .select("*")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .maybeSingle();
 
   const profile = me as CommunityProfile | null;
@@ -39,13 +43,18 @@ export default async function CommunityPage() {
 
   // Everything below is readable only because RLS allows signed-in users to see
   // rows belonging to owners who set is_public. No health table is touched.
-  const [{ data: posts }, { data: pets }, { data: myPets }, { data: reactions }] =
-    await Promise.all([
-      supabase.from("community_posts").select("*").order("created_at", { ascending: false }).limit(50),
-      supabase.from("community_pets").select("*").order("created_at", { ascending: false }).limit(60),
-      supabase.from("pets").select("*").order("name"),
-      supabase.from("post_reactions").select("*"),
-    ]);
+  const [{ data: posts }, { data: pets }, { data: myPets }] = await Promise.all([
+    supabase.from("community_posts").select("*").order("created_at", { ascending: false }).limit(50),
+    supabase.from("community_pets").select("*").order("created_at", { ascending: false }).limit(60),
+    supabase.from("pets").select("*").order("name"),
+  ]);
+
+  // Scoped to the posts actually on screen — this used to fetch every reaction
+  // in the whole community on every page load and filter them in JS.
+  const postIds = (posts ?? []).map((p) => p.id);
+  const { data: reactions } = postIds.length
+    ? await supabase.from("post_reactions").select("*").in("post_id", postIds)
+    : { data: [] };
 
   const { data: profiles } = await supabase
     .from("community_profiles")
@@ -56,7 +65,7 @@ export default async function CommunityPage() {
     ((profiles ?? []) as CommunityProfile[]).map((p) => [p.id, p])
   );
   const communityPets = (pets ?? []) as CommunityPet[];
-  const minePublished = communityPets.filter((p) => p.owner_id === user!.id);
+  const minePublished = communityPets.filter((p) => p.owner_id === user.id);
 
   return (
     <AppShell email={user?.email}>
@@ -115,7 +124,7 @@ export default async function CommunityPage() {
           profiles={profileById}
           pets={new Map(communityPets.map((p) => [p.id, p]))}
           reactions={(reactions ?? []) as { post_id: string; user_id: string; emoji: string }[]}
-          currentUserId={user!.id}
+          currentUserId={user.id}
         />
       </section>
     </AppShell>

@@ -15,7 +15,11 @@ export default function DailyFactPanel() {
   useEffect(() => {
     let alive = true;
     fetch("/api/daily-fact")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("failed"))))
+      .then((r) => {
+        // 204 = feature switched off (no API key). Not an error.
+        if (r.status === 204) return Promise.reject(new Error("disabled"));
+        return r.ok ? r.json() : Promise.reject(new Error("failed"));
+      })
       .then((d) => alive && setFact({ topic: d.topic ?? null, body: d.body }))
       .catch(() => alive && setFailed(true));
     return () => {

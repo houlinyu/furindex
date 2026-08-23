@@ -11,6 +11,54 @@ pick up. If you leave the project mid-thought, write the thought down here.
 
 ---
 
+## 2026-08-23 (hardening) — hyu
+
+**Password auth added; five stress-test defects fixed. All verified live.**
+
+**Why passwords.** The hosted Supabase mailer is capped at 2 emails/hour for the
+whole project and the cap cannot be raised without custom SMTP (I tried; the
+Management API returns 401 on `rate_limit_email_sent`). Two sign-ins and the
+third person gets silence with no explanation — fatal on stage. Password auth has
+no ceiling and no spam-folder failure mode. `mailer_autoconfirm` is now true, so
+signup issues a session instantly and sends no email at all.
+
+Tradeoff accepted: nobody proves they own the address they register with. For a
+password-gated preview where every account is isolated by RLS, that is fine.
+Turn it back off before any real launch.
+
+**Verified against live Supabase, not assumed:**
+- signup -> session immediately, zero emails
+- sign-in works; wrong password 400s
+- a brand-new user sees 0 rows on pets/documents/vaccinations/custom_values/community_posts
+- they can insert their own pet (201)
+- forging `owner_id` to another user is refused: **403, "new row violates
+  row-level security policy"**
+
+**Five defects from the live stress test:**
+1. HIGH — `/login` shipped an EMPTY Suspense boundary. `useSearchParams()` forces
+   a client-side bailout and there was no fallback, so the only sign-in path was
+   a blank gap until JS hydrated, and non-functional without JS. Fixed by reading
+   search params in the server component and passing them as props. The form now
+   server-renders; `BAILOUT_TO_CLIENT_SIDE_RENDERING` is gone from the HTML.
+2. MEDIUM — a live, clickable link to `.../projects/REPLACE_ME` labelled
+   "(link TODO)" was in production. `isPlaceholder()` only appended the label; it
+   did not suppress the anchor. Now renders plain text until the URL is real.
+3. LOW — `/login` had the same `<title>` as the homepage.
+4. LOW — no `X-Frame-Options`, so `/login` was iframe-able and overlayable for
+   credential harvesting. Added that plus nosniff, Referrer-Policy,
+   Permissions-Policy, and `poweredByHeader: false`.
+5. LOW — middleware used a bare `startsWith`, so a future `/login-admin` or
+   `/authorize` would have become public automatically. Now matches on segment
+   boundaries. Verified: all three now 307 rather than 200.
+
+**Clean under test:** medians 87-129ms across public routes; 100 requests at
+concurrency 10 -> 100/100 200s, p95 165ms; 25 concurrent -> no degradation; the
+password gate resists no-cookie, wrong-cookie, wrong `?k=`, HEAD, and encoded
+paths; `//evil.com` normalises same-origin (no open redirect); zero secrets in
+served HTML or the JS bundle.
+
+---
+
 ## 2026-08-23 (deployed) — hyu
 
 **LIVE: https://furindex.vercel.app** — private preview, gated by a shared
