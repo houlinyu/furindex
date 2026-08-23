@@ -1,0 +1,252 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import type { ExtractedReport } from "@/lib/extraction";
+import type { FieldType, PetSex, PetSpecies } from "@/lib/types";
+
+/** What the owner accepted on the review screen. Indices refer to the arrays
+ *  in documents.extracted — nothing is written that isn't listed here. */
+export type ApplyPlan = {
+  petId: string | null;
+  createPet: {
+    name: string;
+    species: PetSpecies;
+    breed: string | null;
+    sex: PetSex;
+    birth_date: string | null;
+    microchip_id: string | null;
+  } | null;
+  vaccinations: number[];
+  medications: number[];
+  additionalFields: number[];
+  weight: boolean;
+  visit: boolean;
+};
+
+export async function registerDocument(input: {
+  storagePath: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  petId: string | null;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  // The storage policy already confines writes to <uid>/…, but a client could
+  // still register a path it doesn't own. Check the prefix before trusting it.
+  if (!input.storagePath.startsWith(`${user.id}/`)) {
+    throw new Error("Invalid storage path");
+  }
+
+  const { data, error } = await supabase
+    .from("documents")
+    .insert({
+      owner_id: user.id,
+      pet_id: input.petId,
+      storage_path: input.storagePath,
+      filename: input.filename,
+      mime_type: input.mimeType,
+      size_bytes: input.sizeBytes,
+      status: "uploaded",
+    })
+    .select("id")
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data.id as string;
+}
+
+export async function applyExtraction(documentId: string, plan: ApplyPlan) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: doc } = await supabase
+    .from("documents")
+    .select("*")
+    .eq("id", documentId)
+    .maybeSingle();
+  if (!doc) throw new Error("Document not found");
+  if (!doc.extracted) throw new Error("This document has not been read yet");
+
+  const report = doc.extracted as ExtractedReport;
+
+  // ---- 1. Decide which pet these records belong to -------------------------
+  let petId = plan.petId;
+  if (!petId && plan.createPet) {
+    const { data: created, error } = await supabase
+      .from("pets")
+      .insert({
+        owner_id: user.id,
+        name: plan.createPet.name,
+        species: plan.createPet.species,
+        breed: plan.createPet.breed,
+        sex: plan.createPet.sex,
+        birth_date: plan.createPet.birth_date,
+        microchip_id: plan.createPet.microchip_id,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    petId = created.id;
+  }
+  if (!petId) throw new Error("Choose a pet, or create one from the report");
+
+  // ---- 2. Write only what was ticked ---------------------------------------
+  const visitDate = report.visit_date ?? new Date().toISOString().slice(0, 10);
+
+  const vaccineRows = plan.vaccinations
+    .map((i) => report.vaccinations[i])
+    .filter(Boolean)
+    .map((v) => ({
+      pet_id: petId!,
+      name: v.name,
+      administered_on: v.administered_on ?? visitDate,
+      due_on: v.due_on,
+      vet_clinic: report.clinic_name,
+      lot_number: v.lot_number,
+    }));
+  if (vaccineRows.length) {
+    const { error } = await supabase.from("vaccinations").insert(vaccineRows);
+    if (error) throw new Error(error.message);
+  }
+
+  const medRows = plan.medications
+    .map((i) => report.medications[i])
+    .filter(Boolean)
+    .map((m) => ({
+      pet_id: petId!,
+      name: m.name,
+      dosage: m.dosage,
+      frequency: m.frequency,
+      start_date: m.start_date ?? visitDate,
+      end_date: m.end_date,
+    }));
+  if (medRows.length) {
+    const { error } = await supabase.from("medications").insert(medRows);
+    if (error) throw new Error(error.message);
+  }
+
+  if (plan.weight && report.weight_kg != null) {
+    const { error } = await supabase.from("weight_logs").upsert(
+      { pet_id: petId, recorded_on: visitDate, weight_kg: report.weight_kg },
+      { onConflict: "pet_id,recorded_on" }
+    );
+    if (error) throw new Error(error.message);
+  }
+
+  if (plan.visit) {
+    const { error } = await supabase.from("vet_visits").insert({
+      pet_id: petId,
+      visited_on: visitDate,
+      clinic: report.clinic_name,
+      reason: report.reason,
+      diagnosis: report.diagnosis,
+      notes: report.notes,
+      cost_cents: report.cost_usd != null ? Math.round(report.cost_usd * 100) : null,
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  // ---- 3. Freeform values become the owner's own field definitions ---------
+  for (const i of plan.additionalFields) {
+    const f = report.additional_fields[i];
+    if (!f) continue;
+
+    // Look first, insert only if missing. An upsert here would let a later
+    // document rewrite field_type — flipping an established `number` field to
+    // `text` and stranding every earlier value in the wrong column.
+    const { data: found } = await supabase
+      .from("field_definitions")
+      .select("id, field_type")
+      .eq("owner_id", user.id)
+      .eq("label", f.label)
+      .maybeSingle();
+
+    let def = found;
+    if (!def) {
+      const { data: created, error: defError } = await supabase
+        .from("field_definitions")
+        .insert({
+          owner_id: user.id,
+          label: f.label,
+          field_type: f.value_type as FieldType,
+          unit: f.unit,
+          scope: "event",
+        })
+        .select("id, field_type")
+        .single();
+      if (defError) throw new Error(defError.message);
+      def = created;
+    }
+
+    // Always coerce with the EXISTING type, not what this document claims.
+    const value = coerceValue(f.value, def.field_type as FieldType);
+    if (!value) continue; // unparseable for its type — skip rather than store junk
+
+    const { error } = await supabase.from("custom_values").insert({
+      owner_id: user.id,
+      pet_id: petId,
+      definition_id: def.id,
+      document_id: documentId,
+      recorded_on: f.recorded_on ?? visitDate,
+      ...value,
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  await supabase
+    .from("documents")
+    .update({ status: "applied", pet_id: petId, applied_at: new Date().toISOString() })
+    .eq("id", documentId);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/pets");
+  revalidatePath(`/pets/${petId}`);
+  redirect(`/pets/${petId}`);
+}
+
+/** Exactly one value column gets set — the DB has a check constraint saying so. */
+function coerceValue(raw: string, type: FieldType) {
+  const v = raw.trim();
+  if (!v) return null;
+
+  if (type === "number") {
+    const n = Number(v.replace(/[^0-9.eE+-]/g, ""));
+    return Number.isFinite(n) ? { value_number: n } : null;
+  }
+  if (type === "date") {
+    return /^\d{4}-\d{2}-\d{2}$/.test(v) ? { value_date: v } : null;
+  }
+  if (type === "boolean") {
+    const t = v.toLowerCase();
+    if (["true", "yes", "positive", "y", "1"].includes(t)) return { value_bool: true };
+    if (["false", "no", "negative", "n", "0"].includes(t)) return { value_bool: false };
+    return null;
+  }
+  return { value_text: v };
+}
+
+export async function deleteDocument(documentId: string) {
+  const supabase = await createClient();
+  const { data: doc } = await supabase
+    .from("documents")
+    .select("storage_path, pet_id")
+    .eq("id", documentId)
+    .maybeSingle();
+  if (!doc) return;
+
+  await supabase.storage.from("vet-reports").remove([doc.storage_path]);
+  await supabase.from("documents").delete().eq("id", documentId);
+
+  revalidatePath("/dashboard");
+  if (doc.pet_id) revalidatePath(`/pets/${doc.pet_id}`);
+}
