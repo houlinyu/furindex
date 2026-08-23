@@ -215,7 +215,7 @@ export default async function LandingPage() {
               rel="noopener noreferrer"
               className="underline underline-offset-4 hover:text-brand-600"
             >
-              Built at Sundai
+              A Sundai project
             </a>
           )}
           {REPO_IS_PUBLIC && (
