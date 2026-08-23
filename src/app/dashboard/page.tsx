@@ -5,6 +5,7 @@ import ReportUpload from "@/components/ReportUpload";
 import DailyFactPanel from "@/components/DailyFactPanel";
 import SampleReportButton from "@/components/SampleReportButton";
 import PetAvatar from "@/components/PetAvatar";
+import SearchBox from "@/components/SearchBox";
 import { signedPetPhotoUrls } from "@/lib/photos";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, ageFromBirthDate, daysUntil, formatDate } from "@/lib/format";
@@ -53,6 +54,12 @@ export default async function DashboardPage() {
           Add pet
         </Link>
       </div>
+
+      {petList.length > 0 && (
+        <div className="mb-8">
+          <SearchBox />
+        </div>
+      )}
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wide muted">
