@@ -32,7 +32,7 @@ async function signedIn(width, height) {
 
 try {
   // ---------- wide: fixed rail ----------
-  let page = await signedIn(1440, 900);
+  let page = await signedIn(1280, 800);
   // Both renderings are always in the DOM; the breakpoint display:none's one of
   // them, which also removes it from the accessibility tree — so a role query
   // finds exactly one, and testids are how the test names the other.
@@ -41,7 +41,7 @@ try {
     : bad("rail count", String(await page.locator("[data-testid=pet-rail], [data-testid=pet-rail-chips]").count()));
 
   const rail = page.locator("[data-testid=pet-rail]");
-  await rail.isVisible() ? ok("wide: rail visible") : bad("wide: rail hidden at 1440px");
+  await rail.isVisible() ? ok("wide: rail visible") : bad("wide: rail hidden at 1280px");
   const links = rail.locator("a");
   const n = await links.count();
   n >= 6 ? ok(`wide: ${n} section links`) : bad("too few links", String(n));
@@ -52,11 +52,26 @@ try {
   missing.length === 0 ? ok("wide: every link resolves") : bad("dangling anchors", missing.join(","));
 
   // rail must not sit on top of the content column
+  // The rail is a grid column now, so "clears the content" means it sits left
+  // of the first section rather than left of the whole shell.
   const railBox = await rail.boundingBox();
-  const mainBox = await page.locator("#main").boundingBox();
-  railBox && mainBox && railBox.x + railBox.width <= mainBox.x + 2
+  const contentBox = await page.locator("#vaccines").boundingBox();
+  railBox && contentBox && railBox.x + railBox.width <= contentBox.x + 2
     ? ok("wide: rail clears the content column")
-    : bad("rail overlaps content", JSON.stringify({ railBox, mainBox }));
+    : bad("rail overlaps content", JSON.stringify({ railBox, contentBox }));
+
+  const wideDoc = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
+  wideDoc.sw <= wideDoc.cw + 1 ? ok("wide: no horizontal overflow") : bad("wide horizontal overflow", JSON.stringify(wideDoc));
+
+  // Sticky, not fixed: it must still be on screen after scrolling down.
+  await page.evaluate(() => window.scrollTo(0, 2500));
+  await page.waitForTimeout(400);
+  const stuckRail = await rail.boundingBox();
+  stuckRail && stuckRail.y >= 0 && stuckRail.y < 200
+    ? ok("wide: rail stays on screen while scrolling")
+    : bad("rail scrolled away", JSON.stringify(stuckRail));
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(300);
 
   // clicking actually moves the page
   const before = await page.evaluate(() => window.scrollY);

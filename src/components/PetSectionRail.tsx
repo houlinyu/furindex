@@ -56,13 +56,14 @@ export default function PetSectionRail({ sections }: { sections: RailSection[] }
 
   return (
     <>
-      {/* Wide screens: the margin beside the max-w-4xl column is empty space.
-          Fixed rather than sticky because the column it would stick inside is
-          the content itself, and a rail that scrolls away is no shortcut. */}
+      {/* Wide screens: a real column in the page's grid, sticky so it stays put
+          as the record scrolls past it. It lives in the layout rather than
+          floating in the margin — the margin only exists above 1280px, and a
+          jump-list that vanishes on a 1280x800 laptop is not a navigation. */}
       <nav
         aria-label="Jump to a section of this record"
         data-testid="pet-rail"
-        className="fixed top-24 left-[max(0.5rem,calc(50%-28rem-11.5rem))] z-30 hidden max-h-[calc(100vh-8rem)] w-44 overflow-y-auto xl:block"
+        className="sticky top-6 hidden max-h-[calc(100vh-4rem)] self-start overflow-y-auto lg:block"
       >
         <p className="muted mb-2 px-2 text-[0.65rem] font-medium uppercase tracking-wide">
           On this page
@@ -86,13 +87,13 @@ export default function PetSectionRail({ sections }: { sections: RailSection[] }
         </ul>
       </nav>
 
-      {/* Narrow screens: no margin to put a rail in, so the same list becomes a
-          horizontally scrolling strip. min-h-11 keeps every chip a real tap
-          target rather than a line of text. */}
+      {/* Narrow screens: no room for a column, so the same list becomes a
+          horizontally scrolling strip pinned to the top. min-h-11 keeps every
+          chip a real tap target rather than a line of text. */}
       <nav
         aria-label="Jump to a section of this record"
         data-testid="pet-rail-chips"
-        className="sticky top-0 z-30 -mx-4 mb-6 border-b border-[var(--border)] bg-[var(--bg)]/95 backdrop-blur xl:hidden"
+        className="sticky top-0 z-30 -mx-4 mb-6 border-b border-[var(--border)] bg-[var(--bg)]/95 backdrop-blur lg:hidden"
       >
         <ul className="flex gap-1 overflow-x-auto px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {present.map((s) => (

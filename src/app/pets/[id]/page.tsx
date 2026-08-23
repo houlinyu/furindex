@@ -196,8 +196,15 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         </div>
       </header>
 
-      <PetSectionRail sections={PET_SECTIONS} />
+      {/* Two columns from lg up: the jump rail, then the record. minmax(0,1fr)
+          rather than 1fr so a wide child (the weight chart, a table) shrinks
+          instead of blowing the grid out and giving the page a sideways
+          scrollbar. Below lg the grid collapses and the rail renders its chip
+          strip instead. */}
+      <div className="lg:grid lg:grid-cols-[10rem_minmax(0,1fr)] lg:gap-8">
+        <PetSectionRail sections={PET_SECTIONS} />
 
+        <div className="min-w-0">
       {p.notes && (
         <div className="card muted mb-8 whitespace-pre-wrap p-4 text-sm">{p.notes}</div>
       )}
@@ -355,6 +362,8 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         weights={[...weightRows].reverse()}
         visits={(visits.data ?? []) as VetVisit[]}
       />
+        </div>
+      </div>
     </AppShell>
   );
 }
