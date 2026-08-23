@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { requestExtraction } from "@/lib/extract-request";
 
 export default function RetryExtraction({
   documentId,
@@ -18,10 +19,9 @@ export default function RetryExtraction({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/documents/${documentId}/extract`, { method: "POST" });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body.error ?? "Still couldn't read it.");
+      const outcome = await requestExtraction(documentId);
+      if (!outcome.ok) {
+        setError(outcome.error ?? "Still couldn't read it.");
       }
       router.refresh();
     } finally {
