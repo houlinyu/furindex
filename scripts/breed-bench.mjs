@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 
 const BASE = process.argv[2] ?? "http://127.0.0.1:3000";
 const MANIFEST = process.argv[3];
+const MODELQ = process.argv[4] ? `&model=${encodeURIComponent(process.argv[4])}&dtype=${process.argv[5]||"fp16"}` : "";
 const CHROME =
   process.env.CHROME_PATH ??
   "/home/hyu/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome";
@@ -49,7 +50,7 @@ const perBreed = {};
 try {
   for (const [file, expected] of rows) {
     raw = null;
-    await page.goto(`${BASE}/identify?scandebug=1`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE}/identify?scandebug=1${MODELQ}`, { waitUntil: "networkidle" });
     await page.setInputFiles('input[type="file"]', file);
     await page.locator("[data-testid=scan-asking]").waitFor({ timeout: 90000 }).catch(() => {});
     if (await page.locator("[data-testid=scan-asking]").count())

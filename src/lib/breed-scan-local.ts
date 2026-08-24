@@ -55,6 +55,7 @@ function load() {
   if (loading) return loading;
   loading = (async () => {
     const { pipeline, env } = await import("@huggingface/transformers");
+
     // Without this the runtime probes /models/... on our own origin first and
     // logs a 404 for every file before falling back to the hub.
     env.allowLocalModels = false;
