@@ -25,7 +25,7 @@ import {
 } from "@/lib/imagenet-pets";
 import { noteFor } from "@/lib/breed-notes";
 
-const MODEL = "onnx-community/mobilenetv4s-webnn";
+const MODEL = "onnx-community/mobilenetv4_conv_medium.e500_r256_in1k";
 
 /** Local result plus the two things the model-backed shape has no room for. */
 export interface LocalScanResult extends ScanResult {
@@ -59,11 +59,16 @@ function load() {
     // logs a 404 for every file before falling back to the hub.
     env.allowLocalModels = false;
 
-    // device is pinned rather than left to the model card: this repo declares
-    // "webnn-gpu", which transformers.js rejects outright in every browser that
-    // has no WebNN, and the rejection is a thrown error rather than a fallback.
+    // MobileNetV4-conv-medium at fp16 (18 MB). Measured against the small model
+    // it replaced on 98 real dog photos: top-1 90.8% -> 92.9%, top-3 96.9% ->
+    // 98.0%, and it fixed the hard sighthound case (Whippet 2/6 -> 4/6). The
+    // int8/q8 build of this model is NOT usable — it collapses to ~52% top-1,
+    // the same quantisation damage the previous model showed — so fp16 is the
+    // floor, not a preference. device is pinned to wasm because leaving it to
+    // the model card can select a backend the browser lacks, which throws rather
+    // than falling back.
     const classifier = await pipeline("image-classification", MODEL, {
-      dtype: "fp32",
+      dtype: "fp16",
       device: "wasm",
     });
 

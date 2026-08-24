@@ -483,7 +483,7 @@ export default function BreedScanWidget() {
             </p>
             {phase === "loading-model" && (
               <p className="muted mt-1 text-xs">
-                Downloading the recogniser to your browser — about 14 MB, once.
+                Downloading the recogniser to your browser — about 18 MB, once.
                 After this it takes a second or two, and your photo never leaves
                 this device.
               </p>
