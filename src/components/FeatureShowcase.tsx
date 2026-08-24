@@ -79,14 +79,14 @@ const BADGE = {
 export default function FeatureShowcase() {
   return (
     <section id="roadmap" className="scroll-mt-16 border-y border-[var(--border)]">
-      <div className="mx-auto max-w-6xl px-6 py-24">
+      <div className="mx-auto max-w-6xl px-6 pb-24 pt-16">
         <div className="mx-auto max-w-2xl text-center">
           <p className="muted mb-3 text-xs font-medium uppercase tracking-widest">
             The roadmap
           </p>
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
             One record. Built out in the open.
-          </h2>
+          </h1>
           <p className="muted mt-5 text-lg leading-relaxed">
             Where FurIndex is today and where it&apos;s going — every block tagged
             honestly, nothing dressed up as done before it is.
