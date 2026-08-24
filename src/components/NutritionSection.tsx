@@ -4,7 +4,8 @@ import { useActionState, useEffect, useState } from "react";
 import FeedingLogForm from "@/components/FeedingLogForm";
 import FeedingPlanForm from "@/components/FeedingPlanForm";
 import { endFeedingPlan, type NutritionState } from "@/app/nutrition-actions";
-import { formatDate, formatDateTime, localDayKey } from "@/lib/format";
+import { formatDate, localDayKey } from "@/lib/format";
+import LocalDateTime from "@/components/LocalDateTime";
 import {
   FOOD_TYPE_EMOJI,
   FOOD_TYPE_LABEL,
@@ -190,7 +191,7 @@ export default function NutritionSection({
                   {/* The server renders this in its own timezone; the browser
                       re-renders it in the viewer's, which is the correct one. */}
                   <span className="muted shrink-0 text-xs" suppressHydrationWarning>
-                    {formatDateTime(l.fed_at)}
+                    <LocalDateTime iso={l.fed_at} />
                   </span>
                 </li>
               ))}

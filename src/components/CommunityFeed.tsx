@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import LocalDateTime from "@/components/LocalDateTime";
 import { deletePost, toggleReaction } from "@/app/community-actions";
 import { REACTION_EMOJI, type CommunityPet, type CommunityPost, type CommunityProfile } from "@/lib/types";
 
@@ -49,12 +50,7 @@ export default function CommunityFeed({
                   {pet && <span className="muted font-normal"> · with {pet.name}</span>}
                 </p>
                 <p className="muted text-xs">
-                  {new Date(post.created_at).toLocaleString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+                  <LocalDateTime iso={post.created_at} />
                   {author?.city ? ` · ${author.city}` : ""}
                 </p>
                 <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{post.body}</p>
