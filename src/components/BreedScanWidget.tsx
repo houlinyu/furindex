@@ -456,7 +456,7 @@ export default function BreedScanWidget() {
           <>
             <div className="text-3xl">📸</div>
             <p className="mt-3 text-sm font-medium">
-              Drop a photo of your pet — no account needed
+              Drop a cute photo of your furry friend — no account needed
             </p>
             <p className="muted mt-1 text-xs">
               We&apos;ll tell you what we think they are, and something you might not know.

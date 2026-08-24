@@ -21,10 +21,10 @@ export default async function IdentifyPage() {
           Who&apos;s that?
         </h1>
         <p className="muted mt-4 max-w-xl text-base leading-relaxed">
-          Drop a photo and we&apos;ll tell you what we think they are — and
-          something about them you probably didn&apos;t know. It runs in your own
-          browser, so the photo never leaves your device, and there&apos;s
-          nothing to sign up for.
+          Upload a cute photo of your furry friend and we&apos;ll tell you what
+          we think they are — plus something about them you probably didn&apos;t
+          know. It runs in your own browser, so the photo never leaves your
+          device, and there&apos;s nothing to sign up for.
         </p>
 
         <div className="mt-8">
