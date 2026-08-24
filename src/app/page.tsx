@@ -26,18 +26,18 @@ export default async function LandingPage() {
         {/* The mark, large, crowning the page — the one place it is the hero
             rather than a wayfinding label in the corner. */}
         <Logo
-          className="mx-auto mb-8 h-28 w-28 text-brand-600 sm:h-36 sm:w-36"
+          className="mx-auto mb-8 h-24 w-24 text-brand-600 sm:h-28 sm:w-28"
           title="FurIndex"
         />
-        <p className="muted mb-6 text-base font-medium uppercase tracking-[0.2em]">
+        <p className="muted mb-6 text-sm font-medium uppercase tracking-[0.2em]">
           The owner-held pet health record
         </p>
-        <h1 className="mx-auto max-w-5xl text-5xl font-semibold leading-[1.03] tracking-tight sm:text-8xl">
+        <h1 className="mx-auto max-w-4xl text-4xl font-semibold leading-[1.1] tracking-tight sm:text-6xl">
           Your pet&apos;s whole life
           <br />
           <span className="text-[var(--brand-text)]">in health, held by you.</span>
         </h1>
-        <p className="mx-auto mt-10 max-w-3xl text-2xl leading-relaxed sm:text-3xl sm:leading-relaxed">
+        <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed sm:text-xl sm:leading-relaxed">
           It starts with a photo of the vet paperwork, turned into a living record
           — vaccinations, medications, weight, reminders before anything lapses.
           It grows into the whole picture: shared with everyone who cares for
@@ -46,19 +46,19 @@ export default async function LandingPage() {
           follows your pet their entire life.
         </p>
 
-        <p className="mx-auto mt-10 max-w-2xl text-xl leading-relaxed sm:text-2xl">
+        <p className="mx-auto mt-10 max-w-xl text-lg leading-relaxed sm:text-xl">
           They can&apos;t tell you when something feels off.
           <br className="hidden sm:block" /> Their record can — start it today.
         </p>
         <div className="mt-8">
           <Link
             href={user ? "/dashboard" : "/login?register=1"}
-            className="inline-flex min-h-14 items-center rounded-2xl bg-brand-600 px-10 py-4 text-lg font-medium text-white hover:bg-brand-700"
+            className="inline-flex min-h-12 items-center rounded-xl bg-brand-600 px-8 py-3.5 text-base font-medium text-white hover:bg-brand-700"
           >
             {user ? "Open your dashboard" : "Create your free account"}
           </Link>
         </div>
-        <p className="muted mt-5 text-base">
+        <p className="muted mt-5 text-sm">
           Free · your records stay private by default
         </p>
 

@@ -20,11 +20,11 @@ export default function AppShell({
               left signed-in users with no route back to the public pages. */}
           <Link
             href="/"
-            className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap font-semibold tracking-tight"
+            className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap text-lg font-semibold tracking-tight"
             aria-label="FurIndex home"
           >
             <span className="inline-flex items-center gap-2">
-              <Logo className="h-6 w-6 text-brand-600" title="FurIndex" />
+              <Logo className="h-8 w-8 text-brand-600" title="FurIndex" />
               FurIndex
             </span>
           </Link>
