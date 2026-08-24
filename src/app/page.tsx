@@ -2,7 +2,6 @@ import Link from "next/link";
 import { getUser } from "@/lib/supabase/server";
 import MarketingNav from "@/components/MarketingNav";
 import FeatureShowcase from "@/components/FeatureShowcase";
-import BreedScanWidget from "@/components/BreedScanWidget";
 import Logo from "@/components/Logo";
 import {
   SUNDAI_PROJECT_URL,
@@ -41,12 +40,10 @@ export default async function LandingPage() {
           <br />
           <span className="text-[var(--brand-text)]">in one place you control.</span>
         </h1>
-        <p className="muted mx-auto mt-5 max-w-2xl text-base leading-relaxed">
-          It starts with a photo of the vet paperwork — FurIndex reads out the
-          vaccinations, medications, weight and due dates — and grows into a
-          living record: reminders before things lapse, trends against your own
-          animal&apos;s history, and the whole picture in a form a vet can
-          actually read. Owner-held, private by default, and never sold.
+        <p className="muted mx-auto mt-5 max-w-xl text-lg leading-relaxed">
+          Snap the vet paperwork. We turn it into a living record — reminders,
+          trends, the whole history a vet can read. Owner-held, private, never
+          sold.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
@@ -59,19 +56,36 @@ export default async function LandingPage() {
             href="#how"
             className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-6 py-3 text-sm font-medium hover:border-brand-500 hover:text-[var(--brand-text)]"
           >
-            See how it works
+            See the roadmap
           </a>
         </div>
         <p className="muted mt-4 text-xs">
           No card required · Your records stay private by default
         </p>
 
-        <div className="mx-auto mt-14 max-w-xl text-left">
-          <p className="muted mb-3 text-center text-xs font-medium uppercase tracking-widest">
-            Try it now — no sign-up
-          </p>
-          <BreedScanWidget />
-        </div>
+        <Link
+          href="/identify"
+          className="group mx-auto mt-12 flex max-w-md items-center gap-4 rounded-2xl border border-[var(--border)] bg-brand-50/40 p-4 text-left transition hover:border-brand-400 dark:bg-brand-500/10"
+        >
+          <span className="text-3xl" aria-hidden>
+            📸
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">
+              First, the fun part — what&apos;s my pet?
+            </span>
+            <span className="muted block text-xs leading-relaxed">
+              Drop a photo, get the breed and a fact you didn&apos;t know. Free,
+              no sign-up, and the photo never leaves your device.
+            </span>
+          </span>
+          <span
+            className="text-[var(--brand-text)] transition group-hover:translate-x-0.5"
+            aria-hidden
+          >
+            →
+          </span>
+        </Link>
       </section>
 
       {/* ---------------------------------------------------------- how ---- */}

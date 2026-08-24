@@ -15,6 +15,9 @@ export default function MarketingNav({ signedIn }: { signedIn: boolean }) {
           </span>
         </Link>
         <nav className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-sm">
+          <Link href="/identify" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
+            Pet ID
+          </Link>
           <Link href="/compare" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
             Why Us
           </Link>

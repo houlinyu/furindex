@@ -31,6 +31,7 @@ const PUBLIC_EXACT = [
   "/science",
   "/compare",
   "/contact",
+  "/identify",
 ];
 
 /**

@@ -71,8 +71,8 @@ const FEATURES = [
 ];
 
 const BADGE = {
-  live: null,
-  partial: { text: "Partly built", cls: "border-amber-300 text-amber-700" },
+  live: { text: "Live now", cls: "border-brand-300 text-[var(--brand-text)]" },
+  partial: { text: "Building", cls: "border-amber-300 text-amber-700" },
   next: { text: "Next up", cls: "border-[var(--border)] muted" },
 };
 
@@ -81,14 +81,27 @@ export default function FeatureShowcase() {
     <section className="border-y border-[var(--border)]">
       <div className="mx-auto max-w-5xl px-5 py-16">
         <div className="mx-auto max-w-2xl text-center">
+          <p className="muted mb-3 text-xs font-medium uppercase tracking-widest">
+            The roadmap
+          </p>
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Everything about your pet, in one place.
+            One record. Built out in the open.
           </h2>
           <p className="muted mt-4 text-base leading-relaxed">
-            From everyday care to long-term health — the information, the routines
-            and the signals, together. Track what matters, share it with the people
-            who look after your pet, and make changes easier to notice over time.
+            Where FurIndex is today and where it&apos;s going — every block tagged
+            honestly, nothing dressed up as done before it is.
           </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs">
+            <span className="inline-flex items-center rounded-full border border-brand-300 px-3 py-1 text-[var(--brand-text)]">
+              Live now
+            </span>
+            <span className="inline-flex items-center rounded-full border border-amber-300 px-3 py-1 text-amber-700">
+              Building
+            </span>
+            <span className="muted inline-flex items-center rounded-full border border-[var(--border)] px-3 py-1">
+              Next up
+            </span>
+          </div>
         </div>
 
         <div className="mt-14 space-y-16">
