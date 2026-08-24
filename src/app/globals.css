@@ -39,6 +39,13 @@
   opacity: 1;
 }
 
+/* Everything on every page is sized in rem, so raising the root font size
+   enlarges text AND its surrounding spacing proportionally — layouts keep their
+   proportions, they just read bigger. 112.5% = an 18px base instead of 16px. */
+html {
+  font-size: 112.5%;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
