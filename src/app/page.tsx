@@ -3,6 +3,7 @@ import { getUser } from "@/lib/supabase/server";
 import MarketingNav from "@/components/MarketingNav";
 import FeatureShowcase from "@/components/FeatureShowcase";
 import BreedScanWidget from "@/components/BreedScanWidget";
+import Logo from "@/components/Logo";
 import {
   SUNDAI_PROJECT_URL,
   GITHUB_REPO_URL,
@@ -25,19 +26,27 @@ export default async function LandingPage() {
       <main id="main">
 
       {/* --------------------------------------------------------- hero ---- */}
-      <section className="mx-auto max-w-5xl px-5 pb-16 pt-20 text-center">
+      <section className="mx-auto max-w-5xl px-5 pb-16 pt-16 text-center sm:pt-20">
+        {/* The mark, large, crowning the page — the one place it is the hero
+            rather than a wayfinding label in the corner. */}
+        <Logo
+          className="mx-auto mb-6 h-24 w-24 text-brand-600 sm:h-28 sm:w-28"
+          title="FurIndex"
+        />
         <p className="muted mb-4 text-xs font-medium uppercase tracking-widest">
-          Owner-held pet health records
+          The owner-held pet health record
         </p>
         <h1 className="mx-auto max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-          Your pet&apos;s health record,
+          Your pet&apos;s whole health story,
           <br />
-          <span className="text-[var(--brand-text)]">from a photo of the paperwork.</span>
+          <span className="text-[var(--brand-text)]">in one place you control.</span>
         </h1>
-        <p className="muted mx-auto mt-5 max-w-xl text-base leading-relaxed">
-          Vet visits generate paper. FurIndex reads it — the vaccinations, the
-          dosages, the weight, the next-due dates — and turns it into a record
-          that reminds you before things lapse.
+        <p className="muted mx-auto mt-5 max-w-2xl text-base leading-relaxed">
+          It starts with a photo of the vet paperwork — FurIndex reads out the
+          vaccinations, medications, weight and due dates — and grows into a
+          living record: reminders before things lapse, trends against your own
+          animal&apos;s history, and the whole picture in a form a vet can
+          actually read. Owner-held, private by default, and never sold.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
