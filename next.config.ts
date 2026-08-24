@@ -27,7 +27,14 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+            // microphone=(self), not (): the voice note in the health check and the
+            // media timeline both need getUserMedia, and microphone=() is not a
+            // prompt the user can accept — it makes the call reject outright, in
+            // every browser, with nothing the owner could do about it. (self)
+            // still blocks every embedded third-party frame. camera stays closed:
+            // the photo/video prompts use a file input with `capture`, which hands
+            // off to the phone's own camera app and is not gated by this header.
+            value: "camera=(), microphone=(self), geolocation=(), interest-cohort=()",
           },
         ],
       },

@@ -27,6 +27,7 @@ import JournalPatterns from "@/components/JournalPatterns";
 import { hasEnoughTimedEntries } from "@/lib/journal-patterns";
 import JournalEntryForm from "@/components/JournalEntryForm";
 import PetSectionRail, { type RailSection } from "@/components/PetSectionRail";
+import MediaSection from "@/components/MediaSection";
 import { signedPetPhotoUrl } from "@/lib/photos";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { SPECIES_EMOJI, SPECIES_LABEL, ageFromBirthDate, formatDate } from "@/lib/format";
@@ -63,6 +64,7 @@ const PET_SECTIONS: RailSection[] = [
   { id: "fields", label: "Your own fields" },
   { id: "nutrition", label: "Nutrition" },
   { id: "journal", label: "Journal" },
+  { id: "media", label: "Photos & clips" },
   { id: "insurance", label: "Insurance" },
   { id: "records", label: "All records" },
 ];
@@ -179,7 +181,17 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
             <p className="muted mt-0.5 text-xs">Born {formatDate(p.birth_date)}</p>
           )}
         </div>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        {/* wrap, not shrink-0: this row holds five actions now (Health check,
+            Dashboard, Summary, Edit, Delete) and at 390px they add up to more
+            than the viewport. shrink-0 turned that into a page that scrolled
+            sideways; wrapping puts them on two lines instead. */}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <Link
+            href={`/pets/${p.id}/check`}
+            className="muted inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-3 text-xs hover:border-brand-500 hover:text-[var(--brand-text)]"
+          >
+            Health check
+          </Link>
           <Link
             href={`/pets/${p.id}/dashboard`}
             className="muted inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-3 text-xs hover:border-brand-500 hover:text-[var(--brand-text)]"
@@ -344,6 +356,9 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         )}
         <JournalTimeline entries={journalEntries} />
       </section>
+
+      <div id="media" className="scroll-mt-20" />
+      <MediaSection petId={p.id} />
 
       <section id="insurance" className="mb-8 scroll-mt-20">
         <h2 className="mb-1 text-sm font-medium uppercase tracking-wide muted">

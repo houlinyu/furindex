@@ -261,6 +261,10 @@ export type Database = {
       care_reminders: Row<CareReminder>;
       pet_profiles: Row<PetProfile>;
       pet_onboarding: Row<PetOnboarding>;
+      pet_media: Row<PetMedia>;
+      health_checks: Row<HealthCheck>;
+      health_check_items: Row<HealthCheckItem>;
+      wellbeing_notes: Row<WellbeingNote>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -274,6 +278,11 @@ export type Database = {
       field_type: FieldType;
       claim_status: ClaimStatus;
       journal_category: JournalCategory;
+      media_kind: MediaKind;
+      health_check_part: HealthCheckPart;
+      health_capture_type: CaptureType;
+      health_self_assessment: SelfAssessment;
+      health_ai_review_status: AiReviewStatus;
       food_type: FoodType;
       food_unit: FoodUnit;
       care_kind: CareKind;
@@ -618,4 +627,117 @@ export type PetOnboarding = {
   /** The step they were last on. A hint for resuming, never authoritative. */
   last_step: string | null;
   updated_at: string;
+};
+
+// -------------------------------------------------------------------- media --
+export type MediaKind = "photo" | "video" | "audio";
+
+export type PetMedia = {
+  id: string;
+  pet_id: string;
+  owner_id: string;
+  storage_path: string;
+  kind: MediaKind;
+  mime_type: string;
+  size_bytes: number;
+  /**
+   * Seconds, for video and audio. Null for a photo AND null when the browser
+   * could not decode a length — a MediaRecorder blob often reports its own
+   * duration as Infinity. Unknown is stored as unknown, never as 0, so the UI
+   * can show nothing rather than claim a zero-second clip.
+   */
+  duration_seconds: number | null;
+  caption: string | null;
+  user_tags: string[];
+  /**
+   * Machine-derived tags. ALWAYS EMPTY today — nothing populates it and no UI
+   * reads it. When something does: never auto-apply AI-derived tags as fact.
+   * They stay separate from user_tags and are shown as a suggestion the owner
+   * accepts, never merged into the owner's own observation. See the column
+   * comment in supabase/schema.sql.
+   */
+  ai_tags: string[];
+  recorded_on: string;
+  created_at: string;
+};
+
+export const MEDIA_KIND_LABEL: Record<MediaKind, string> = {
+  photo: "Photo",
+  video: "Video",
+  audio: "Voice note",
+};
+
+export const MEDIA_KIND_EMOJI: Record<MediaKind, string> = {
+  photo: "📷",
+  video: "🎬",
+  audio: "🎤",
+};
+
+// ------------------------------------------------- guided health check (4.2) --
+/** The nine parts of the guided check, in the order the spec lists them. */
+export type HealthCheckPart =
+  | "eyes" | "mouth" | "ears" | "paws" | "coat" | "nose" | "poop" | "gait" | "behaviour";
+
+/** What the attached file is, derived from its MIME type at upload. */
+export type CaptureType = "photo" | "video" | "audio";
+
+/**
+ * The owner's own read of what they just looked at. Plain language on purpose —
+ * this is not a triage scale and it does not map onto one. "not_sure" is a real
+ * answer, not a missing one, and "looks_off" is an observation the owner made,
+ * never an alarm the app raised.
+ */
+export type SelfAssessment = "looks_normal" | "not_sure" | "looks_off";
+
+/**
+ * Reserved for a later review pass. Every row is `pending` today; nothing reads
+ * this and nothing writes any other value.
+ *
+ * THE RULE, from the Block 4 spec, verbatim: any AI-suggested flag is surfaced
+ * as "worth a second look" — **never** auto-labelled as a diagnosis or symptom
+ * without the owner (or, later, a vet) confirming. `flagged` therefore means
+ * "something suggested a second look", not "this pet has a problem", and no UI
+ * may render it as one.
+ */
+export type AiReviewStatus = "pending" | "reviewed" | "flagged";
+
+/** One dated session — the nine cards captured across one morning. */
+export type HealthCheck = {
+  id: string;
+  pet_id: string;
+  owner_id: string;
+  checked_on: string;
+  created_at: string;
+};
+
+export type HealthCheckItem = {
+  id: string;
+  check_id: string;
+  pet_id: string;
+  owner_id: string;
+  part: HealthCheckPart;
+  /** Object key in the private 'vet-reports' bucket, or null when nothing was attached. */
+  media_path: string | null;
+  media_type: CaptureType | null;
+  captured_at: string;
+  /** Null = the part was recorded without an opinion, which is allowed. */
+  self_assessment: SelfAssessment | null;
+  note: string | null;
+  ai_review_status: AiReviewStatus;
+  created_at: string;
+};
+
+// ------------------------------------------------------ wellbeing note (4.3) --
+export type WellbeingNote = {
+  id: string;
+  pet_id: string;
+  owner_id: string;
+  body: string | null;
+  /** Validated app-side against SENSATION_TAGS in @/lib/health-check. */
+  sensation_tags: string[];
+  /** 1 = flat, 5 = full of it. Null when the owner didn't say. */
+  mood: number | null;
+  voice_path: string | null;
+  recorded_at: string;
+  created_at: string;
 };
