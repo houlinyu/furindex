@@ -32,6 +32,7 @@ const PUBLIC_EXACT = [
   "/compare",
   "/contact",
   "/identify",
+  "/roadmap",
 ];
 
 /**

@@ -18,7 +18,7 @@ export default async function IdentifyPage() {
           Free · no sign-up
         </p>
         <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
-          What&apos;s my pet?
+          Who&apos;s that?
         </h1>
         <p className="muted mt-4 max-w-xl text-base leading-relaxed">
           Drop a photo and we&apos;ll tell you what we think they are — and
