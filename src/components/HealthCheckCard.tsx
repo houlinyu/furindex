@@ -304,6 +304,7 @@ export default function HealthCheckCard({
               ref={fileRef}
               id={`file-${spec.part}`}
               type="file"
+              aria-label="Attach a photo or clip for this check"
               accept={accept}
               capture={spec.capture === "photo" ? "environment" : undefined}
               disabled={busy}

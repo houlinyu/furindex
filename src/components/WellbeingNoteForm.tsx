@@ -175,6 +175,7 @@ export default function WellbeingNoteForm({
             ref={voiceRef}
             id="wellbeing-voice"
             type="file"
+            aria-label="Choose a voice note to attach"
             accept={Object.keys(AUDIO_MIME).join(",")}
             disabled={busy || !!voice}
             className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 disabled:opacity-60"

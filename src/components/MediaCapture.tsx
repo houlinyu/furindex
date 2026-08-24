@@ -530,6 +530,7 @@ export default function MediaCapture({ petId }: { petId: string }) {
             </summary>
             <input
               type="file"
+              aria-label="Choose an audio file"
               accept={acceptFor("audio")}
               disabled={busy}
               onChange={(e) => {
@@ -546,6 +547,7 @@ export default function MediaCapture({ petId }: { petId: string }) {
           <input
             id={`media-file-${kind}`}
             type="file"
+            aria-label="Choose a photo or video"
             accept={acceptFor(kind)}
             // Offers the camera directly on a phone, which is the whole point
             // for "film the limp"; desktop browsers ignore it.
