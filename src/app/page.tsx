@@ -25,41 +25,41 @@ export default async function LandingPage() {
       <main id="main">
 
       {/* --------------------------------------------------------- hero ---- */}
-      <section className="mx-auto max-w-5xl px-5 pb-16 pt-16 text-center sm:pt-20">
+      <section className="mx-auto max-w-6xl px-6 pb-24 pt-20 text-center sm:pt-28">
         {/* The mark, large, crowning the page — the one place it is the hero
             rather than a wayfinding label in the corner. */}
         <Logo
-          className="mx-auto mb-6 h-24 w-24 text-brand-600 sm:h-28 sm:w-28"
+          className="mx-auto mb-8 h-28 w-28 text-brand-600 sm:h-36 sm:w-36"
           title="FurIndex"
         />
-        <p className="muted mb-4 text-xs font-medium uppercase tracking-widest">
+        <p className="muted mb-6 text-sm font-medium uppercase tracking-[0.2em]">
           The owner-held pet health record
         </p>
-        <h1 className="mx-auto max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+        <h1 className="mx-auto max-w-5xl text-5xl font-semibold leading-[1.05] tracking-tight sm:text-7xl">
           Your pet&apos;s whole health story,
           <br />
           <span className="text-[var(--brand-text)]">in one place you control.</span>
         </h1>
-        <p className="muted mx-auto mt-5 max-w-xl text-lg leading-relaxed">
+        <p className="muted mx-auto mt-8 max-w-3xl text-xl leading-relaxed sm:text-2xl sm:leading-relaxed">
           Snap the vet paperwork. We turn it into a living record — reminders,
           trends, the whole history a vet can read. Owner-held, private, never
           sold.
         </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <Link
             href={cta}
-            className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
+            className="inline-flex min-h-12 items-center rounded-xl bg-brand-600 px-8 py-3.5 text-base font-medium text-white hover:bg-brand-700"
           >
             {ctaLabel}
           </Link>
           <a
-            href="#how"
-            className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-6 py-3 text-sm font-medium hover:border-brand-500 hover:text-[var(--brand-text)]"
+            href="#roadmap"
+            className="inline-flex min-h-12 items-center rounded-xl border border-[var(--border)] px-8 py-3.5 text-base font-medium hover:border-brand-500 hover:text-[var(--brand-text)]"
           >
             See the roadmap
           </a>
         </div>
-        <p className="muted mt-4 text-xs">
+        <p className="muted mt-5 text-sm">
           No card required · Your records stay private by default
         </p>
 
@@ -90,8 +90,8 @@ export default async function LandingPage() {
 
       {/* ---------------------------------------------------------- how ---- */}
       <section id="how" className="border-y border-[var(--border)] bg-brand-50/30">
-        <div className="mx-auto max-w-5xl px-5 py-16">
-          <h2 className="text-center text-2xl font-semibold tracking-tight">
+        <div className="mx-auto max-w-6xl px-6 py-24">
+          <h2 className="text-center text-3xl font-semibold tracking-tight sm:text-4xl">
             Three steps, about thirty seconds
           </h2>
           <ol className="mt-10 grid gap-6 sm:grid-cols-3">
@@ -138,93 +138,6 @@ export default async function LandingPage() {
       </section>
 
       <FeatureShowcase />
-
-      {/* ------------------------------------------------------ partners ---- */}
-      <section id="partners" className="border-y border-[var(--border)]">
-        <div className="mx-auto max-w-5xl px-5 py-16">
-          <p className="muted text-xs font-medium uppercase tracking-widest">
-            Partnerships
-          </p>
-          <h2 className="mt-2 max-w-2xl text-2xl font-semibold leading-snug tracking-tight">
-            We built the hard part: a structured, owner-confirmed health record
-            for an animal.
-          </h2>
-          <p className="muted mt-4 max-w-2xl text-sm leading-relaxed">
-            That record is the missing substrate for a lot of pet products. It is
-            longitudinal, it is owner-permissioned, and because the field layer is
-            user-defined, it accepts data shapes we never anticipated — including
-            yours.
-          </p>
-
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            <div className="card p-6">
-              <div className="text-2xl">⌚</div>
-              <p className="mt-3 font-medium">Wearables &amp; sensors</p>
-              <p className="muted mt-2 text-sm leading-relaxed">
-                Collars measure activity and sleep well; vitals are rarer than the
-                marketing implies. Whatever a device captures, our user-defined field
-                layer stores it as a typed time series beside the clinical history,
-                instead of stranding it in a separate app.
-              </p>
-              <p className="muted mt-3 text-xs">
-                Reviewers&apos; loudest complaint about these devices is the missing
-                trend layer — today&apos;s number, no weekly summary, history capped
-                at 90 days. That is the part we built.
-              </p>
-            </div>
-
-            <div className="card p-6">
-              <div className="text-2xl">🩺</div>
-              <p className="mt-3 font-medium">Veterinary clinics</p>
-              <p className="muted mt-2 text-sm leading-relaxed">
-                Today we read your PDF. The better version is the clinic pushing the
-                record directly — no scanning, no transcription, no drift between
-                what the vet recorded and what the owner has.
-              </p>
-              <p className="muted mt-3 text-xs">
-                For the clinic: fewer &ldquo;can you resend my dog&apos;s vaccine history&rdquo;
-                calls, and an owner who arrives with an accurate history.
-              </p>
-            </div>
-
-            <div className="card p-6">
-              <div className="text-2xl">🛡️</div>
-              <p className="mt-3 font-medium">Insurers &amp; preventive care</p>
-              <p className="muted mt-2 text-sm leading-relaxed">
-                Claims stall on missing history. An owner-held, timestamped record
-                with document provenance shortens that — and preventive-care
-                programmes get a reminder channel that owners already open.
-              </p>
-              <p className="muted mt-3 text-xs">
-                Owner-permissioned throughout. Data moves because the owner says so.
-              </p>
-            </div>
-          </div>
-
-          <div className="card mt-8 p-6">
-            <p className="font-medium">The principle we won&apos;t trade away</p>
-            <p className="muted mt-2 max-w-3xl text-sm leading-relaxed">
-              Every record belongs to the owner and is private by default. Row-level
-              security is enforced in the database, not in application code, so there
-              is no code path that can forget the check. Any partner integration is
-              an explicit, revocable grant by the owner — never a default, never a
-              side effect of signing up.
-            </p>
-          </div>
-
-          <div className="mt-8">
-            <Link
-              href="/collaborate"
-              className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
-            >
-              Talk to us about integrating
-            </Link>
-            <p className="muted mt-2 text-xs">
-              Replace this address with your own before demoing.
-            </p>
-          </div>
-        </div>
-      </section>
 
       </main>
 
