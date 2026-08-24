@@ -18,6 +18,9 @@ export default function MarketingNav({ signedIn }: { signedIn: boolean }) {
           <Link href="/identify" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
             Who&apos;s That?
           </Link>
+          <Link href="/how" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
+            How it works
+          </Link>
           <Link href="/roadmap" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
             Roadmap
           </Link>

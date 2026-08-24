@@ -31,55 +31,6 @@ export default async function RoadmapPage() {
           </p>
         </section>
 
-      {/* ---------------------------------------------------------- how ---- */}
-      <section id="how" className="border-y border-[var(--border)] bg-brand-50/30">
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <h2 className="text-center text-3xl font-semibold tracking-tight sm:text-4xl">
-            Three steps, about thirty seconds
-          </h2>
-          <ol className="mt-10 grid gap-6 sm:grid-cols-3">
-            {[
-              {
-                n: "1",
-                icon: "📄",
-                title: "Drop the report in",
-                body: "A PDF from the clinic, or a photo of the printout taken on your phone. Both work.",
-              },
-              {
-                n: "2",
-                icon: "🔎",
-                title: "It gets read",
-                body: "Vaccinations, medications, weight, diagnosis, next-due dates — pulled out as structured records.",
-              },
-              {
-                n: "3",
-                icon: "✅",
-                title: "You confirm",
-                body: "Every line is shown before anything is saved. Nothing lands on the record without your tick.",
-              },
-            ].map((s) => (
-              <li key={s.n} className="card p-6">
-                <div className="text-3xl">{s.icon}</div>
-                <p className="muted mt-3 text-xs font-medium uppercase tracking-wide">
-                  Step {s.n}
-                </p>
-                <p className="mt-1 font-medium">{s.title}</p>
-                <p className="muted mt-2 text-sm leading-relaxed">{s.body}</p>
-              </li>
-            ))}
-          </ol>
-
-          <div className="card mx-auto mt-10 max-w-2xl p-5 text-center">
-            <p className="text-sm font-medium">You always have the last word</p>
-            <p className="muted mt-2 text-sm leading-relaxed">
-              Every line is yours to keep or drop before it reaches your pet&apos;s
-              record. Other apps save whatever the model returned in one tap — we
-              think a health record is worth the extra three seconds.
-            </p>
-          </div>
-        </div>
-      </section>
-
         <FeatureShowcase />
 
         <section className="mx-auto max-w-3xl px-6 py-20 text-center">
