@@ -83,7 +83,16 @@ try {
     const said = fellBack
       ? "FELL BACK"
       : await card.locator("h3").first().innerText().catch(() => "(none)");
-    const banner = /Looks like|Probably|Best guess/.exec(text)?.[0] ?? "-";
+    const banner = /looks like|probably|best guess/i.exec(text)?.[0] ?? "-";
+
+    // The whole point of this pass: when a breed is named, is the reader shown
+    // that breed's own sourced fact, or the generic species fallback? The
+    // fallback fact is the only place this exact phrase appears; its absence
+    // (with a breed named) means a breed-specific note was served.
+    const namedBreed = !fellBack && said !== "(none)" && !/^A mix|^A lovely mix/.test(said);
+    const genericFallback = /far better than how they behave/.test(text);
+    const specificFact = namedBreed && !genericFallback;
+    const src = /Source:\s*([^.]+(?:\.[^.\n]+)?)/.exec(text)?.[1]?.trim().slice(0, 48) ?? "-";
 
     // Counted right if the true breed appears in what we told them at all: the
     // widget legitimately hedges to a pair, and a hedge containing the answer
@@ -94,12 +103,13 @@ try {
     const words = (x) => x.toLowerCase().match(/[a-z]+/g) ?? [];
     const saidWords = new Set(words(said));
     const hit = words(t.breed).every((w) => saidWords.has(w));
-    const confidentMiss = !hit && banner === "Looks like";
+    const confidentMiss = !hit && /looks like/i.test(banner);
 
-    rows.push({ f, species: t.species, truth: t.breed, said, banner, hit, confidentMiss });
+    rows.push({ f, species: t.species, truth: t.breed, said, banner, hit, confidentMiss, namedBreed, specificFact, src });
     console.log(
-      `${f.padEnd(24)} ${String(Date.now() - started).padStart(6)}ms  ${banner.padEnd(11)} ` +
-        `${hit ? "HIT " : confidentMiss ? "MISS!" : "miss "} want=${t.breed.padEnd(16)} got=${said}`
+      `${f.padEnd(28)} ${banner.padEnd(11)} ` +
+        `${hit ? "HIT " : confidentMiss ? "MISS!" : "miss "} ${specificFact ? "fact:OWN " : namedBreed ? "fact:GENERIC" : "fact:-      "} ` +
+        `want=${t.breed.padEnd(18)} got=${said.padEnd(22)} src=${src}`
     );
   }
 } finally {
@@ -111,8 +121,11 @@ for (const sp of ["dog", "cat"]) {
   if (!g.length) continue;
   const hits = g.filter((r) => r.hit).length;
   const bad = g.filter((r) => r.confidentMiss).length;
+  const named = g.filter((r) => r.namedBreed);
+  const own = named.filter((r) => r.specificFact).length;
   console.log(
-    `\n${sp}s: ${hits}/${g.length} contained the right breed · ${bad} confident misses`
+    `\n${sp}s: ${hits}/${g.length} contained the right breed · ${bad} confident misses` +
+      ` · ${named.length} got a named breed, ${own} of them shown that breed's OWN sourced fact`
   );
 }
 if (errors.length) console.log("\npage errors:\n" + [...new Set(errors)].slice(0, 5).join("\n"));
