@@ -318,6 +318,7 @@ export default function JournalEntryForm({
           ref={fileRef}
           id="journal-photo"
           type="file"
+          aria-label="Attach a photo to this journal entry"
           accept={ACCEPT}
           disabled={busy || !!photo}
           aria-describedby={

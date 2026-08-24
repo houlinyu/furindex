@@ -43,7 +43,7 @@ export default function AppShell({
             {email && (
               <Link
                 href="/account"
-                className="muted hidden text-xs underline underline-offset-4 hover:text-[var(--brand-text)] sm:inline"
+                className="muted hidden min-h-11 items-center text-xs underline underline-offset-4 hover:text-[var(--brand-text)] sm:inline-flex"
               >
                 {email}
               </Link>

@@ -41,7 +41,7 @@ export default async function DocumentPage({
 
   return (
     <AppShell email={user?.email}>
-      <Link href="/dashboard" className="muted text-sm hover:text-brand-600">
+      <Link href="/dashboard" className="muted inline-flex min-h-11 items-center text-sm hover:text-brand-600">
         ← Dashboard
       </Link>
 

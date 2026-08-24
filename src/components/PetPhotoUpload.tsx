@@ -122,6 +122,7 @@ export default function PetPhotoUpload({
             ref={inputRef}
             id="pet-photo"
             type="file"
+          aria-label="Choose a photo of your pet"
             accept={ACCEPT}
             className="sr-only"
             tabIndex={-1}

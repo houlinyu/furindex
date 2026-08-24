@@ -428,6 +428,7 @@ export default function BreedScanWidget() {
         <input
           ref={inputRef}
           type="file"
+          aria-label="Choose a photo of your pet"
           accept="image/png,image/jpeg,image/webp"
           className="sr-only"
           tabIndex={-1}

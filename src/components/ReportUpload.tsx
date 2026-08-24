@@ -149,6 +149,7 @@ export default function ReportUpload({
         <input
           ref={inputRef}
           type="file"
+          aria-label="Choose a vet report to upload"
           accept={ACCEPT}
           className="hidden"
           onChange={(e) => {

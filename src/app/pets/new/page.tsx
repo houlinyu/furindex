@@ -10,7 +10,7 @@ export default async function NewPetPage() {
 
   return (
     <AppShell email={user?.email}>
-      <Link href="/pets" className="muted text-sm hover:text-brand-600">
+      <Link href="/pets" className="muted inline-flex min-h-11 items-center text-sm hover:text-brand-600">
         ← Pets
       </Link>
       <h1 className="mb-6 mt-3 text-2xl font-semibold tracking-tight">Add a pet</h1>

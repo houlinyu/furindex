@@ -25,7 +25,7 @@ export default async function EditPetPage({
 
   return (
     <AppShell email={user?.email}>
-      <Link href={`/pets/${p.id}`} className="muted text-sm hover:text-brand-600">
+      <Link href={`/pets/${p.id}`} className="muted inline-flex min-h-11 items-center text-sm hover:text-brand-600">
         ← {p.name}
       </Link>
       <h1 className="mb-6 mt-3 text-2xl font-semibold tracking-tight">Edit {p.name}</h1>

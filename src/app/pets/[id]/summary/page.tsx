@@ -259,7 +259,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
       />
       {/* Everything in here is screen-only; the printed sheet starts at <article>. */}
       <div className="no-print mb-6 flex flex-wrap items-center gap-3">
-        <Link href={`/pets/${p.id}`} className="muted text-sm hover:text-brand-600">
+        <Link href={`/pets/${p.id}`} className="muted inline-flex min-h-11 items-center text-sm hover:text-brand-600">
           ← {p.name}
         </Link>
         <div className="ml-auto flex flex-wrap items-center gap-2">
