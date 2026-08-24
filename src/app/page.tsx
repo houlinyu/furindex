@@ -43,7 +43,7 @@ export default async function LandingPage() {
           sold.
         </p>
         <p className="muted mt-5 text-sm">
-          No card required · Your records stay private by default
+          Your records stay private by default
         </p>
 
         <Link
