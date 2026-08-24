@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import type { ScanResult } from "@/lib/breed-scan";
+import { modelIsWarm } from "@/lib/breed-scan-local";
 import { factOfTheDay } from "@/lib/pet-facts";
 import SpeciesChoice from "@/components/SpeciesChoice";
 import {
@@ -13,7 +14,7 @@ import {
   type FunnelSpecies,
 } from "@/lib/funnel-intent";
 
-type Phase = "idle" | "scanning" | "done" | "error" | "off";
+type Phase = "idle" | "asking" | "scanning" | "loading-model" | "done" | "error" | "off";
 
 /**
  * The funnel's first step, and the only one a visitor sees before signing up.
@@ -37,6 +38,12 @@ export default function BreedScanWidget() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<ScanResult | null>(null);
+  /** Set when the guess came from the browser rather than from a model. */
+  const [factSource, setFactSource] = useState<string | null>(null);
+  /** Overrides the breed line when "the breed" is the wrong answer — see cats. */
+  const [headline, setHeadline] = useState<string | null>(null);
+  /** Held between "we have no key" and the visitor telling us cat or dog. */
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -83,7 +90,12 @@ export default function BreedScanWidget() {
       // A dead box on the primary call to action is worse than a smaller
       // promise kept, so fall back to asking rather than reading.
       if (json.disabled) {
-        setPhase("off");
+        // No key on the server is not "the feature is off" any more — the
+        // browser can do this itself. It needs one thing from the visitor
+        // first: which species, because ImageNet's 118-dogs-to-5-cats label set
+        // makes that the one question the model is measurably bad at.
+        setPendingFile(file);
+        setPhase("asking");
         return;
       }
       setError(json.error ?? "That didn't work.");
@@ -109,6 +121,40 @@ export default function BreedScanWidget() {
     }
   }
 
+  /**
+   * Runs the classifier in this browser. The photo never leaves the device,
+   * which is why this is allowed to happen without asking anyone to sign up.
+   */
+  async function scanHere(file: File, species: FunnelSpecies) {
+    // The first scan downloads ~3 MB of weights. Saying so beats a spinner that
+    // looks stuck on a slow connection.
+    setPhase(modelIsWarm() ? "scanning" : "loading-model");
+    try {
+      const { scanPetPhotoLocally } = await import("@/lib/breed-scan-local");
+      const scan = await scanPetPhotoLocally(file, species);
+      setResult(scan);
+      setFactSource(scan.fact_source);
+      setHeadline(scan.headline ?? null);
+      setPhase("done");
+      if (scan.is_pet && isFunnelSpecies(scan.species)) {
+        saveFunnelIntent({
+          species: scan.species,
+          breed: scan.breed_confidence === "low" ? null : scan.breed,
+          source: "scan",
+          photo: carriedPhoto,
+        });
+      }
+    } catch (err) {
+      // A browser too old for WASM, weights that wouldn't download, a label map
+      // that failed its check — all of it lands here, and all of it means the
+      // same thing to the visitor: we'll ask instead of guessing. It is logged
+      // because a silent fallback is indistinguishable from the feature never
+      // having been built.
+      console.error("[breed-scan] on-device scan failed:", err);
+      setPhase("off");
+    }
+  }
+
   /** Shared by the no-key path and the "we couldn't tell" path. */
   function chooseSpecies(chosen: FunnelSpecies) {
     setSpecies(chosen);
@@ -118,6 +164,9 @@ export default function BreedScanWidget() {
   function reset() {
     setPhase("idle");
     setResult(null);
+    setFactSource(null);
+    setHeadline(null);
+    setPendingFile(null);
     setError(null);
     setSpecies(null);
     if (preview) URL.revokeObjectURL(preview);
@@ -138,13 +187,52 @@ export default function BreedScanWidget() {
     </Link>
   );
 
+  // ---- which animal is it? ------------------------------------------------
+  if (phase === "asking" && pendingFile) {
+    return (
+      <div className="card p-6" data-testid="scan-asking">
+        <div className="flex flex-col gap-5 sm:flex-row">
+          {preview && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={preview}
+              alt="The photo you uploaded"
+              className="h-28 w-28 shrink-0 rounded-xl object-cover"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">Cat or dog?</p>
+            <p className="muted mt-1 text-sm">
+              One tap and we&apos;ll work out the rest. We ask because the
+              recogniser knows 118 dog breeds and only a handful of cats, so
+              it&apos;s far better at <em>which one</em> than at{" "}
+              <em>which species</em> — and we&apos;d rather ask than get it
+              confidently wrong.
+            </p>
+            <div className="mt-4">
+              <SpeciesChoice
+                onChoose={(chosen) => {
+                  setSpecies(chosen);
+                  const file = pendingFile;
+                  setPendingFile(null);
+                  void scanHere(file, chosen);
+                }}
+                size="sm"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ---- scanning unavailable: ask instead of read -------------------------
   if (phase === "off") {
     const today = new Date().toISOString().slice(0, 10);
     const fact = species ? factOfTheDay(species, today) : null;
 
     return (
-      <div className="card p-6">
+      <div className="card p-6" data-testid="scan-fallback">
         {!fact ? (
           <>
             <p className="text-sm font-medium">Tell us what you&apos;ve got</p>
@@ -194,7 +282,7 @@ export default function BreedScanWidget() {
       scanned && result.breed && result.breed_confidence !== "low" ? result.breed : null;
 
     return (
-      <div className="card overflow-hidden">
+      <div className="card overflow-hidden" data-testid="scan-result">
         <div className="flex flex-col gap-5 p-6 sm:flex-row">
           {preview && (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -207,15 +295,21 @@ export default function BreedScanWidget() {
           <div className="min-w-0 flex-1">
             {result.is_pet ? (
               <>
-                <p className="muted text-xs font-medium uppercase tracking-widest">
-                  {result.breed_confidence === "high"
-                    ? "Looks like"
-                    : result.breed_confidence === "medium"
-                      ? "Probably"
-                      : "Best guess"}
-                </p>
+                {/* The banner grades a breed guess. When there is no breed
+                    being guessed — cats — "Looks like" over the word "A cat"
+                    promises a hedge we are not making. */}
+                {!headline && (
+                  <p className="muted text-xs font-medium uppercase tracking-widest">
+                    {result.breed_confidence === "high"
+                      ? "Looks like"
+                      : result.breed_confidence === "medium"
+                        ? "Probably"
+                        : "Best guess"}
+                  </p>
+                )}
                 <h3 className="mt-1 text-xl font-semibold tracking-tight">
-                  {result.breed ??
+                  {headline ??
+                    result.breed ??
                     (result.looks_like.length
                       ? `A mix — maybe ${result.looks_like.slice(0, 2).join(" and ")}`
                       : "A lovely mix")}
@@ -236,6 +330,12 @@ export default function BreedScanWidget() {
                   <span aria-hidden>💡 </span>
                   {result.fun_fact}
                 </p>
+                {factSource && (
+                  <p className="muted mt-1 text-xs">
+                    Source: {factSource}. Worked out in your browser — the photo
+                    was never uploaded.
+                  </p>
+                )}
                 {result.note && <p className="muted mt-2 text-sm">{result.note}</p>}
                 {result.breed && (
                   <p className="muted mt-3 border-t border-[var(--border)] pt-2 text-xs leading-relaxed">
@@ -296,7 +396,7 @@ export default function BreedScanWidget() {
   }
 
   // ---- dropzone ----------------------------------------------------------
-  const busy = phase === "scanning";
+  const busy = phase === "scanning" || phase === "loading-model";
   return (
     <div>
       <div
@@ -340,7 +440,16 @@ export default function BreedScanWidget() {
         {busy ? (
           <>
             <div className="text-3xl">🔎</div>
-            <p className="mt-3 text-sm font-medium">Looking…</p>
+            <p className="mt-3 text-sm font-medium">
+              {phase === "loading-model" ? "Getting ready…" : "Looking…"}
+            </p>
+            {phase === "loading-model" && (
+              <p className="muted mt-1 text-xs">
+                Downloading the recogniser to your browser — about 14 MB, once.
+                After this it takes a second or two, and your photo never leaves
+                this device.
+              </p>
+            )}
           </>
         ) : (
           <>
