@@ -37,6 +37,14 @@ eq(parseFirstDate("03/04/2026", "mdy")?.iso, "2026-03-04", "the other way round,
 eq(parseFirstDate("August 14, 2026", "unknown")?.iso, "2026-08-14", "a spelled-out month needs no convention");
 eq(parseFirstDate("14 August 2026", "unknown")?.iso, "2026-08-14", "day-first spelled out, too");
 eq(parseFirstDate("2026-08-14", "unknown")?.iso, "2026-08-14", "ISO passes straight through");
+eq(parseFirstDate("14 Aug 2026", "unknown")?.iso, "2026-08-14", "an abbreviated month, day-first");
+eq(parseFirstDate("Aug 14 2026", "unknown")?.iso, "2026-08-14", "an abbreviated month, month-first, comma-free");
+eq(parseFirstDate("14-Aug-2026", "unknown")?.iso, "2026-08-14", "a hyphen-separated month, day-first (14-Aug-2026)");
+eq(parseFirstDate("Aug-14-2026", "unknown")?.iso, "2026-08-14", "a hyphen-separated month, month-first (Aug-14-2026)");
+eq(parseFirstDate("Sept. 3, 2026", "unknown")?.iso, "2026-09-03", "an abbreviated month with a trailing period");
+eq(parseFirstDate("2026/08/14", "unknown")?.iso, "2026-08-14", "ISO order written with slashes (2026/08/14)");
+eq(parseFirstDate("2026.08.14", "unknown")?.iso, "2026-08-14", "ISO order written with dots (2026.08.14)");
+eq(parseFirstDate("14-Aug-2026", "unknown")?.ambiguous, false, "a spelled-out month is never ambiguous, whatever the separator");
 eq(parseFirstDate("8/2/26", "mdy")?.iso, "2026-08-02", "a two-digit year under 70 is this century");
 eq(parseFirstDate("8/2/94", "mdy")?.iso, "1994-08-02", "and over 69 is the last one");
 eq(parseFirstDate("02/30/2026", "unknown"), null, "30 February is not a date in either order");
@@ -52,6 +60,22 @@ eq(findVaccineInLine("Feline RCP (FVRCP)")?.canonical, "FVRCP", "FVRCP through i
 eq(findVaccineInLine("FeLV 01/22/2026")?.canonical, "FeLV", "FeLV");
 eq(findVaccineInLine("Lepto 4 booster")?.canonical, "Leptospirosis", "Lepto 4");
 eq(findVaccineInLine("Bordetella (oral)")?.canonical, "Bordetella", "Bordetella");
+
+// Brand names clinics actually print on cards, and the individual components
+// of the combination shots — all fold into the right canonical vaccine.
+eq(findVaccineInLine("Nobivac DHPPi 08/14/2026")?.canonical, "DHPP", "Nobivac DHPPi is DHPP");
+eq(findVaccineInLine("Vanguard Plus 5 booster")?.canonical, "DHPP", "Zoetis Vanguard is DHPP");
+eq(findVaccineInLine("Duramune given today")?.canonical, "DHPP", "Duramune is DHPP");
+eq(findVaccineInLine("Distemper 08/14/2026")?.canonical, "DHPP", "a bare Distemper line folds into DHPP");
+eq(findVaccineInLine("Parvovirus vaccine 08/14/2026")?.canonical, "DHPP", "so does Parvovirus");
+eq(findVaccineInLine("Parainfluenza 08/14/2026")?.canonical, "DHPP", "and Parainfluenza");
+eq(findVaccineInLine("Felocell 3 01/22/2026")?.canonical, "FVRCP", "Felocell is FVRCP");
+eq(findVaccineInLine("Tricat Trio 01/22/2026")?.canonical, "FVRCP", "Tricat Trio is FVRCP");
+eq(findVaccineInLine("Panleukopenia 01/22/2026")?.canonical, "FVRCP", "a bare Panleukopenia line folds into FVRCP");
+eq(findVaccineInLine("Feline calicivirus 01/22/2026")?.canonical, "FVRCP", "so does Calicivirus");
+eq(findVaccineInLine("Canine coronavirus vaccine given")?.canonical, "Canine coronavirus", "canine coronavirus is its own vaccine, not DHPP");
+eq(findVaccineInLine("Proheart 12 injection", true), null, "Proheart is a heartworm preventive, not a vaccine");
+eq(findVaccineInLine("Recombitek given", true), null, "an ambiguous brand name alone is not matched");
 
 eq(findVaccineInLine("tL FuRep 01/22/2026", true)?.canonical, "FVRCP", "OCR's FuRep is FVRCP");
 eq(findVaccineInLine("tL FuRep 01/22/2026", true)?.fuzzy, true, "and it admits it guessed at the spelling");
@@ -111,6 +135,72 @@ Patient Name: Pepper
 Date of Service: January 22, 2026
 Weight: 831 lb`;
 eq(parseVetReport(heavy, { source: "ocr", ocrConfidence: 64 }).report.weight_kg, null, "an impossible weight is dropped, not stored");
+
+// ------------------------------------------------------ formats & record types
+console.log("formats and record types");
+
+// A vaccine card that lists the DHPP components on separate lines must collapse
+// to a single DHPP record, not three, and must not invent a fourth.
+const componentCard = `Anytown Animal Hospital
+Patient Name: Rex
+Date of Service: 14 Aug 2026
+VACCINATIONS
+Distemper 14 Aug 2026
+Adenovirus 14 Aug 2026
+Parainfluenza 14 Aug 2026
+Parvovirus 14 Aug 2026
+Rabies 14 Aug 2026`;
+const cc = parseVetReport(componentCard, { source: "pdf-text" }).report;
+eq(
+  cc.vaccinations.map((v) => v.name).sort(),
+  ["DHPP", "Rabies"],
+  "four canine-core component lines collapse into one DHPP, alongside Rabies"
+);
+eq(cc.visit_date, "2026-08-14", "an abbreviated day-first visit date is read");
+
+// Deworming / antiparasitic products are read as medications when the line
+// carries a dose or a frequency — verbatim, never rewritten.
+const parasite = `Riverside Vet Clinic
+Patient Name: Rex
+Date of Service: 14-Aug-2026
+MEDICATIONS
+Panacur (fenbendazole) 222 mg — 1 sachet once daily for 3 days
+Drontal Plus — give 1 tablet by mouth once`;
+const pr = parseVetReport(parasite, { source: "pdf-text" }).report;
+eq(pr.medications.find((m) => /panacur/i.test(m.name))?.dosage, "222 mg", "a dewormer's dose is transcribed verbatim");
+eq(pr.medications.find((m) => /panacur/i.test(m.name))?.frequency, "once daily for 3 days", "with its course kept as printed");
+eq(pr.medications.some((m) => /drontal/i.test(m.name)), true, "a count-only dewormer is still recorded");
+
+// Diagnostic vitals become trackable additional fields, typed and united.
+const vitals = `Anytown Animal Hospital
+Patient Name: Rex
+Date of Service: 14 Aug 2026
+DIAGNOSTICS
+Temperature: 101.4 F
+Heart rate: 88 bpm
+Respiratory rate: 24 rpm
+Heartworm test: Negative`;
+const vt = parseVetReport(vitals, { source: "pdf-text" }).report;
+const temp = vt.additional_fields.find((f) => /temperature/i.test(f.label));
+eq(temp?.value, "101.4", "temperature is captured as a number");
+eq(temp?.unit, "°F", "with its unit normalised");
+eq(temp?.value_type, "number", "and typed as a number");
+eq(vt.additional_fields.find((f) => /heart rate/i.test(f.label))?.unit, "bpm", "heart rate keeps its unit");
+eq(vt.additional_fields.find((f) => /heartworm/i.test(f.label))?.value_type, "boolean", "a positive/negative test is a boolean field");
+
+// Weight in either unit, with or without a space; kilograms pass straight through.
+const kg = parseVetReport(`Vet Clinic\nPatient Name: Rex\nDate of Service: 14 Aug 2026\nWeight: 4.6kg\nRabies given 14 Aug 2026`, { source: "pdf-text" }).report;
+eq(kg.weight_kg, 4.6, "a weight already in kg is not converted");
+const lbs = parseVetReport(`Vet Clinic\nPatient Name: Rex\nDate of Service: 14 Aug 2026\nWeight: 20.7 lbs\nRabies given 14 Aug 2026`, { source: "pdf-text" }).report;
+eq(lbs.weight_kg, Math.round(20.7 * LB_TO_KG * 100) / 100, "'20.7 lbs' converts to kilograms");
+
+// Common dosing shorthands are captured as the frequency, verbatim.
+const freqDoc = (line: string) =>
+  parseVetReport(`Vet Clinic\nPatient Name: Rex\nDate of Service: 14 Aug 2026\nMEDICATIONS\n${line}`, { source: "pdf-text" }).report.medications[0];
+eq(freqDoc("Gabapentin 100 mg — 1 capsule PO q12h")?.frequency, "q12h", "q12h is read as a frequency");
+eq(freqDoc("Gabapentin 100 mg — 1 capsule PO q12h")?.dosage, "100 mg", "and the mass strength is the dose, not the capsule count");
+eq(freqDoc("Meloxicam 1.5 mg/ml — give 0.4 ml every 24 hours")?.dosage, "0.4 ml", "the delivered volume is the dose, not the concentration");
+eq(freqDoc("Clavamox 62.5 mg give twice a day for 10 days")?.frequency, "twice a day for 10 days", "'twice a day for 10 days' is kept whole");
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

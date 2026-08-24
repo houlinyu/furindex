@@ -24,6 +24,11 @@ export default function ExtractionReview({
   presetPetId: string | null;
 }) {
   const lowConfidence = report.confidence === "low";
+  // High confidence is only ever reached by a PDF's own text layer, so its
+  // values are exact. Anything below that was read approximately (OCR, or an
+  // ambiguity the parser could not settle) and the numbers want a second look.
+  // This changes only what the screen SAYS — never what it pre-ticks.
+  const exact = report.confidence === "high";
 
   // With exactly one pet there is nothing to disambiguate, and leaving it
   // unpicked disables the save button under a label that already counts the
@@ -105,6 +110,26 @@ export default function ExtractionReview({
 
   return (
     <div className="space-y-6">
+      {exact && (
+        <div className="card border-emerald-400 p-4 text-sm">
+          <p className="font-medium">✓ Read from the document&apos;s exact text</p>
+          <p className="muted mt-1">
+            These values came from the PDF&apos;s own text layer, so they match the
+            document exactly. Everything is ticked — untick anything you&apos;d rather not save.
+          </p>
+        </div>
+      )}
+
+      {report.confidence === "medium" && (
+        <div className="card border-amber-400 p-4 text-sm">
+          <p className="font-medium">Double-check the figures</p>
+          <p className="muted mt-1">
+            Some of this was read approximately. Records are ticked, but please check
+            dates, doses and lot numbers against the original before saving.
+          </p>
+        </div>
+      )}
+
       {lowConfidence && (
         <div className="card border-amber-400 p-4 text-sm">
           <p className="font-medium">⚠️ Hard to read</p>
@@ -208,7 +233,10 @@ export default function ExtractionReview({
       )}
 
       {report.medications.length > 0 && (
-        <Section title={`Medications (${report.medications.length})`}>
+        <Section
+          title={`Medications (${report.medications.length})`}
+          hint={exact ? undefined : "Doses read from a photo can be off by a digit — confirm each against the original."}
+        >
           {report.medications.map((m, i) => (
             <Row key={i} checked={meds.has(i)} onChange={() => toggle(meds, i, setMeds)}>
               <span className="font-medium">{m.name}</span>

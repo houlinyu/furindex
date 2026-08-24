@@ -17,15 +17,27 @@ export const VACCINES: VaccineDef[] = [
   {
     canonical: "Rabies",
     species: "either",
-    aliases: ["rabies", "imrab", "rv 1 year", "rabies 1 year", "rabies 3 year"],
+    aliases: [
+      "rabies", "imrab", "rv 1 year", "rabies 1 year", "rabies 3 year",
+      "rabvac", "defensor", "nobivac rabies", "purevax rabies", "rabisin",
+    ],
   },
   {
     canonical: "DHPP",
     species: "dog",
     aliases: [
-      "dhpp", "dhppv", "da2pp", "da2ppv", "dapp", "dappv", "dhlpp", "dhlppv",
-      "dap", "da2p", "distemper parvo", "distemper adenovirus parainfluenza parvovirus",
-      "canine distemper combo", "5 in 1", "5-in-1", "dhpp booster",
+      "dhpp", "dhppv", "dhppi", "da2pp", "da2ppv", "da2ppl", "dapp", "dappv",
+      "dhlpp", "dhlppv", "dap", "da2p", "dhp",
+      "distemper parvo", "distemper adenovirus parainfluenza parvovirus",
+      "canine distemper combo", "5 in 1", "5-in-1", "4 in 1", "4-in-1",
+      "dhpp booster",
+      // Individual core-canine components — a card may list them on one line each;
+      // they all belong to the same combination shot, so they fold into DHPP.
+      "distemper", "canine distemper", "parvo", "parvovirus", "canine parvovirus",
+      "adenovirus", "adenovirus type 2", "parainfluenza",
+      // Common brand names for the canine combination vaccine.
+      "nobivac dhppi", "nobivac dhp", "vanguard", "vanguard plus", "duramune",
+      "recombitek c", "recombitek c4", "spectra", "canigen",
     ],
   },
   {
@@ -34,7 +46,13 @@ export const VACCINES: VaccineDef[] = [
     aliases: [
       "fvrcp", "fvrcpc", "frcp", "fvr cp", "feline rcp", "rcp", "hcp",
       "feline distemper", "feline viral rhinotracheitis calicivirus panleukopenia",
-      "3 in 1 feline", "fvacp",
+      "3 in 1 feline", "3 in 1", "fvacp",
+      // Individual feline-core components fold into the same combination shot.
+      "panleukopenia", "feline panleukopenia", "calicivirus", "feline calicivirus",
+      "rhinotracheitis", "feline rhinotracheitis",
+      // Brand names for the feline combination vaccine.
+      "felocell", "fel o vax", "felovax", "nobivac feline", "purevax rcp",
+      "tricat", "tricat trio", "eurifel",
     ],
   },
   {
@@ -48,7 +66,15 @@ export const VACCINES: VaccineDef[] = [
   {
     canonical: "Leptospirosis",
     species: "dog",
-    aliases: ["leptospirosis", "lepto", "lepto 4", "lepto4", "l4", "leptospira"],
+    aliases: [
+      "leptospirosis", "lepto", "lepto 4", "lepto4", "l4", "l2", "leptospira",
+      "nobivac lepto",
+    ],
+  },
+  {
+    canonical: "Canine coronavirus",
+    species: "dog",
+    aliases: ["canine coronavirus", "coronavirus", "ccv", "canine corona"],
   },
   {
     canonical: "FeLV",

@@ -41,12 +41,12 @@ const MONTH_WORD = Object.keys(MONTHS).join("|");
 
 /** `08/14/2026`, `8-2-26`, `03.04.2026` */
 const NUMERIC_RE = /\b(\d{1,2})\s*[/.\-]\s*(\d{1,2})\s*[/.\-]\s*(\d{2,4})\b/g;
-/** `2026-08-14` */
-const ISO_RE = /\b(\d{4})-(\d{1,2})-(\d{1,2})\b/g;
-/** `August 14, 2026` / `Aug 14 2026` */
-const MDY_WORD_RE = new RegExp(`\\b(${MONTH_WORD})\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(\\d{4})\\b`, "gi");
-/** `14 August 2026` */
-const DMY_WORD_RE = new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(${MONTH_WORD})\\.?,?\\s+(\\d{4})\\b`, "gi");
+/** `2026-08-14`, and the same order written with `/` or `.` separators. */
+const ISO_RE = /\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b/g;
+/** `August 14, 2026` / `Aug 14 2026` / `Aug-14-2026` / `Sept. 3, 2026` */
+const MDY_WORD_RE = new RegExp(`\\b(${MONTH_WORD})\\.?[\\s.\\-]+(\\d{1,2})(?:st|nd|rd|th)?[,\\s.\\-]+(\\d{4})\\b`, "gi");
+/** `14 August 2026` / `14th August 2026` / `14-Aug-2026` / `3 Sept 2026` */
+const DMY_WORD_RE = new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?[\\s.\\-]+(${MONTH_WORD})\\.?[,\\s.\\-]+(\\d{4})\\b`, "gi");
 
 function isRealDate(y: number, m: number, d: number): boolean {
   if (m < 1 || m > 12 || d < 1 || d > 31) return false;

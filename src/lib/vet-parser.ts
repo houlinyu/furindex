@@ -379,7 +379,7 @@ const VET_SIGNALS: Array<[RegExp, number]> = [
   [/\bDVM\b|\bVMD\b|\bMRCVS\b|\bRVT\b|\bBVSc\b|\bVN\b/i, 2],
   [/\bmicrochip\b|\btransponder\b/i, 2],
   [/\bvaccinat|\bimmuni[sz]|\bbooster\b/i, 2],
-  [/\brabies\b|\bdhpp\b|\bda2pp\b|\bfvrcp\b|\bbordetella\b|\bfelv\b|\blepto/i, 2],
+  [/\brabies\b|\bdhpp\b|\bda2pp\b|\bfvrcp\b|\bbordetella\b|\bfelv\b|\blepto|\bpanleukopenia\b|\bparvovirus\b|\bparainfluenza\b|\bdistemper\b/i, 2],
   [/\bcanine\b|\bfeline\b|\bspayed\b|\bneutered\b|\bkitten\b|\bpuppy\b/i, 2],
   [/\bheartworm\b|\bflea\b|\bdeworm|\bfecal\b|\bfaecal\b|\banal gland/i, 1],
   [/\blot\s*(no|number|#)|\bbatch\b/i, 1],
