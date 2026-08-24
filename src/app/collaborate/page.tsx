@@ -135,8 +135,12 @@ export default async function PartnersPage() {
 
       <section className="mx-auto max-w-3xl px-5 py-16 text-center">
         <h2 className="text-2xl font-semibold tracking-tight">
-          What would you want to write into it?
+          Building something for pets? Let&apos;s talk.
         </h2>
+        <p className="muted mx-auto mt-3 max-w-md text-sm leading-relaxed">
+          Leave an email and a line about what you&apos;re working on — a sentence
+          or two is plenty.
+        </p>
         <div className="mt-8 text-left">
           <PartnerInquiryForm sourcePage="/collaborate" />
         </div>

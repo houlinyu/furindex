@@ -24,6 +24,9 @@ export default function MarketingNav({ signedIn }: { signedIn: boolean }) {
           <Link href="/collaborate" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
             Partner
           </Link>
+          <Link href="/contact" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
+            Contact
+          </Link>
           <Link
             href={signedIn ? "/dashboard" : "/login"}
             className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-brand-700"

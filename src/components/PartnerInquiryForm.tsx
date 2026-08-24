@@ -29,53 +29,35 @@ export default function PartnerInquiryForm({ sourcePage = "/collaborate" }: { so
   }
 
   return (
-    <form action={formAction} className="card grid gap-3 p-6 sm:grid-cols-2">
+    <form action={formAction} className="card grid gap-3 p-6">
       <input type="hidden" name="source_page" value={sourcePage} />
 
       <div>
-        <label htmlFor="iq-name" className="mb-1 block text-sm font-medium">
-          Your name <span className="text-red-600 dark:text-red-400">*</span>
-        </label>
-        <input id="iq-name" name="name" required maxLength={120} autoComplete="name" className={field} {...errorLink} />
-      </div>
-
-      <div>
         <label htmlFor="iq-email" className="mb-1 block text-sm font-medium">
-          Email <span className="text-red-600 dark:text-red-400">*</span>
+          Email
         </label>
-        <input id="iq-email" name="email" type="email" required maxLength={254} autoComplete="email" className={field} {...errorLink} />
+        <input
+          id="iq-email"
+          name="email"
+          type="email"
+          required
+          maxLength={254}
+          autoComplete="email"
+          placeholder="you@example.com"
+          className={field}
+          {...errorLink}
+        />
       </div>
 
       <div>
-        <label htmlFor="iq-org" className="mb-1 block text-sm font-medium">
-          Organisation
-        </label>
-        <input id="iq-org" name="organisation" maxLength={160} autoComplete="organization" className={field} />
-      </div>
-
-      <div>
-        <label htmlFor="iq-cat" className="mb-1 block text-sm font-medium">
-          What are you building?
-        </label>
-        <select id="iq-cat" name="category" defaultValue="other" className={field}>
-          <option value="wearables">Wearables &amp; sensors</option>
-          <option value="clinic">Veterinary clinic or practice software</option>
-          <option value="diagnostics">Diagnostics or genomics</option>
-          <option value="insurance">Insurance or preventive care</option>
-          <option value="other">Something else</option>
-        </select>
-      </div>
-
-      <div className="sm:col-span-2">
         <label htmlFor="iq-msg" className="mb-1 block text-sm font-medium">
-          What would you want to write into the record? <span className="text-red-600 dark:text-red-400">*</span>
+          What would you build on it?
         </label>
         <textarea
           id="iq-msg"
           name="message"
           required
           rows={4}
-          minLength={10}
           maxLength={4000}
           placeholder="A sentence or two is plenty."
           className={field}
@@ -84,12 +66,12 @@ export default function PartnerInquiryForm({ sourcePage = "/collaborate" }: { so
       </div>
 
       {state.error && (
-        <p id={errorId} className="text-sm text-red-600 sm:col-span-2 dark:text-red-400" role="alert">
+        <p id={errorId} className="text-sm text-red-600 dark:text-red-400" role="alert">
           {state.error}
         </p>
       )}
 
-      <div className="sm:col-span-2">
+      <div>
         <button
           type="submit"
           disabled={pending}

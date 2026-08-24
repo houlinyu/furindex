@@ -30,6 +30,7 @@ const PUBLIC_EXACT = [
   // visitors who follow the old link.
   "/science",
   "/compare",
+  "/contact",
 ];
 
 /**

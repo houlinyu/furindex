@@ -182,6 +182,15 @@ export type PartnerInquiry = {
   created_at: string;
 };
 
+export type ContactMessage = {
+  id: string;
+  email: string;
+  message: string;
+  source_page: string | null;
+  submitter: string | null;
+  created_at: string;
+};
+
 export type ReactionEmoji = "❤️" | "🐾" | "😂" | "💪" | "🙏";
 export const REACTION_EMOJI: ReactionEmoji[] = ["❤️", "🐾", "😂", "💪", "🙏"];
 
@@ -255,6 +264,7 @@ export type Database = {
       insurance_policies: Row<InsurancePolicy>;
       insurance_claims: Row<InsuranceClaim>;
       partner_inquiries: Row<PartnerInquiry>;
+      contact_messages: Row<ContactMessage>;
       journal_entries: Row<JournalEntry>;
       feeding_plans: Row<FeedingPlan>;
       feeding_logs: Row<FeedingLog>;
