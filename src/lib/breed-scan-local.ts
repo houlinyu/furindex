@@ -153,9 +153,10 @@ export async function scanPetPhotoLocally(
     breed: guess.breed,
     breed_confidence: guess.confidence,
     looks_like: guess.looksLike,
-    // Physical traits would have to come from a table we do not have, and
-    // inventing them is exactly what this whole approach exists to avoid.
-    traits: [],
+    // Only the curated, sourced physical traits from breed-notes, and only when
+    // we actually named a breed. Never invented, never temperament — same bar as
+    // the fact itself. Most breeds have none, and that shows as none.
+    traits: guess.breed ? note.traits ?? [] : [],
     fun_fact: note.fact,
     fact_source: note.source,
     headline: species === "cat" ? "A cat" : undefined,

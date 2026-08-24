@@ -297,15 +297,42 @@ export default function BreedScanWidget() {
               <>
                 {/* The banner grades a breed guess. When there is no breed
                     being guessed — cats — "Looks like" over the word "A cat"
-                    promises a hedge we are not making. */}
+                    promises a hedge we are not making. The three dots make the
+                    same grade legible at a glance: filled for how sure we are. */}
                 {!headline && (
-                  <p className="muted text-xs font-medium uppercase tracking-widest">
-                    {result.breed_confidence === "high"
-                      ? "Looks like"
-                      : result.breed_confidence === "medium"
-                        ? "Probably"
-                        : "Best guess"}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="muted text-xs font-medium uppercase tracking-widest">
+                      {result.breed_confidence === "high"
+                        ? "Looks like"
+                        : result.breed_confidence === "medium"
+                          ? "Probably"
+                          : "Best guess"}
+                    </p>
+                    <span
+                      className="flex items-center gap-0.5"
+                      aria-label={`Confidence: ${result.breed_confidence}`}
+                      title={`Confidence: ${result.breed_confidence}`}
+                    >
+                      {[0, 1, 2].map((i) => {
+                        const filled =
+                          i <
+                          (result.breed_confidence === "high"
+                            ? 3
+                            : result.breed_confidence === "medium"
+                              ? 2
+                              : 1);
+                        return (
+                          <span
+                            key={i}
+                            aria-hidden
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              filled ? "bg-brand-500" : "bg-[var(--border)]"
+                            }`}
+                          />
+                        );
+                      })}
+                    </span>
+                  </div>
                 )}
                 <h3 className="mt-1 text-xl font-semibold tracking-tight">
                   {headline ??
@@ -325,6 +352,16 @@ export default function BreedScanWidget() {
                       </span>
                     ))}
                   </div>
+                )}
+                {/* The model's runners-up, shown only when we actually named a
+                    breed. A named-breed guess is still one guess among several
+                    the classifier weighed; saying which keeps "Looks like" from
+                    reading as a certainty it isn't. (When breed is null the mix
+                    headline above already carries these, so don't repeat them.) */}
+                {result.breed && result.looks_like.length > 0 && (
+                  <p className="muted mt-2 text-xs">
+                    Also a little like {result.looks_like.slice(0, 2).join(" or ")}.
+                  </p>
                 )}
                 <p className="mt-3 text-sm leading-relaxed">
                   <span aria-hidden>💡 </span>
