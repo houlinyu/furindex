@@ -11,8 +11,6 @@ import {
 
 export default async function LandingPage() {
   const user = await getUser();
-  const cta = user ? "/dashboard" : "/login";
-  const ctaLabel = user ? "Open your dashboard" : "Start free";
 
   return (
     <div className="min-h-screen">
@@ -44,20 +42,6 @@ export default async function LandingPage() {
           trends, the whole history a vet can read. Owner-held, private, never
           sold.
         </p>
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <Link
-            href={cta}
-            className="inline-flex min-h-12 items-center rounded-xl bg-brand-600 px-8 py-3.5 text-base font-medium text-white hover:bg-brand-700"
-          >
-            {ctaLabel}
-          </Link>
-          <a
-            href="/roadmap"
-            className="inline-flex min-h-12 items-center rounded-xl border border-[var(--border)] px-8 py-3.5 text-base font-medium hover:border-brand-500 hover:text-[var(--brand-text)]"
-          >
-            See the roadmap
-          </a>
-        </div>
         <p className="muted mt-5 text-sm">
           No card required · Your records stay private by default
         </p>
@@ -91,16 +75,7 @@ export default async function LandingPage() {
 
       {/* -------------------------------------------------------- footer ---- */}
       <footer className="mx-auto max-w-5xl px-5 py-12 text-center">
-        <p className="text-lg font-semibold tracking-tight">
-          Stop keeping your pet&apos;s history in a drawer.
-        </p>
-        <Link
-          href={cta}
-          className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          {ctaLabel}
-        </Link>
-        <div className="muted mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs">
+        <div className="muted flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs">
           <span>FurIndex</span>
           <span aria-hidden>·</span>
           {/* Until the project is registered, render plain text — a live link to

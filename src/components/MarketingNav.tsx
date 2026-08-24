@@ -33,12 +33,29 @@ export default function MarketingNav({ signedIn }: { signedIn: boolean }) {
           <Link href="/contact" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
             Contact
           </Link>
-          <Link
-            href={signedIn ? "/dashboard" : "/login"}
-            className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
-          >
-            {signedIn ? "Dashboard" : "Sign in"}
-          </Link>
+          {signedIn ? (
+            <Link
+              href="/dashboard"
+              className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="muted inline-flex min-h-11 items-center justify-center px-1 text-sm font-medium hover:text-[var(--brand-text)]"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/login?register=1"
+                className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
+              >
+                Create account
+              </Link>
+            </>
+          )}
         </nav>
       </div>
     </header>

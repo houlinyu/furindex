@@ -6,9 +6,9 @@ export const metadata = { title: "Sign in — FurIndex" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; register?: string }>;
 }) {
-  const { next, error } = await searchParams;
+  const { next, error, register } = await searchParams;
 
   // Only same-origin relative paths survive — never bounce to a supplied host.
   const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
@@ -26,7 +26,7 @@ export default async function LoginPage({
 
         {/* No Suspense boundary needed now: LoginForm reads no search params of
             its own, so it server-renders on the first paint. */}
-        <LoginForm next={safeNext} initialError={error ?? null} />
+        <LoginForm next={safeNext} initialError={error ?? null} startRegister={register === "1"} />
 
         <p className="muted mt-6 text-center text-xs leading-relaxed">
           Password sign-in works instantly. Email links also work, but this

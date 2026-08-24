@@ -16,12 +16,15 @@ const ERROR_ID = "login-error";
 export default function LoginForm({
   next,
   initialError,
+  startRegister = false,
 }: {
   next: string;
   initialError: string | null;
+  /** Open straight into "create an account" — the nav's Create account button. */
+  startRegister?: boolean;
 }) {
   const [mode, setMode] = useState<Mode>("password");
-  const [isRegister, setIsRegister] = useState(false);
+  const [isRegister, setIsRegister] = useState(startRegister);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "working" | "sent" | "reset-sent">("idle");
   const [error, setError] = useState<string | null>(initialError);
