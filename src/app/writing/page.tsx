@@ -4,7 +4,7 @@ import { getUser } from "@/lib/supabase/server";
 import { POSTS_BY_DATE, formatPostDate, readingMinutes } from "@/lib/posts";
 
 export const metadata = {
-  title: "Writing — FurIndex",
+  title: "Fur Science — FurIndex",
   description:
     "What the evidence actually says about pet health, including the times it told us not to build something.",
   alternates: { types: { "application/rss+xml": "/writing/rss.xml" } },
@@ -28,7 +28,7 @@ export default async function WritingIndexPage() {
       <MarketingNav signedIn={!!user} />
 
       <main id="main" className="mx-auto max-w-3xl px-5 pb-16 pt-14">
-        <p className="muted text-xs font-medium uppercase tracking-widest">Writing</p>
+        <p className="muted text-xs font-medium uppercase tracking-widest">Fur Science</p>
         <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
           What the evidence actually says
         </h1>

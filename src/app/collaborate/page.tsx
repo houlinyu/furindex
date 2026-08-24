@@ -4,7 +4,7 @@ import { getUser } from "@/lib/supabase/server";
 import PartnerInquiryForm from "@/components/PartnerInquiryForm";
 
 export const metadata = {
-  title: "Collaborate — FurIndex",
+  title: "Partner — FurIndex",
   description: "Integrate with an owner-permissioned, longitudinal pet health record.",
 };
 
@@ -75,7 +75,7 @@ export default async function PartnersPage() {
       <main id="main">
 
       <section className="mx-auto max-w-5xl px-5 pb-12 pt-16">
-        <p className="muted text-xs font-medium uppercase tracking-widest">Collaborate</p>
+        <p className="muted text-xs font-medium uppercase tracking-widest">Partner with us</p>
         <h1 className="mt-3 max-w-3xl text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
           We built the hard part: a structured, owner-confirmed health record for
           an animal.

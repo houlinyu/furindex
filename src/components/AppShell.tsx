@@ -68,13 +68,13 @@ export default function AppShell({
             Home
           </Link>
           <Link href="/writing" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
-            Writing
+            Fur Science
           </Link>
           <Link href="/compare" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
-            Compare
+            Why Us
           </Link>
           <Link href="/collaborate" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
-            Collaborate
+            Partner
           </Link>
           <span className="muted ml-auto">FurIndex — a Sundai project</span>
         </div>
