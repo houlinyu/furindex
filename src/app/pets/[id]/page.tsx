@@ -181,6 +181,12 @@ export default async function PetPage({ params }: { params: Promise<{ id: string
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <Link
+            href={`/pets/${p.id}/dashboard`}
+            className="muted inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-3 text-xs hover:border-brand-500 hover:text-[var(--brand-text)]"
+          >
+            Dashboard
+          </Link>
+          <Link
             href={`/pets/${p.id}/summary`}
             className="muted inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-3 text-xs hover:border-brand-500 hover:text-[var(--brand-text)]"
           >

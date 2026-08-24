@@ -130,6 +130,31 @@ export async function deletePet(
   redirect("/pets");
 }
 
+/**
+ * Rejects a date for an event that has already happened.
+ *
+ * A vaccination "given" in 2030 and a vet visit dated year 3000 were both
+ * accepted and stored. Neither is a typo the database would catch, and both
+ * quietly corrupt everything downstream: the next-due arithmetic runs off a
+ * date that has not happened, and the visit sorts to the top of the history
+ * forever. A record that lies is worse than a record that is missing.
+ *
+ * Deliberately not clamped to today: a timezone difference between the browser
+ * and the server can legitimately put "today" one day ahead, so tomorrow is
+ * allowed and anything beyond it is not.
+ */
+function rejectFutureDate(value: string | null, label: string): string | null {
+  if (!value) return null;
+  const when = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(when.getTime())) return `That ${label} isn't a real date.`;
+  const tomorrow = new Date();
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  if (when > tomorrow) {
+    return `That ${label} is in the future. Record it once it has happened.`;
+  }
+  return null;
+}
+
 export async function addVaccination(
   _prev: RecordFormState,
   formData: FormData
@@ -137,6 +162,8 @@ export async function addVaccination(
   const petId = str(formData, "pet_id");
   const name = str(formData, "name");
   const administeredOn = str(formData, "administered_on");
+  const administeredProblem = rejectFutureDate(administeredOn, "date given");
+  if (administeredProblem) return { error: administeredProblem };
   if (!petId || !name || !administeredOn) {
     return { error: "Name and the date it was given are both required." };
   }
@@ -209,6 +236,9 @@ export async function addWeight(
     return { error: "That weight looks wrong — the limit is 999.99 kg." };
   }
 
+  const weighedProblem = rejectFutureDate(str(formData, "recorded_on"), "date");
+  if (weighedProblem) return { error: weighedProblem };
+
   const supabase = await createClient();
   // One reading per day: a correction overwrites rather than duplicating.
   const { error } = await supabase.from("weight_logs").upsert(
@@ -231,6 +261,9 @@ export async function addVetVisit(
 ): Promise<RecordFormState> {
   const petId = str(formData, "pet_id");
   if (!petId) return { error: "Missing pet." };
+
+  const visitProblem = rejectFutureDate(str(formData, "visited_on"), "visit date");
+  if (visitProblem) return { error: visitProblem };
 
   const costRaw = str(formData, "cost");
   // int4 cents: anything past ~$21.4M overflows and used to surface the raw

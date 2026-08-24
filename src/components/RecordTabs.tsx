@@ -230,7 +230,8 @@ export default function RecordTabs({
                 </label>
                 <label className="muted text-xs">
                   Given
-                  <input name="administered_on" type="date" required defaultValue={today()} className={field} />
+                  <input name="administered_on"
+              max={today()} type="date" required defaultValue={today()} className={field} />
                 </label>
                 <label className="muted text-xs">
                   Next due
@@ -340,7 +341,8 @@ export default function RecordTabs({
                 </label>
                 <label className="muted text-xs">
                   Date
-                  <input name="recorded_on" type="date" defaultValue={today()} className={field} />
+                  <input name="recorded_on"
+              max={today()} type="date" defaultValue={today()} className={field} />
                 </label>
               </>
             )}
@@ -370,7 +372,8 @@ export default function RecordTabs({
                 </label>
                 <label className="muted text-xs">
                   Date
-                  <input name="visited_on" type="date" defaultValue={today()} className={field} />
+                  <input name="visited_on"
+              max={today()} type="date" defaultValue={today()} className={field} />
                 </label>
                 <label className="muted text-xs">
                   Reason for visit

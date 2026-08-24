@@ -12,6 +12,19 @@
  * Silent acceptance is judged, not guessed: after each submit the page is read
  * back to see whether the value actually landed.
  *
+ * TWO THINGS AN EARLIER VERSION OF THIS FILE GOT WRONG, both of which made it
+ * report success it had not earned:
+ *
+ *   - The record forms live behind tabs driven by the URL hash, not by clicking
+ *     a button whose accessible name is "Weight". The old version clicked
+ *     nothing, filled nothing, submitted nothing, and then read the page back,
+ *     found no bad value in it, and called that a rejection. Every tabbed case
+ *     was a false pass. Navigate to #records-<tab>.
+ *   - Several fields carry HTML constraints (weight is min="0.01"), so the
+ *     browser blocks submission itself and shows a native bubble that is not in
+ *     the DOM. That IS a valid rejection, but it is invisible to innerText — so
+ *     validity is asked of the field directly before deciding what happened.
+ *
  *   node scripts/validation-check.mjs <base-url> [password]
  */
 import { chromium } from "playwright-core";
@@ -36,37 +49,70 @@ const pageErrors = [];
 page.on("pageerror", (e) => pageErrors.push(e.message.slice(0, 120)));
 
 /** Fills only the fields a form actually has, so one table drives every tab. */
+let PET_URL = "";
+
 async function submit({ tab, fields, button }) {
-  await page.getByRole("button", { name: tab }).first().click().catch(() => {});
-  await page.waitForTimeout(350);
+  // Hash-driven, and the form does not exist in the DOM until the tab opens.
+  await page.goto(`${PET_URL}#records-${tab}`, { waitUntil: "networkidle" });
+  const firstField = Object.keys(fields)[0];
+  await page
+    .locator(`[name="${firstField}"]`)
+    .first()
+    .waitFor({ timeout: 20000 })
+    .catch(() => {});
+  if ((await page.locator(`[name="${firstField}"]`).count()) === 0) {
+    return { body: "", newErrors: 0, unreachable: true };
+  }
+
   for (const [name, value] of Object.entries(fields)) {
     const el = page.locator(`[name="${name}"]`).first();
     if ((await el.count()) === 0) continue;
     await el.fill(String(value)).catch(() => {});
   }
+
+  // Ask the browser whether it will even allow this, before clicking.
+  let blockedNatively = false;
+  let nativeMessage = "";
+  for (const name of Object.keys(fields)) {
+    const el = page.locator(`[name="${name}"]`).first();
+    if ((await el.count()) === 0) continue;
+    const valid = await el.evaluate((e) => e.checkValidity()).catch(() => true);
+    if (!valid) {
+      blockedNatively = true;
+      nativeMessage = await el.evaluate((e) => e.validationMessage).catch(() => "");
+      break;
+    }
+  }
+
   const before = pageErrors.length;
   await page.getByRole("button", { name: button }).first().click().catch(() => {});
   await page.waitForTimeout(1800);
   const body = await page.innerText("body").catch(() => "");
-  return { body, newErrors: pageErrors.length - before };
+  return { body, newErrors: pageErrors.length - before, blockedNatively, nativeMessage };
 }
 
-function judge(label, { body, newErrors }, expectation) {
+function judge(label, result, expectation) {
+  const { body, newErrors, blockedNatively, nativeMessage, unreachable } = result;
+  if (unreachable) {
+    rows.push({ label, unreachable: true });
+    console.log(`  ${label.padEnd(46)} FORM UNREACHABLE — nothing was tested`);
+    return;
+  }
   const broken = BROKEN.test(body);
   const raw = RAW_ERROR.exec(body)?.[0] ?? null;
-  // A rejection is any short red-text sentence; we detect it by the value not
-  // being present rather than by scraping for a specific string.
   const accepted = expectation.landed ? expectation.landed(body) : null;
-  rows.push({ label, broken, raw, accepted, newErrors });
+  rows.push({ label, broken, raw, accepted, newErrors, blockedNatively });
   const verdict = broken
     ? "BREAKS PAGE"
     : raw
       ? `RAW ERROR: ${raw}`
-      : accepted === true
-        ? "ACCEPTED"
-        : accepted === false
-          ? "rejected"
-          : "no crash";
+      : blockedNatively
+        ? `blocked by the browser ("${nativeMessage.slice(0, 40)}")`
+        : accepted === true
+          ? "ACCEPTED"
+          : accepted === false
+            ? "rejected by the server"
+            : "no crash";
   console.log(`  ${label.padEnd(46)} ${verdict}${newErrors ? `  (+${newErrors} page errors)` : ""}`);
 }
 
@@ -86,7 +132,8 @@ try {
     page.waitForURL(/\/pets\/[0-9a-f-]{36}/, { timeout: 40000 }),
     page.getByRole("button", { name: /save pet/i }).click(),
   ]);
-  const petUrl = page.url();
+  const petUrl = page.url().split("#")[0];
+  PET_URL = petUrl;
 
   console.log("\n--- WEIGHT ---");
   for (const [label, w] of [
@@ -95,13 +142,12 @@ try {
     ["absurd weight (99999)", "99999"],
     ["non-numeric weight (abc)", "abc"],
   ]) {
-    await page.goto(`${petUrl}#records`, { waitUntil: "networkidle" });
     judge(
       label,
       await submit({
-        tab: /^weight$/i,
+        tab: "weight",
         fields: { weight_kg: w, recorded_on: "2026-08-20" },
-        button: /log a weight|add weight/i,
+        button: /^log weight$/i,
       }),
       { landed: (b) => b.includes(`${w} kg`) }
     );
@@ -112,9 +158,9 @@ try {
   judge(
     "vaccination given in the future (2030)",
     await submit({
-      tab: /^vaccinations$/i,
+      tab: "vaccinations",
       fields: { name: "FutureVax", administered_on: "2030-01-01", due_on: "2031-01-01" },
-      button: /add vaccination/i,
+      button: /^add vaccination$/i,
     }),
     { landed: (b) => b.includes("FutureVax") }
   );
@@ -123,9 +169,9 @@ try {
   judge(
     "vaccination due BEFORE it was given",
     await submit({
-      tab: /^vaccinations$/i,
+      tab: "vaccinations",
       fields: { name: "BackwardsVax", administered_on: "2026-08-01", due_on: "2025-01-01" },
-      button: /add vaccination/i,
+      button: /^add vaccination$/i,
     }),
     { landed: (b) => b.includes("BackwardsVax") }
   );
@@ -134,9 +180,9 @@ try {
   judge(
     "vet visit dated year 3000",
     await submit({
-      tab: /^vet visits$/i,
+      tab: "visits",
       fields: { visited_on: "3000-01-01", clinic: "YearThreeThousand", reason: "checkup" },
-      button: /add visit/i,
+      button: /^add visit$/i,
     }),
     { landed: (b) => b.includes("YearThreeThousand") }
   );
@@ -145,7 +191,7 @@ try {
   judge(
     "medication ending before it starts",
     await submit({
-      tab: /^medications$/i,
+      tab: "medications",
       fields: {
         name: "BackwardsMed",
         dosage: "1 tablet",
@@ -153,7 +199,7 @@ try {
         start_date: "2026-08-20",
         end_date: "2026-01-01",
       },
-      button: /add medication/i,
+      button: /^add medication$/i,
     }),
     { landed: (b) => b.includes("BackwardsMed") }
   );
@@ -163,9 +209,9 @@ try {
   judge(
     "negative visit cost (-500)",
     await submit({
-      tab: /^vet visits$/i,
+      tab: "visits",
       fields: { visited_on: "2026-08-20", clinic: "NegativeCost", cost: "-500" },
-      button: /add visit/i,
+      button: /^add visit$/i,
     }),
     { landed: (b) => b.includes("NegativeCost") }
   );
@@ -175,9 +221,9 @@ try {
   judge(
     "5000-character vaccination name",
     await submit({
-      tab: /^vaccinations$/i,
+      tab: "vaccinations",
       fields: { name: "V".repeat(5000), administered_on: "2026-08-20" },
-      button: /add vaccination/i,
+      button: /^add vaccination$/i,
     }),
     {}
   );
@@ -186,9 +232,9 @@ try {
   judge(
     "script tag as a clinic name",
     await submit({
-      tab: /^vet visits$/i,
+      tab: "visits",
       fields: { visited_on: "2026-08-20", clinic: "<script>window.__xss=1</script>" },
-      button: /add visit/i,
+      button: /^add visit$/i,
     }),
     {}
   );
@@ -213,8 +259,13 @@ try {
 
 const bad = rows.filter((r) => r.broken || r.raw);
 const accepted = rows.filter((r) => r.accepted === true);
-console.log(`\n${rows.length} cases · ${bad.length} broken-or-raw · ${accepted.length} accepted nonsense`);
+const untested = rows.filter((r) => r.unreachable);
+console.log(
+  `\n${rows.length} cases · ${bad.length} broken-or-raw · ${accepted.length} accepted nonsense` +
+    ` · ${untested.length} NOT ACTUALLY TESTED`
+);
+for (const r of untested) console.log(`  UNTESTED  ${r.label} — the form never opened; this is not a pass`);
 for (const r of bad) console.log(`  SEVERE  ${r.label}: ${r.broken ? "page broke" : r.raw}`);
 for (const r of accepted) console.log(`  STORED  ${r.label} — value was saved as given`);
 if (pageErrors.length) console.log(`\ndistinct page errors:\n  ${[...new Set(pageErrors)].join("\n  ")}`);
-process.exit(bad.length ? 1 : 0);
+process.exit(bad.length || untested.length ? 1 : 0);
