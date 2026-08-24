@@ -102,7 +102,7 @@ export const POSTS: Post[] = [
   {
     slug: "cancer-vaccine-for-one-dog",
     title: "A machine-learning engineer built a cancer vaccine for his own dog",
-    date: "2026-08-09",
+    date: "2026-08-23",
     standfirst:
       "One dog, no control arm, and a result worth taking seriously anyway — for what it says is possible rather than what it proves.",
     description:
@@ -231,7 +231,7 @@ export const POSTS: Post[] = [
   {
     slug: "breed-tells-you-how-a-dog-looks",
     title: "Breed tells you how a dog looks, not who they are",
-    date: "2026-08-16",
+    date: "2026-08-23",
     standfirst:
       "Breed explains about 9% of the variance in dog behaviour. Two large genetic studies agree, and the second one found no behaviour genes at all.",
     description:
@@ -391,9 +391,25 @@ export const POSTS: Post[] = [
   },
 ];
 
-/** Newest first. The index, the RSS feed and /science's redirect all use this. */
-export const POSTS_BY_DATE: Post[] = [...POSTS].sort((a, b) =>
-  b.date.localeCompare(a.date)
+/**
+ * Newest first. The index, the RSS feed and /science's redirect all use this.
+ *
+ * All three posts carry the same date because all three were written on the
+ * same day. They were briefly staggered a week apart, which made the blog look
+ * like it had a publishing history it does not have — a small invention, but an
+ * invention, in a place that spends three posts arguing for checking what you
+ * are told. Every post's `checkedOn` line said 23 August the whole time and
+ * quietly contradicted the fake dates.
+ *
+ * With ties, the order below falls back to the order in POSTS. Array.sort is
+ * stable in every engine we target, but relying on that silently would leave
+ * the running order of the blog resting on an implementation detail, so the
+ * tiebreak is written down.
+ */
+const ORDER = new Map(POSTS.map((p, i) => [p.slug, i]));
+
+export const POSTS_BY_DATE: Post[] = [...POSTS].sort(
+  (a, b) => b.date.localeCompare(a.date) || ORDER.get(a.slug)! - ORDER.get(b.slug)!
 );
 
 export function getPost(slug: string): Post | undefined {

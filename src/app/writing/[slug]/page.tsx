@@ -51,8 +51,10 @@ export default async function PostPage({
 
   const user = await getUser();
   const index = POSTS_BY_DATE.findIndex((p) => p.slug === post.slug);
-  const newer = index > 0 ? POSTS_BY_DATE[index - 1] : null;
-  const older = index < POSTS_BY_DATE.length - 1 ? POSTS_BY_DATE[index + 1] : null;
+  // Position in the list, not age: every post here was written on the same day,
+  // so "older"/"newer" would be a claim about time that isn't true.
+  const previous = index > 0 ? POSTS_BY_DATE[index - 1] : null;
+  const next = index < POSTS_BY_DATE.length - 1 ? POSTS_BY_DATE[index + 1] : null;
 
   return (
     <div className="min-h-screen">
@@ -116,21 +118,21 @@ export default async function PostPage({
           </footer>
         </article>
 
-        {(newer || older) && (
+        {(previous || next) && (
           <nav aria-label="More writing" className="mt-10 grid gap-3 sm:grid-cols-2">
-            {older && (
-              <Link href={`/writing/${older.slug}`} className="card p-4 hover:border-brand-500">
-                <p className="muted text-xs">Older</p>
-                <p className="mt-1 text-sm font-medium leading-snug">{older.title}</p>
+            {next && (
+              <Link href={`/writing/${next.slug}`} className="card p-4 hover:border-brand-500">
+                <p className="muted text-xs">Next</p>
+                <p className="mt-1 text-sm font-medium leading-snug">{next.title}</p>
               </Link>
             )}
-            {newer && (
+            {previous && (
               <Link
-                href={`/writing/${newer.slug}`}
+                href={`/writing/${previous.slug}`}
                 className="card p-4 hover:border-brand-500 sm:col-start-2"
               >
-                <p className="muted text-xs">Newer</p>
-                <p className="mt-1 text-sm font-medium leading-snug">{newer.title}</p>
+                <p className="muted text-xs">Previous</p>
+                <p className="mt-1 text-sm font-medium leading-snug">{previous.title}</p>
               </Link>
             )}
           </nav>
