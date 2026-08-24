@@ -334,3 +334,67 @@ export async function createSampleDocument() {
   if (error) throw new Error(error.message);
   redirect(`/documents/${data.id}`);
 }
+
+/**
+ * Stores an extraction the BROWSER produced (see lib/extraction-browser.ts).
+ *
+ * The equivalent server route writes this itself, but OCR cannot run there
+ * inside the function time limit, so for photographs the reading happens on the
+ * visitor's machine and only the result comes back.
+ *
+ * That makes `extracted` attacker-controlled in a way the server route's output
+ * is not — so ownership is re-checked here rather than trusted, and the value is
+ * stored exactly as the review screen will show it. Nothing here writes to a
+ * pet's record: applyExtraction still requires the owner to tick each line.
+ */
+export async function saveBrowserExtraction(
+  documentId: string,
+  extracted: unknown
+): Promise<{ error?: string; ok?: boolean }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Your session expired — sign in again." };
+
+  if (!extracted || typeof extracted !== "object") {
+    return { error: "Nothing readable came back from that scan." };
+  }
+
+  // Owner-only, and only while the document is still unfiled. Without the
+  // status guard this could overwrite the reading of a document whose records
+  // have already been applied, silently changing what the owner agreed to.
+  const { data: updated, error } = await supabase
+    .from("documents")
+    .update({ status: "extracted", extracted, extraction_error: null })
+    .eq("id", documentId)
+    .eq("owner_id", user.id)
+    .neq("status", "applied")
+    .select("id");
+
+  if (error) return { error: error.message };
+  if (!updated?.length) return { error: "That document is no longer waiting to be read." };
+  return { ok: true };
+}
+
+/** Records that a browser-side read failed, so the page can say so. */
+export async function saveBrowserExtractionError(
+  documentId: string,
+  message: string
+): Promise<{ error?: string; ok?: boolean }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Your session expired — sign in again." };
+
+  const { error } = await supabase
+    .from("documents")
+    .update({ status: "failed", extraction_error: message.slice(0, 500) })
+    .eq("id", documentId)
+    .eq("owner_id", user.id)
+    .neq("status", "applied");
+
+  if (error) return { error: error.message };
+  return { ok: true };
+}

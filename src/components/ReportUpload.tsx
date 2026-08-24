@@ -37,6 +37,8 @@ export default function ReportUpload({
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  /** 0–1 while a photograph is being read in this tab; null for PDFs. */
+  const [ocrProgress, setOcrProgress] = useState<number | null>(null);
   const [petId, setPetId] = useState<string>(fixedPetId ?? "");
   const errorId = useId();
 
@@ -101,7 +103,13 @@ export default function ReportUpload({
       }
 
       setPhase("reading");
-      const outcome = await requestExtraction(documentId);
+      // A photograph is read here in the browser and can take a few seconds, so
+      // it reports progress. A PDF is read on the server in milliseconds and
+      // never calls back.
+      const outcome = await requestExtraction(documentId, file, (f) =>
+        setOcrProgress(f)
+      );
+      setOcrProgress(null);
       if (!outcome.ok) {
         // The file is already stored either way. A reader that is switched off is
         // not a failed upload, and saying so would be a lie about what happened.
@@ -112,6 +120,7 @@ export default function ReportUpload({
       router.push(`/documents/${documentId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
+      setOcrProgress(null);
       setPhase("error");
     }
   }
@@ -162,10 +171,31 @@ export default function ReportUpload({
         {phase === "reading" ? (
           <>
             <div className="text-3xl">🔎</div>
-            <p className="mt-3 text-sm font-medium">Reading the report…</p>
-            <p className="muted mt-1 text-xs">
-              Pulling out vaccinations, medications, weight and dates. Takes a few seconds.
+            <p className="mt-3 text-sm font-medium">
+              {ocrProgress === null
+                ? "Reading the report…"
+                : `Reading the photo… ${Math.round(ocrProgress * 100)}%`}
             </p>
+            <p className="muted mt-1 text-xs">
+              {ocrProgress === null
+                ? "Pulling out vaccinations, medications, weight and dates. Takes a few seconds."
+                : "Reading it here on your device — the photo isn't being sent anywhere. A page of text takes a few seconds."}
+            </p>
+            {ocrProgress !== null && (
+              <div
+                className="mx-auto mt-3 h-1 w-40 overflow-hidden rounded-full bg-[var(--border)]"
+                role="progressbar"
+                aria-valuenow={Math.round(ocrProgress * 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Reading the photo"
+              >
+                <div
+                  className="h-full bg-brand-600 transition-[width]"
+                  style={{ width: `${Math.round(ocrProgress * 100)}%` }}
+                />
+              </div>
+            )}
           </>
         ) : phase === "uploading" ? (
           <>
