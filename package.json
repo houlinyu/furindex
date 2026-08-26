@@ -11,7 +11,7 @@
     "check:actions": "node scripts/check-server-actions.mjs",
     "test:parser": "tsx scripts/test-vet-parser.ts",
     "test:extract": "tsx scripts/test-extraction-local.ts",
-    "fixtures": "node fixtures/make-pdfs.mjs && python3 fixtures/make-images.py"
+    "fixtures": "node fixtures/make-pdfs.mjs && node fixtures/make-realworld.mjs && python3 fixtures/make-images.py"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",

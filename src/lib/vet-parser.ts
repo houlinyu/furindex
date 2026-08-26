@@ -595,7 +595,7 @@ function readVaccinations(
       l.section === "vaccinations" ||
       dates.length > 0 ||
       LOT_RE.test(l.text) ||
-      /\b(given|administered|booster|vaccinat|due)\b/i.test(l.text);
+      /\b(given|administered|booster|vaccin\w*|due)\b/i.test(l.text);
     if (!hasEvidence) continue;
 
     const match = findVaccineInLine(l.text, ocr);
@@ -636,6 +636,46 @@ function readVaccinations(
     out.push({ name: match.canonical, administered_on: administered, due_on: due, lot_number: lot });
     if (match.fuzzy) fuzzyNames.push({ matchedText: match.matchedText, canonical: match.canonical });
   }
+
+  // Certificate / passport layout: one vaccine, its date and lot on their own
+  // labelled lines ("Date Administered:", "Next Due:", "Valid until:", "Lot
+  // No.:"). Those lines carry no vaccine name, so the per-line loop above never
+  // attached them. With exactly one vaccine there is no ambiguity about which
+  // vaccine they belong to, so harvest them now. Rabies certificates and EU pet
+  // passports — the two documents an owner is most likely to actually have —
+  // both take this shape.
+  if (out.length === 1) {
+    const v = out[0];
+    const ADMIN_CUE = /\b(date\s+administered|date\s+of\s+vaccination|vaccinated\s+on|administered\s+on)\b/i;
+    const DUE_CUE_LABEL = /\b(next\s+due|valid\s+(until|to)|expir\w*|booster\s+due|due\s+date)\b/i;
+    // "Valid from" on a passport is the rabies-valid date, neither given nor due.
+    const SKIP_DATE = /\b(date\s+of\s+birth|d\.?o\.?b|valid\s+from|lot\s+expir|expiration)\b/i;
+    for (const l of lines) {
+      // Look at the label immediately BEFORE each date, not the whole line — a
+      // passport prints "Valid from: <d1>   Valid until: <d2>" on one line, and
+      // only the date after "Valid until" is the due date.
+      for (const hit of findDates(l.text)) {
+        const before = l.text.slice(Math.max(0, hit.index - 24), hit.index);
+        const value = resolve(hit.parse(order));
+        if (!v.administered_on && ADMIN_CUE.test(before) && !SKIP_DATE.test(before)) {
+          v.administered_on = value;
+        } else if (!v.due_on && DUE_CUE_LABEL.test(before) && !SKIP_DATE.test(before)) {
+          v.due_on = value;
+        }
+      }
+      if (!v.lot_number) {
+        const lm = LOT_RE.exec(l.text) ?? LOT_TOKEN_RE.exec(l.text);
+        // Reject only the CAPTURE, not the whole line: "Lot No.: 549871  Lot
+        // Expiration: 09/2027" must still yield 549871 (LOT_RE grabs it first),
+        // while a standalone "Lot Expiration: 09/2027" must not read a date as a
+        // lot number.
+        if (lm && !/^expir/i.test(lm[1]) && !/^\d{1,2}[/.]\d{2,4}$/.test(lm[1])) {
+          v.lot_number = lm[1];
+        }
+      }
+    }
+  }
+
   return { vaccinations: out, fuzzyNames };
 }
 

@@ -95,6 +95,40 @@ Returns accepted within 30 days with receipt.`;
 eq(parseVetReport(receipt, { source: "pdf-text" }).report.unreadable, true, "a hardware receipt is refused");
 eq(parseVetReport(receipt, { source: "pdf-text" }).report.vaccinations, [], "and returns no records at all");
 
+// ---- certificate / passport layouts: one vaccine, fields on labelled lines --
+console.log("certificate / passport layouts");
+{
+  const cert = `RABIES VACCINATION CERTIFICATE
+Animal: Cooper  Species: Dog  Breed: Labrador Retriever
+Microchip No.: 981020012345678
+Vaccine: Rabies (IMRAB 3, killed)
+Date Administered: 06/18/2026
+Next Due: 06/18/2029
+Lot No.: 549871`;
+  const v = parseVetReport(cert, { source: "pdf-text" }).report.vaccinations;
+  eq(v.length, 1, "rabies certificate yields exactly one vaccination");
+  eq(v[0]?.name, "Rabies", "certificate: the vaccine is Rabies");
+  eq(v[0]?.administered_on, "2026-06-18", "certificate: date administered is harvested from its labelled line");
+  eq(v[0]?.due_on, "2029-06-18", "certificate: next due is harvested from its labelled line");
+  eq(v[0]?.lot_number, "549871", "certificate: undashed lot number is harvested");
+}
+{
+  const passport = `EUROPEAN PET PASSPORT - VACCINATION AGAINST RABIES
+Name of animal: Milo  Species: Cat  Breed: British Shorthair
+Date of birth: 22.04.2022
+Transponder (microchip): 250269604512345
+Manufacturer and name of vaccine: Nobivac Rabies
+Batch number: A159B
+Date of vaccination: 09.03.2026
+Valid from: 30.03.2026
+Valid until: 09.03.2029`;
+  const v = parseVetReport(passport, { source: "pdf-text" }).report.vaccinations;
+  eq(v.length, 1, "EU passport yields exactly one vaccination");
+  eq(v[0]?.name, "Rabies", "passport: the vaccine is Rabies");
+  eq(v[0]?.administered_on, "2026-03-09", "passport: 'Date of vaccination' is the administered date, not 'birth' or 'valid from'");
+  eq(v[0]?.due_on, "2029-03-09", "passport: 'Valid until' is the due date");
+}
+
 const noise = "aaa ### %%% ~~~ ,,,, |||| ^^^^ @@@@ ~~~~ ,,,, ;;;; |||| ]][[ %%%% $$$$";
 eq(garbageRatio(noise) > 0.4, true, "noise reads as noise");
 eq(scoreVetDocument("Rabies vaccine given, microchip 985141002317744, DVM") >= 3, true, "vet signals score");
