@@ -139,7 +139,7 @@ export default async function ComparePage() {
         </div>
       </section>
 
-      <section className="border-y border-[var(--border)] bg-brand-50/30">
+      <section className="border-y border-[var(--border)] bg-brand-50/30 dark:bg-brand-500/10">
         <div className="mx-auto max-w-4xl px-5 py-14">
           <h2 className="text-xl font-semibold tracking-tight">What&apos;s new here</h2>
           <p className="muted mt-2 max-w-2xl text-sm leading-relaxed">
@@ -160,7 +160,7 @@ export default async function ComparePage() {
         </div>
       </section>
 
-      <section className="border-y border-[var(--border)] bg-brand-50/30">
+      <section className="border-y border-[var(--border)] bg-brand-50/30 dark:bg-brand-500/10">
         <div className="mx-auto max-w-3xl px-5 py-14">
           <h2 className="text-xl font-semibold tracking-tight">
             The lane that is actually empty

@@ -32,7 +32,7 @@ export default async function HowItWorksPage() {
         </section>
 
       {/* ---------------------------------------------------------- how ---- */}
-      <section id="how" className="border-y border-[var(--border)] bg-brand-50/30">
+      <section id="how" className="border-y border-[var(--border)] bg-brand-50/30 dark:bg-brand-500/10">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <h2 className="text-center text-3xl font-semibold tracking-tight sm:text-4xl">
             Three steps, about thirty seconds

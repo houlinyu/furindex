@@ -112,7 +112,7 @@ export default async function PartnersPage() {
         </div>
       </section>
 
-      <section className="border-y border-[var(--border)] bg-brand-50/30">
+      <section className="border-y border-[var(--border)] bg-brand-50/30 dark:bg-brand-500/10">
         <div className="mx-auto max-w-3xl px-5 py-14">
           <h2 className="text-xl font-semibold tracking-tight">
             The principle we won&apos;t trade away
