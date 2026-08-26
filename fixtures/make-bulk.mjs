@@ -88,7 +88,8 @@ function buildDoc(i) {
   const gy = 2026, gm = int(1, 12), gd = int(13, 28); // day>12: date order is unambiguous
   const given = fmtDate(gy, gm, gd, style);
   const due = fmtDate(gy + 1, gm, gd, style);
-  const format = pick(["certificate", "tabular", "passport", "invoice", "discharge", "boarding"]);
+  const format = pick(["certificate", "tabular", "passport", "invoice", "discharge", "boarding",
+    "soap", "narrative", "wellness"]);
   const meds = [];
   const nMed = int(0, 2);
   for (let k = 0; k < nMed; k += 1) meds.push(pick(MEDS));
@@ -147,8 +148,7 @@ function buildDoc(i) {
     for (const v of vaccines) lines.push(`  ${v} - next due ${due.shown} (lot ${lotFor[v]})`);
     lines.push("Medications dispensed:");
     for (const m of meds) lines.push(`  ${m[0]} ${m[1]}, ${m[2]}`);
-  } else {
-    // boarding
+  } else if (format === "boarding") {
     lines.push("BOARDING INTAKE");
     lines.push(`Pet: Pet${i}  ${species}  Breed: ${breed}  Weight: ${weightShown}`);
     lines.push(`Microchip: ${chip}`);
@@ -156,6 +156,37 @@ function buildDoc(i) {
     for (const v of vaccines) lines.push(`${v} - given ${given.shown}, expires ${due.shown}`);
     lines.push("Current medications:");
     for (const m of meds) lines.push(`${m[0]} ${m[1]} - ${m[2]}`);
+  } else if (format === "soap") {
+    // Clinical progress note — different label wording ("Chip ID",
+    // "Immunizations administered", "Rx", "Body weight").
+    lines.push(`PROGRESS NOTE - ${clinic}`);
+    lines.push(`Patient: Pet${i}  ${species}  Breed: ${breed}  Chip ID ${chip}`);
+    lines.push(`S: presented for annual wellness exam. Owner reports no concerns.`);
+    lines.push(`O: Body weight: ${weightShown}. BAR, hydrated, T 38.6 C.`);
+    lines.push(`A: healthy adult ${species}.`);
+    lines.push(`P: immunizations administered ${given.shown}:`);
+    for (const v of vaccines) lines.push(`   ${v} (lot ${lotFor[v]}), booster due ${due.shown}`);
+    if (meds.length) lines.push("Rx:");
+    for (const m of meds) lines.push(`   ${m[0]} ${m[1]}, ${m[2]}`);
+  } else if (format === "narrative") {
+    // Prose referral/summary letter — values embedded in sentences.
+    lines.push(`${clinic}`);
+    lines.push(`To whom it may concern,`);
+    lines.push(`Pet${i}, a ${species} (${breed}), microchip ${chip}, was examined on ${given.shown}.`);
+    lines.push(`Body weight was recorded at ${weightShown}.`);
+    lines.push(`The following vaccinations were administered:`);
+    for (const v of vaccines) lines.push(`On ${given.shown} we gave ${v} (lot ${lotFor[v]}); next due ${due.shown}.`);
+    for (const m of meds) lines.push(`${m[0]} ${m[1]} was dispensed, to be given ${m[2]}.`);
+    lines.push(`Please contact us with any questions.`);
+  } else {
+    // wellness summary — synonym-heavy ("Immunizations", "Preventatives")
+    lines.push(`WELLNESS VISIT SUMMARY`);
+    lines.push(`For: Pet${i} (${species}, ${breed})   Microchip #: ${chip}`);
+    lines.push(`Visit date: ${given.shown}   Weight: ${weightShown}`);
+    lines.push(`Immunizations given this visit:`);
+    for (const v of vaccines) lines.push(`  ${v}  administered ${given.shown}  lot ${lotFor[v]}  next ${due.shown}`);
+    if (meds.length) lines.push(`Preventatives / medications:`);
+    for (const m of meds) lines.push(`  ${m[0]} ${m[1]} — ${m[2]}`);
   }
 
   return { lines, label };

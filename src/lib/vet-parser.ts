@@ -238,8 +238,12 @@ export function parseVetReport(
   // "Patient: Rex  Dog  Microchip: 985...". The label-at-start rule above only
   // catches it on its own line, which lost half of them at scale. A 9-16 digit
   // run right after a chip/transponder keyword is unambiguous.
+  // Accept the real-world synonyms a clinic actually prints mid-line: "Chip ID",
+  // "Chip No.", "Microchip #:", "Transponder (microchip):". A bare "chip"
+  // immediately followed by a long digit run is unambiguous in a pet record, and
+  // the separator may be any run of space/colon/hash/dot/dash.
   const MIDLINE_CHIP =
-    /(?:micro-?chip|transponder)(?:\s*\((?:microchip)\))?\s*(?:id|no\.?|number)?\s*[:.\-]?\s*([0-9](?:[0-9\s-]{7,20})[0-9])/i;
+    /\b(?:micro-?chip|transponder|chip)\b(?:\s*\((?:microchip)\))?\s*(?:id|no\.?|number)?[\s:.#\-]*([0-9](?:[0-9\s-]{7,20})[0-9])/i;
   let microchip = chipHit ? readChip(chipHit.value) : null;
   if (!microchip) {
     for (const l of lines) {
@@ -508,7 +512,14 @@ function sexFromText(s: string): "male" | "female" | "unknown" | null {
 
 function readChip(s: string): string | null {
   const m = /\b([0-9]{9,16})\b/.exec(s.replace(/[\s\-]/g, "")) ?? /\b([A-Z0-9]{9,16})\b/i.exec(s);
-  return m ? m[1] : null;
+  if (!m) return null;
+  const v = m[1];
+  // Real microchips are 15 digits (ISO 11784/11785) or 9-10 (legacy AVID/FECAVA).
+  // An all-digit read of 11-14 or 16 is almost always OCR dropping or adding a
+  // digit in a long run — surfacing it would write a WRONG chip onto the record,
+  // which is worse than none, so leave it blank for a human to confirm.
+  if (/^[0-9]+$/.test(v) && !(v.length === 15 || v.length === 9 || v.length === 10)) return null;
+  return v;
 }
 
 function looseVisitDate(lines: DocLine[], order: DateOrder, dobValue: string | null): ParsedDate | null {
@@ -530,13 +541,18 @@ const WEIGHT_UNIT = /(kgs?|kilograms?|kilos?|lbs?|pounds?|Ibs?|1bs?|ibs?)\b|\(b\
 function readWeight(lines: DocLine[], caveats: string[]): number | null {
   const hit = labelled(lines, /^(weight|body ?weight|wt\.?|bw)\b/i) ?? inlineWeight(lines);
   if (!hit) return null;
-  const m = /(\d+(?:\.\d+)?)\s*([A-Za-z(]+)?/.exec(hit.value);
+  // Capture the unit token even when OCR spells it with noise glyphs: it renders
+  // "lb" as "|b", "1b", "ib" or "(b" (an 'l' becomes a pipe/one/paren), so the
+  // class has to admit those before we can recognise pounds.
+  const m = /(\d+(?:\.\d+)?)\s*([A-Za-z(|1!\[\]{}\\/]+)?/.exec(hit.value);
   if (!m) return null;
   const n = Number(m[1]);
   const unitRaw = (m[2] ?? "").toLowerCase();
+  // Fold the leading OCR noise glyph to 'l' so "|b"/"1b"/"(b"/"ib" all read "lb".
+  const unitNorm = unitRaw.replace(/^[|1!\[\]{}()\\/i]/, "l");
   let kg: number;
-  if (/^k/.test(unitRaw)) kg = n;
-  else if (WEIGHT_UNIT.test(unitRaw) || /^\(?[i1l]?b/.test(unitRaw)) kg = n * LB_TO_KG;
+  if (/^k/.test(unitNorm)) kg = n;
+  else if (WEIGHT_UNIT.test(unitNorm) || /^\(?[i1l]?b/.test(unitNorm)) kg = n * LB_TO_KG;
   else {
     caveats.push(`a weight of "${tidy(hit.value)}" had no readable unit — left blank`);
     return null;
@@ -553,7 +569,9 @@ function readWeight(lines: DocLine[], caveats: string[]): number | null {
 
 function inlineWeight(lines: DocLine[]): { line: DocLine; value: string } | null {
   for (const l of lines) {
-    const m = /\b(?:wt|weight)\b[\s:.]*(\d+(?:[.,]\d+)?\s*[A-Za-z(]{1,3})/i.exec(l.text);
+    // The unit class admits OCR noise glyphs ("|b"/"1b"/"(b" for "lb"); readWeight
+    // folds them back before converting.
+    const m = /\b(?:wt|weight)\b[\s:.]*(\d+(?:[.,]\d+)?\s*[A-Za-z(|1!\[\]{}\\/]{1,3})/i.exec(l.text);
     if (m) return { line: l, value: m[1] };
   }
   return null;
@@ -619,6 +637,12 @@ function readVaccinations(
     if (!match) continue;
     // "Leptospirosis booster deferred" — nothing was given.
     if (/\b(deferred|declined|not given|refused|postponed|due but)\b/i.test(l.text)) continue;
+    // "EUROPEAN PET PASSPORT - VACCINATION AGAINST RABIES" is a document title,
+    // and "protects against distemper" describes what a vaccine is for — neither
+    // is an administration. Skip an "against <disease>" line that carries no date
+    // and no lot, so the passport's real vaccine (on its own labelled lines) is
+    // the only entry and the single-vaccine date harvest below can run.
+    if (/\bagainst\b/i.test(l.text) && dates.length === 0 && !LOT_RE.test(l.text)) continue;
 
     let administered: string | null = null;
     let due: string | null = null;
@@ -710,8 +734,8 @@ function readVaccinations(
 
 /** Mass and volume first: that is what a dose is. */
 const DOSE_STRONG = /\b\d+(?:[.,]\d+)?\s*(?:mcg|micrograms?|mg\/ml|mg\/kg|mg|grams?|g|ml|mls|mL|cc|iu|units?)\b/i;
-/** Fallbacks: "1 tablet", "1 chewable". */
-const DOSE_COUNT = /\b\d+(?:\.\d+)?\s*(?:tablets?|tabs?|capsules?|caps?|chewables?|chews?|tubes?|drops?|sachets?|pumps?|sprays?|patch(?:es)?)\b/i;
+/** Fallbacks: "1 tablet", "1 chewable", "1 dose" (unit-less preventives). */
+const DOSE_COUNT = /\b\d+(?:\.\d+)?\s*(?:tablets?|tabs?|capsules?|caps?|chewables?|chews?|tubes?|drops?|sachets?|pumps?|sprays?|patch(?:es)?|doses?|applications?)\b/i;
 const FREQ_RES: RegExp[] = [
   /\b(?:once|twice|thrice|three times|four times|\d+\s*times?)\s+(?:a\s+|per\s+|every\s+)?(?:daily|day|week|weekly|month|monthly|hour)\b[^.,;()]*/i,
   /\b(?:BID|SID|TID|QID|QD|EOD|PRN|q\.?\d+\s*h(?:rs?)?)\b[^.;()]*/i,

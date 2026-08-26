@@ -282,5 +282,40 @@ eq(freqDoc("Gabapentin 100 mg — 1 capsule PO q12h")?.dosage, "100 mg", "and th
 eq(freqDoc("Meloxicam 1.5 mg/ml — give 0.4 ml every 24 hours")?.dosage, "0.4 ml", "the delivered volume is the dose, not the concentration");
 eq(freqDoc("Clavamox 62.5 mg give twice a day for 10 days")?.frequency, "twice a day for 10 days", "'twice a day for 10 days' is kept whole");
 
+// --- scale-test hardening (150 labelled-doc benchmark) ---------------------
+
+// Microchip synonyms a clinic actually prints mid-line: "Chip ID", "Microchip #:".
+const chipSyn = (line: string) =>
+  parseVetReport(`Somerville Animal Hospital\nPatient: Rex  dog  ${line}\nRabies given 14 Aug 2026 lot RB-1`, { source: "pdf-text" }).report.pet.microchip_id;
+eq(chipSyn("Chip ID 985141002317744"), "985141002317744", "'Chip ID <15 digits>' mid-line is read");
+eq(chipSyn("Microchip #: 985141002317744"), "985141002317744", "'Microchip #:' with a hash separator is read");
+eq(chipSyn("Chip No. 985141002317744"), "985141002317744", "'Chip No.' mid-line is read");
+
+// A truncated microchip is worse than none: 11-14 (or 16) digits is an OCR digit
+// drop, not a real chip, so it must be left blank rather than saved wrong.
+eq(
+  parseVetReport(`Riverside Vet\nPatient: Bella  cat  Microchip: 9851410023177\nRabies given 14 Aug 2026 lot RB-2`, { source: "ocr" }).report.pet.microchip_id,
+  null,
+  "a 13-digit microchip (OCR dropped digits) is rejected, not surfaced wrong",
+);
+
+// OCR renders "lb" as "|b" (an 'l' becomes a pipe); the weight must still convert.
+const wtPipe = parseVetReport(`Vet Clinic\nPatient: Rex  dog  Microchip: 985141002317744\nWeight: 10.4 |b\nRabies given 14 Aug 2026 lot RB-3`, { source: "ocr" }).report;
+eq(wtPipe.weight_kg, Math.round(10.4 * LB_TO_KG * 100) / 100, "'10.4 |b' (OCR for lb) converts to kilograms");
+
+// A unit-less preventive dosed "1 dose" is a real medication, even on a priced line.
+const oneDose = parseVetReport(`INVOICE - Downtown Pet Clinic\nPatient: Luna  cat  Microchip: 985141002317744\nRevolution Plus 1 dose - monthly   $54.00\nRabies vaccination given 14 Aug 2026 lot RB-4`, { source: "pdf-text" }).report;
+eq(oneDose.medications.some((m) => /revolution/i.test(m.name)), true, "'Revolution Plus 1 dose - monthly' on a priced line is captured");
+eq(oneDose.medications.some((m) => /\$/.test(m.name) || /\$|54/.test(m.frequency ?? "")), false, "and the $54 price does not bleed into the medication");
+
+// An EU passport's title line "VACCINATION AGAINST RABIES" is a heading, not a
+// second vaccine — so the real (single) vaccine's date is still harvested.
+const passport = parseVetReport(
+  `EUROPEAN PET PASSPORT - VACCINATION AGAINST RABIES\nName of animal: Milo  Species: cat\nTransponder (microchip): 985141002317744\nManufacturer and name of vaccine: Nobivac FVRCP\nBatch number: LP-5893541\nDate of vaccination: 15/10/2026\nValid until: 15/10/2027`,
+  { source: "pdf-text" },
+).report;
+eq(passport.vaccinations.length, 1, "the 'against rabies' title is not counted as a vaccine");
+eq(passport.vaccinations[0]?.administered_on, "2026-10-15", "the passport's real vaccine keeps its date of vaccination");
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
