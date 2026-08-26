@@ -12,6 +12,12 @@ export const metadata: Metadata = {
     title: "FurIndex",
     statusBarStyle: "default",
   },
+  // Next emits the modern mobile-web-app-capable; older iOS also needs the
+  // legacy apple- name to launch full-screen (no Safari chrome) from the home
+  // screen. Harmless everywhere else.
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
   icons: {
     icon: "/icon.svg",
     apple: "/apple-icon.png",
