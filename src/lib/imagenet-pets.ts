@@ -66,6 +66,15 @@ export interface PetGuess {
   looksLike: string[];
   /** Share of the probability mass that landed inside the chosen species. */
   support: number;
+  /**
+   * The model's ACTUAL top guesses within the species, renormalised so they sum
+   * over the species mass, as whole percentages. This is not invented content —
+   * it is exactly what the classifier weighed — so it can be shown honestly: it
+   * makes the guess legible ("72% Beagle · 14% Basset Hound") and, from its
+   * shape, tells a single-breed match apart from a blend. Dogs only; empty for
+   * cats (we never name a cat breed).
+   */
+  breakdown: Array<{ breed: string; pct: number }>;
   /** Kept for shape; nothing sets it now — see the cat note below. */
   coat: string | null;
 }
@@ -128,7 +137,7 @@ export function interpret(preds: RawPrediction[], species: ScanSpecies): PetGues
   // Nothing of this species in the top predictions at all — a photo of a sofa,
   // or an animal this label set has no room for.
   if (inSpecies.length === 0) {
-    return { species, breed: null, confidence: "low", looksLike: [], support: 0, coat: null };
+    return { species, breed: null, confidence: "low", looksLike: [], support: 0, breakdown: [], coat: null };
   }
 
   // Renormalised within the species: the question is no longer "is this a dog"
@@ -140,8 +149,15 @@ export function interpret(preds: RawPrediction[], species: ScanSpecies): PetGues
   const confidence = band(share);
 
   if (species === "cat") {
-    return { species, breed: null, confidence, looksLike: [], support, coat: null };
+    return { species, breed: null, confidence, looksLike: [], support, breakdown: [], coat: null };
   }
+
+  // The classifier's honest split across the breeds it actually weighed. Kept to
+  // the guesses that carry real weight (>=5% of the species mass), at most four.
+  const breakdown = inSpecies
+    .map((p) => ({ breed: tidyLabel(p.label), pct: Math.round((p.score / speciesTotal) * 100) }))
+    .filter((b) => b.pct >= 5)
+    .slice(0, 4);
 
   return {
     species,
@@ -151,6 +167,7 @@ export function interpret(preds: RawPrediction[], species: ScanSpecies): PetGues
       .slice(confidence === "low" ? 0 : 1, confidence === "low" ? 3 : 4)
       .map((p) => tidyLabel(p.label)),
     support,
+    breakdown,
     coat: null,
   };
 }

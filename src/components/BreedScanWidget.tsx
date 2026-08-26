@@ -42,6 +42,8 @@ export default function BreedScanWidget() {
   const [factSource, setFactSource] = useState<string | null>(null);
   /** Overrides the breed line when "the breed" is the wrong answer — see cats. */
   const [headline, setHeadline] = useState<string | null>(null);
+  /** The classifier's honest within-species split, for the "breed read" bars. */
+  const [breakdown, setBreakdown] = useState<Array<{ breed: string; pct: number }> | null>(null);
   /** Held between "we have no key" and the visitor telling us cat or dog. */
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -135,6 +137,7 @@ export default function BreedScanWidget() {
       setResult(scan);
       setFactSource(scan.fact_source);
       setHeadline(scan.headline ?? null);
+      setBreakdown(scan.breakdown?.length ? scan.breakdown : null);
       setPhase("done");
       if (scan.is_pet && isFunnelSpecies(scan.species)) {
         saveFunnelIntent({
@@ -166,6 +169,7 @@ export default function BreedScanWidget() {
     setResult(null);
     setFactSource(null);
     setHeadline(null);
+    setBreakdown(null);
     setPendingFile(null);
     setError(null);
     setSpecies(null);
@@ -353,15 +357,52 @@ export default function BreedScanWidget() {
                     ))}
                   </div>
                 )}
-                {/* The model's runners-up, shown only when we actually named a
-                    breed. A named-breed guess is still one guess among several
-                    the classifier weighed; saying which keeps "Looks like" from
-                    reading as a certainty it isn't. (When breed is null the mix
-                    headline above already carries these, so don't repeat them.) */}
-                {result.breed && result.looks_like.length > 0 && (
-                  <p className="muted mt-2 text-xs">
-                    Also a little like {result.looks_like.slice(0, 2).join(" or ")}.
-                  </p>
+                {/* How the classifier actually split its vote across the breeds
+                    it weighed — the real distribution, shown honestly. It makes
+                    the guess legible and, from its shape, tells a clean single-
+                    breed look apart from a blend. Falls back to the prose line
+                    when there is no breakdown (the model-backed server path). */}
+                {result.breed && breakdown && breakdown.length > 0 ? (
+                  <div className="mt-3">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="muted text-xs font-medium uppercase tracking-widest">
+                        Breed read
+                      </p>
+                      {(() => {
+                        const [top, second] = breakdown;
+                        const verdict =
+                          top.pct >= 60 && (!second || top.pct - second.pct >= 30)
+                            ? "a clear single-breed look"
+                            : second && second.pct >= 25
+                              ? "reads like a blend"
+                              : null;
+                        return verdict ? <span className="muted text-xs">{verdict}</span> : null;
+                      })()}
+                    </div>
+                    <div className="mt-2 space-y-1.5">
+                      {breakdown.map((b) => (
+                        <div key={b.breed} className="flex items-center gap-2">
+                          <span className="w-24 shrink-0 truncate text-xs sm:w-28">{b.breed}</span>
+                          <span className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--border)]">
+                            <span
+                              className="block h-full rounded-full bg-brand-500"
+                              style={{ width: `${b.pct}%` }}
+                            />
+                          </span>
+                          <span className="w-9 shrink-0 text-right text-xs tabular-nums muted">
+                            {b.pct}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  result.breed &&
+                  result.looks_like.length > 0 && (
+                    <p className="muted mt-2 text-xs">
+                      Also a little like {result.looks_like.slice(0, 2).join(" or ")}.
+                    </p>
+                  )
                 )}
                 <p className="mt-3 text-sm leading-relaxed">
                   <span aria-hidden>💡 </span>

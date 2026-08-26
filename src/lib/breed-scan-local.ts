@@ -38,6 +38,8 @@ export interface LocalScanResult extends ScanResult {
    * a breed anyone should find typed into their record.
    */
   headline?: string;
+  /** The classifier's honest within-species split (dogs only). See PetGuess. */
+  breakdown: Array<{ breed: string; pct: number }>;
   on_device: true;
 }
 
@@ -148,6 +150,7 @@ export async function scanPetPhotoLocally(
       fun_fact: note.fact,
       fact_source: note.source,
       headline: species === "cat" ? "A cat" : undefined,
+      breakdown: [],
       note: `We couldn't pick out a ${species} in that photo, so here's something true about ${species}s instead. A clear, well-lit shot of the whole animal reads best.`,
       on_device: true,
     };
@@ -166,6 +169,7 @@ export async function scanPetPhotoLocally(
     fun_fact: note.fact,
     fact_source: note.source,
     headline: species === "cat" ? "A cat" : undefined,
+    breakdown: guess.breakdown,
     note:
       species === "cat"
         ? "We don't guess cat breeds — they can't be told apart from a photo, and most cats aren't a breed anyway. So here's something true instead."
