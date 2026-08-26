@@ -387,5 +387,57 @@ eq(passport.vaccinations[0]?.administered_on, "2026-10-15", "the passport's real
   }
 }
 
+// --- wave-2 hardening: fix the fixes (false rejections) + new surfaces --------
+{
+  const R = (t: string) => parseVetReport(t, { source: "pdf-text" }).report;
+  const vet = (body: string) =>
+    R(`Somerville Animal Hospital\nPatient: Rex  dog\nMicrochip: 985141002317744\n${body}`);
+
+  // NON_ADMIN must not drop a REAL administration that merely mentions a test word
+  eq(vet("DHPP administered; patient negative for reaction").vaccinations.map((v) => v.name), ["DHPP"], "a real 'administered' line survives an incidental 'negative'");
+  eq(vet("Rabies given, tested lot 549871").vaccinations.map((v) => v.name), ["Rabies"], "a real 'given ... lot' line survives an incidental 'tested'");
+  eq(vet("DHPP administered, no history of adverse reaction").vaccinations.map((v) => v.name), ["DHPP"], "'no history of adverse reaction' on an admin line is not a non-administration");
+  // but the fabrications still stay blocked
+  eq(vet("Rabies titer 0.5 IU/mL drawn 03/04/2026").vaccinations.length, 0, "a titer (no admin word) is still not a vaccination");
+  eq(vet("Heartworm/Lyme 4DX 03/01/2026: Negative").vaccinations.length, 0, "a 4DX screen is still not a vaccination");
+
+  // FOOD_RE must not drop a drug whose instruction mentions a cup/scoop
+  eq(vet("MEDICATIONS\nCerenia 16 mg once daily, give with 1 cup of water").medications.map((m) => m.name), ["Cerenia"], "'give with 1 cup of water' does not make a drug a food");
+  eq(vet("MEDICATIONS\nHill's Prescription Diet i/d 2 cups daily").medications.length, 0, "a named prescription diet is still not a medication");
+
+  // weight qualifier glued to the number is kept; a glyph-corruption still rejected
+  eq(vet("Weight: ca.4.2 kg").weight_kg, 4.2, "'ca.4.2 kg' keeps the weight");
+  eq(vet("Weight: approx.4.2 kg").weight_kg, 4.2, "'approx.4.2 kg' keeps the weight");
+  eq(vet("Weight: S2.4 lb").weight_kg, null, "'S2.4' is still rejected as a glyph corruption");
+
+  // multi-pet must NOT over-trigger on one pet labelled two ways / with a breed
+  {
+    const one = R("Happy Vet\nPatient: Rex - Labrador Retriever\nMicrochip: 985141002317744\nRabies given 08/14/2026 Lot A1\nPet: Rex\nDHPP given 08/14/2026 Lot B2\nBordetella given 08/14/2026 Lot C3");
+    eq(one.vaccinations.map((v) => v.name).sort(), ["Bordetella", "DHPP", "Rabies"], "one pet with a 'Name - Breed' header is not split; all its vaccines survive");
+    eq(one.pet.name, "Rex", "the breed is stripped from the name");
+  }
+  eq(R("Happy Vet\nPatient: Bella Smith\nMicrochip: 985141002317744\nRabies given 08/14/2026 Lot A1\nPet Name: Bella\nDHPP given 08/14/2026 Lot B2").vaccinations.length, 2, "a surname vs first-name label is the same pet, not two");
+  // but a genuine second animal is still guarded
+  eq(R("Happy Vet\nPatient: Rex\nSpecies: Dog\nRabies given 14 Aug 2026 lot RB-1\nPatient: Milo\nSpecies: Cat\nMicrochip: 985112009999111\nWeight: 4.1 kg").pet.microchip_id, null, "a real second animal's chip is still not grafted onto the first");
+
+  // a bare "Administered <date>" cert date is harvested
+  eq(R("Rabies vaccination\nAdministered 08/14/2026 Lot 445 Next due 08/14/2027").vaccinations[0]?.administered_on, "2026-08-14", "a bare 'Administered <date>' on a cert is captured");
+
+  // a vaccine-named header advances the section without polluting the prior field
+  {
+    const poll = R("Greenfield Animal Clinic\nPatient: Rex\nREASON FOR VISIT\nAnnual wellness exam\nRABIES VACCINATION\nRabies given 08/14/2026 Lot A1 next due 08/14/2027");
+    eq(poll.reason, "Annual wellness exam", "a 'RABIES VACCINATION' header does not spill vaccine text into the reason");
+    eq(poll.vaccinations.map((v) => v.name), ["Rabies"], "and the vaccine is still extracted");
+  }
+
+  // a column-merged DOB is not read as a vaccine's administration date
+  eq(R("Vet Clinic\nPatient: Bella\nD.O.B: 03/14/2019 Lepto given 05/10/2026 Lot LP3").vaccinations[0]?.administered_on, "2026-05-10", "a DOB glued from another column is not the vaccine's administered date");
+  // a column-merged second field does not pollute the name
+  eq(R("Vet Clinic\nPatient: Max Species: Dog\nRabies given 14 Aug 2026 lot RB-1").pet.name, "Max", "a glued 'Species: Dog' is cut off the pet name");
+
+  // European comma-decimal money is not mis-magnitude'd
+  eq(R("Downtown Pet Clinic\nPatient: Luna\nTotal Due: $217.00\nRabies given 14 Aug 2026 lot RB-1").cost_usd, 217, "a US $217.00 total still reads 217");
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

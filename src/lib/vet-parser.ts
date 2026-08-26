@@ -78,7 +78,6 @@ const SPECIFIC_VACCINE =
 function headingFor(text: string): Section | null {
   const t = text.trim();
   if (!t || t.length > 44) return null;
-  if (SPECIFIC_VACCINE.test(t)) return null;
   const looksLikeHeading =
     (t === t.toUpperCase() && /[A-Z]{3}/.test(t)) ||
     /^[A-Z][a-z ]+:?$/.test(t) ||
@@ -108,7 +107,12 @@ export function toLines(text: string): DocLine[] {
     const h = headingFor(cleaned);
     if (h) {
       section = h;
-      continue;
+      // A heading that also NAMES a specific vaccine ("RABIES VACCINATION",
+      // "Rabies vaccination") is the vaccine record itself — advance the section
+      // (so the lines that follow are grouped as vaccinations, not left polluting
+      // the previous free-text section) but KEEP the line as data so the vaccine
+      // is not lost. A pure title ("Certificate of Vaccination") is consumed.
+      if (!SPECIFIC_VACCINE.test(cleaned)) continue;
     }
     out.push({ raw, text: cleaned, section });
   }
@@ -117,7 +121,27 @@ export function toLines(text: string): DocLine[] {
 
 // ------------------------------------------------------------------- utilities
 
-const MONEY_RE = /([$£€]|\bUSD\b|\bGBP\b|\bEUR\b)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+(?:\.\d{2})?)/i;
+const MONEY_RE = /([$£€]|\bUSD\b|\bGBP\b|\bEUR\b)\s*(\d[\d.,]*\d|\d)/i;
+
+/**
+ * Parse a printed money amount in either convention: US/UK "1,234.56" (comma
+ * thousands, dot decimal) or continental European "1.234,56" / "3,50" (dot
+ * thousands, comma decimal). The last separator is the decimal one, unless it is
+ * a comma followed by exactly three digits with no dot present (thousands).
+ */
+function parseMoney(raw: string): number {
+  const lastComma = raw.lastIndexOf(",");
+  const lastDot = raw.lastIndexOf(".");
+  let s: string;
+  if (lastComma > lastDot) {
+    const afterComma = raw.length - lastComma - 1;
+    if (afterComma === 3 && lastDot < 0) s = raw.replace(/,/g, ""); // "1,234" thousands
+    else s = raw.replace(/\./g, "").replace(",", "."); // comma is the decimal
+  } else {
+    s = raw.replace(/,/g, ""); // dot decimal (or none), comma thousands
+  }
+  return Number(s);
+}
 
 function labelled(lines: DocLine[], label: RegExp): { line: DocLine; value: string } | null {
   for (let i = 0; i < lines.length; i++) {
@@ -169,7 +193,10 @@ export function parseVetReport(
   const markers: Array<{ i: number; name: string }> = [];
   lines.forEach((l, i) => {
     const mk = PATIENT_MARKER.exec(l.text);
-    if (mk) markers.push({ i, name: (cleanName(mk[1]) ?? "").toLowerCase() });
+    // Compare the FIRST NAME TOKEN only: "Patient: Bella Smith" and "Pet: Bella"
+    // are the same animal labelled two ways, not two pets. cleanName already
+    // strips a trailing " - Breed" / glued field, leaving the given name.
+    if (mk) markers.push({ i, name: (cleanName(mk[1]) ?? "").toLowerCase().split(/\s+/)[0] });
   });
   const distinctNames = [...new Set(markers.map((x) => x.name).filter(Boolean))];
   if (distinctNames.length >= 2) {
@@ -473,10 +500,21 @@ function tidy(s: string): string {
 }
 
 function cleanName(s: string): string | null {
-  const v = tidy(s).replace(/\s*\(.*$/, "").split(/\s{2,}/)[0];
-  const name = v.split(/[,;|]/)[0].trim();
-  if (!name || name.length > 40 || !/[A-Za-z]/.test(name)) return null;
-  return name;
+  let v = tidy(s).replace(/\s*\(.*$/, "").split(/\s{2,}/)[0];
+  v = v.split(/[,;|]/)[0].trim();
+  v = v.split(/\s+[-–—]\s+/)[0].trim(); // "Rex - Labrador Retriever" -> "Rex"
+  // A two-column PDF gets flattened to one space-joined line, gluing the next
+  // field onto the name ("Bella Rabies 05/10/2026", "Max Species: Dog"). A pet
+  // name never contains a second field label, a vaccine word, or a number — cut
+  // at the first of those so the neighbouring column can't become the name.
+  v = v.replace(
+    /\s+(?:species|breed|sex|colou?r|micro-?chip|chip|weight|wt|bw|dob|d\.?o\.?b|age|neutered|spayed|intact|owner|client|vaccin\w*|rabies|dhl?pp\w*|da2pp\w*|fvrcp\w*|bordetella|felv|fiv|fip|lepto\w*|distemper|parvo\w*|lyme|nobivac|lot|batch)\b.*$/i,
+    "",
+  );
+  v = v.replace(/\s+[A-Za-z][A-Za-z.]*\s*[:#].*$/, ""); // any glued "Label:" field
+  v = v.replace(/\s+\d.*$/, "").trim(); // any glued number/date
+  if (!v || v.length > 40 || !/[A-Za-z]/.test(v)) return null;
+  return v;
 }
 
 function findClinic(lines: DocLine[]): string | null {
@@ -632,11 +670,17 @@ function unitToKg(n: number, u: string): number | null {
 function parseWeightValue(value: string, caveats: string[]): number | null {
   // A letter glued to the front of the number ("S2.4", "lO.4", "l0.4") is a
   // glyph-corrupted digit; reading the surviving digits would surface a wrong
-  // body weight, so reject the value rather than guess.
+  // body weight, so reject the value rather than guess. But a real measurement
+  // qualifier glued on ("ca.4.2 kg", "approx.4.2 kg", "est.4.2") is fine — the
+  // weight is genuine, just prefixed.
   const fd = value.search(/[0-9]/);
-  if (fd > 0 && /[A-Za-z][.,]?$/.test(value.slice(0, fd))) {
-    caveats.push(`a weight of "${tidy(value)}" looks OCR-corrupted — left blank`);
-    return null;
+  if (fd > 0) {
+    const prefix = value.slice(0, fd);
+    const isQualifier = /(?:approx(?:imately)?|ca|circa|est|estimated|about|c)\.?\s*$/i.test(prefix);
+    if (!isQualifier && /[A-Za-z][.,]?$/.test(prefix)) {
+      caveats.push(`a weight of "${tidy(value)}" looks OCR-corrupted — left blank`);
+      return null;
+    }
   }
   // Capture the number (allowing a European comma decimal) and its unit token,
   // admitting the OCR noise glyphs that spell "lb" as "|b"/"1b"/"(b"/"ib".
@@ -701,7 +745,7 @@ function readTotal(lines: DocLine[]): { amount: number; currency: string; label:
     if (!m) continue;
     const symbol = m[1].toUpperCase();
     const currency = symbol === "$" ? "USD" : symbol === "£" ? "GBP" : symbol === "€" ? "EUR" : symbol;
-    const amount = Number(m[2].replace(/,/g, ""));
+    const amount = parseMoney(m[2]);
     if (!Number.isFinite(amount)) continue;
     const label = tidy(l.text.slice(0, m.index)) || "Total";
     // The grand total is the largest such figure on the document.
@@ -758,15 +802,25 @@ function readVaccinations(
     const match = findVaccineInLine(l.text, ocr);
     if (!match) continue;
     // A recognised disease name on a line does NOT mean the vaccine was given.
-    // Titers, antibody/serology tests, 4DX/SNAP screens, negative/positive test
-    // results, medical exemptions, "no history of", "elected to skip", and
-    // future "due for"/"scheduled"/"to be given" reminders all name a disease
-    // while recording a NON-administration. Surfacing them fabricates a
-    // "vaccinated on <date>" record (dated to a test/reminder date) — the most
-    // dangerous class, since 4DX tests and titers appear on nearly every visit.
-    // Skip them; only a real administration should become a vaccination.
+    // Two tiers, because a REAL administration note often mentions a test word in
+    // passing ("DHPP administered; no adverse reaction", "Rabies given, titer not
+    // needed"):
+    //  - HARD: phrases that state the vaccine was NOT given (declined, deferred,
+    //    "due for", exemption, "elected to skip") — always skip.
+    //  - SOFT: test/screen/context words (titer, 4DX, "tested negative", "no
+    //    history of") — skip ONLY when the line carries no positive administration
+    //    evidence. A clear "given/administered/vaccinated" (which HARD has already
+    //    stripped of its negated forms) means a real dose, test word or not.
     if (
-      /\b(deferred|declined|not\s+given|refused|postponed|due\s+but|due\s+for|overdue|past\s+due|not\s+due|titer|titre|serolog\w*|antibod\w*|screen\w*|tested|test\s+(?:result|negative|positive|for)|negative|positive\s+for|exempt\w*|no\s+history|history\s+of|elected\s+to\s+skip|opted?\s+out|owner\s+declined|4dx|snap\s+test|scheduled|to\s+be\s+given|will\s+be\s+given)\b/i.test(
+      /\b(deferred|declined|not\s+given|never\s+given|refused|postponed|due\s+but|due\s+for|overdue|past\s+due|not\s+due|exempt\w*|medical\s+exemption|elected\s+to\s+skip|opted?\s+out|owner\s+declined|to\s+be\s+given|will\s+be\s+given|scheduled)\b/i.test(
+        l.text,
+      )
+    )
+      continue;
+    const positiveAdmin = /\b(given|administered|vaccinated|inoculated|boostered)\b/i.test(l.text);
+    if (
+      !positiveAdmin &&
+      /\b(titer|titre|serolog\w*|antibod\w*|screen\w*|tested|test\s+(?:result|negative|positive|for)|negative|positive\s+for|no\s+history|history\s+of|4dx|snap\s+test)\b/i.test(
         l.text,
       )
     )
@@ -786,6 +840,11 @@ function readVaccinations(
       // <d2>") lets the earlier "due" capture the given date. Whichever of an
       // administration cue or a due cue sits closer to the date wins.
       const before = l.text.slice(Math.max(0, hit.index - 22), hit.index);
+      // A date labelled as a birth date is never a vaccine's administration or
+      // due date. On a two-column PDF a left-column "D.O.B: 03/14/2019" can be
+      // flattened onto a right-column vaccine row — using it would fabricate a
+      // "vaccinated on the birthday" record. Skip a date cued by birth.
+      if (/\b(d\.?o\.?b|date\s+of\s+birth|born|birth\s*date)\b\W{0,4}$/i.test(before)) continue;
       const value = resolve(hit.parse(order));
       const dueIdx = lastIndexOfMatch(before, DUE_CUE);
       const adminIdx = lastIndexOfMatch(before, ADMIN_CUE_NEAR);
@@ -826,7 +885,7 @@ function readVaccinations(
   // both take this shape.
   if (out.length === 1) {
     const v = out[0];
-    const ADMIN_CUE = /\b(date\s+administered|date\s+of\s+vaccination|vaccinated\s+on|administered\s+on)\b/i;
+    const ADMIN_CUE = /\b(date\s+administered|date\s+of\s+vaccination|vaccinated|administered|given|inoculated)\b/i;
     const DUE_CUE_LABEL = /\b(next\s+due|valid\s+(until|to)|expir\w*|booster\s+due|due\s+date)\b/i;
     // "Valid from" on a passport is the rabies-valid date, neither given nor due.
     const SKIP_DATE = /\b(date\s+of\s+birth|d\.?o\.?b|valid\s+from|lot\s+expir|expiration)\b/i;
@@ -888,8 +947,11 @@ const MED_NOISE = /^(give|administer|dispense[d]?|apply|rx|prescribed|take|sig)\
 const DOSE_RATE = /\/\s*(?:ml|kg|lb|l|dose|tab\w*)\b|%/i;
 // A food or prescription diet is not a medication, even when dispensed "1 sachet"
 // or "2 cups". Brand/diet/serving cues that a drug direction never carries.
+// NOTE: not the bare serving words "cup"/"scoop" — those match incidental drug
+// instructions ("give with 1 cup of water"). A real prescription food is named by
+// its brand/diet or a food unit (kibble, kcal, canned/dry/wet food).
 const FOOD_RE =
-  /\b(royal\s*canin|hill'?s|science\s+diet|prescription\s+diet|purina|pro\s*plan|iams|eukanuba|blue\s+buffalo|farmina|acana|orijen|kibble|canned|cups?|scoops?|kcal|per\s+meal|at\s+meal)\b|\bdiet\b|\bfeed\b/i;
+  /\b(royal\s*canin|hill'?s|science\s+diet|prescription\s+diet|purina|pro\s*plan|iams|eukanuba|blue\s+buffalo|farmina|acana|orijen|kibble|canned\s+food|dry\s+food|wet\s+food|kcal|per\s+meal|at\s+meal)\b|\bdiet\b|\bfeed\b/i;
 // A medication name is a product, not a sentence: reject injected instructions,
 // SQL, or markup that landed on a dose-shaped line, and reject prose runs.
 const MED_NAME_BAD =
