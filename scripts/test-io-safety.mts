@@ -10,6 +10,7 @@
  */
 import { ocrImage } from "../src/lib/ocr";
 import { extractPdfText } from "../src/lib/pdf-text";
+import { scanReportLocalDetailed } from "../src/lib/extraction-local";
 
 let passed = 0;
 let failed = 0;
@@ -55,6 +56,18 @@ for (const [name, bytes] of badPdfs) {
     ok(r.hasTextLayer === false, `extractPdfText(${name}) reports no text layer`);
   } catch (e) {
     ok(false, `extractPdfText(${name}) threw: ${(e as Error).message.slice(0, 60)}`);
+  }
+}
+
+// A textless / corrupt / scanned PDF is ROUTINE input: the extractor must return
+// a graceful unreadable report (which the route serves as a handled 200), never
+// throw (which the route would map to an HTTP 500).
+for (const [name, bytes] of badPdfs) {
+  try {
+    const { report } = await scanReportLocalDetailed(bytes, "application/pdf");
+    ok(report.unreadable === true, `scanReportLocalDetailed(${name}) returns an unreadable report, not a throw`);
+  } catch (e) {
+    ok(false, `scanReportLocalDetailed(${name}) threw (would be a 500): ${(e as Error).message.slice(0, 60)}`);
   }
 }
 

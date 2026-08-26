@@ -63,12 +63,23 @@ export async function scanReportLocalDetailed(
   if (mimeType === "application/pdf") {
     const pdf = await extractPdfText(fileBytes);
     if (!pdf.hasTextLayer) {
-      // A scanned PDF is pixels in a PDF wrapper. Rasterising it in Node needs
-      // a native canvas binding this project does not carry, so rather than
-      // pretend, say exactly what to do instead.
-      throw new Error(
-        "This PDF has no text in it — it is a scan. Photograph the page and upload it as a PNG or JPG instead, and it will be read by OCR."
-      );
+      // No usable text layer: a scanned PDF (pixels in a PDF wrapper), or a
+      // corrupt / near-empty file. Rasterising a PDF to OCR it needs a native
+      // canvas binding this project does not carry — but this is ROUTINE input,
+      // so return a graceful "unreadable" report (the same handled 200 a non-vet
+      // upload gets), NEVER a thrown 500. When there is genuinely no text, tell
+      // the user how to get it read; when there is a little (a short or corrupt
+      // file), let the parser return its own honest refusal.
+      const meaningful = pdf.text.replace(/\s/g, "").length >= 8;
+      const { report, trace } = parseVetReport(meaningful ? pdf.text : "", { source: "pdf-text" });
+      if (!meaningful) {
+        report.notes =
+          "This PDF has no readable text — it looks like a scan. Photograph the page and upload it as a PNG or JPG instead, and it will be read on-device by OCR.";
+      }
+      return {
+        report,
+        detail: { layer: "pdf-text", ocrConfidence: null, ms: Date.now() - started, trace },
+      };
     }
     const { report, trace } = parseVetReport(pdf.text, { source: "pdf-text" });
     return {
