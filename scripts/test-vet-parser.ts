@@ -95,6 +95,52 @@ Returns accepted within 30 days with receipt.`;
 eq(parseVetReport(receipt, { source: "pdf-text" }).report.unreadable, true, "a hardware receipt is refused");
 eq(parseVetReport(receipt, { source: "pdf-text" }).report.vaccinations, [], "and returns no records at all");
 
+// ---- medications on an invoice / priced line -------------------------------
+console.log("medications on priced lines");
+{
+  const inv = `INVOICE - Downtown Pet Clinic
+Patient: Rex  Dog  Microchip: 985141002317744
+Date of service: 09/28/2026
+Rabies vaccination given 09/28/2026 lot RB-2 $48.00
+Apoquel 5.4 mg - once daily   $65.00
+Simparica Trio 1 chewable - every 30 days   $54.00
+Office visit   $60.00`;
+  const meds = parseVetReport(inv, { source: "pdf-text" }).report.medications.map((m) => m.name).sort();
+  eq(meds, ["Apoquel", "Simparica Trio"], "priced medication lines are extracted; the office-visit charge is not a med");
+}
+
+// ---- itemised invoice: administration on the price line --------------------
+console.log("itemised invoice line items");
+{
+  const inv = `INVOICE - Downtown Pet Clinic
+Patient: Rex  Dog  Microchip: 985141002317744
+Date of service: 09/28/2026
+DHPP vaccination given 09/28/2026 lot DH-1 $36.00
+Rabies vaccination given 09/28/2026 lot RB-2 $48.00
+Wellness exam 1 $65.00
+Fecal test 1 $38.00`;
+  const r = parseVetReport(inv, { source: "pdf-text" }).report;
+  const names = r.vaccinations.map((v) => v.name).sort();
+  eq(names, ["DHPP", "Rabies"], "invoice: administered vaccines are extracted from priced line items");
+  eq(r.vaccinations.find((v) => v.name === "Rabies")?.administered_on, "2026-09-28", "invoice: the 'given' date on the line is the administered date");
+  // A priced but non-administered service must NOT become a vaccination.
+  eq(r.vaccinations.some((v) => /exam|fecal/i.test(v.name)), false, "invoice: a plain charge line is not a vaccination");
+}
+
+// ---- microchip anywhere on the line -----------------------------------------
+console.log("microchip detection");
+{
+  const inline = `Riverside Vet - Patient: Rex - Dog - Microchip: 985141002317744
+Rabies given 14 Aug 2026`;
+  eq(parseVetReport(inline, { source: "pdf-text" }).report.pet.microchip_id, "985141002317744", "microchip mid-line is read");
+  const transponder = `EUROPEAN PET PASSPORT - VACCINATION AGAINST RABIES
+Name: Milo  Species: Cat
+Transponder (microchip): 250269604512345
+Manufacturer and name of vaccine: Nobivac Rabies
+Date of vaccination: 09.03.2026`;
+  eq(parseVetReport(transponder, { source: "pdf-text" }).report.pet.microchip_id, "250269604512345", "EU transponder microchip is read");
+}
+
 // ---- certificate / passport layouts: one vaccine, fields on labelled lines --
 console.log("certificate / passport layouts");
 {

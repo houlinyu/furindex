@@ -234,7 +234,19 @@ export function parseVetReport(
   const birthDate = dobHit ? resolve(firstDate(dobHit.value)) : null;
 
   const chipHit = labelled(lines, /^(microchip|micro-?chip( ?(id|no\.?|number))?|chip( ?(id|no\.?|number))?|transponder)\b/i);
-  const microchip = chipHit ? readChip(chipHit.value) : null;
+  // Fall back to a MID-line chip: many records print it inline, e.g.
+  // "Patient: Rex  Dog  Microchip: 985...". The label-at-start rule above only
+  // catches it on its own line, which lost half of them at scale. A 9-16 digit
+  // run right after a chip/transponder keyword is unambiguous.
+  const MIDLINE_CHIP =
+    /(?:micro-?chip|transponder)(?:\s*\((?:microchip)\))?\s*(?:id|no\.?|number)?\s*[:.\-]?\s*([0-9](?:[0-9\s-]{7,20})[0-9])/i;
+  let microchip = chipHit ? readChip(chipHit.value) : null;
+  if (!microchip) {
+    for (const l of lines) {
+      const m = MIDLINE_CHIP.exec(l.text);
+      if (m) { microchip = readChip(m[1]); if (microchip) break; }
+    }
+  }
 
   // --- visit date ----------------------------------------------------------
   // The bare "Date" alternative must not swallow "Date of Birth", which on
@@ -588,8 +600,13 @@ function readVaccinations(
   const fuzzyNames: Array<{ matchedText: string; canonical: string }> = [];
 
   for (const l of lines) {
-    // A charge line mentions the vaccine but records nothing about giving it.
-    if (MONEY_RE.test(l.text)) continue;
+    // A charge line that merely PRICES a vaccine ("Rabies vaccine  $32.00")
+    // records nothing about giving it, and is skipped. But an itemised invoice
+    // often documents the administration on the same line as the price —
+    // "DHPP vaccination given 09/28/2026 lot X  $36.00" — and that IS a real
+    // record. So a money line is only skipped when it lacks giving evidence.
+    const isMoney = MONEY_RE.test(l.text);
+    if (isMoney && !/\b(given|administered|vaccinated)\b/i.test(l.text)) continue;
     const dates = findDates(l.text);
     const hasEvidence =
       l.section === "vaccinations" ||
@@ -676,6 +693,16 @@ function readVaccinations(
     }
   }
 
+  // A vaccine with a lot number was administered — a lot is only written down
+  // for a dose that was actually given. If its own line carried no date (a
+  // discharge note lists "Rabies - next due ... (lot X)" under a "Seen: <date>"
+  // header), fall back to the visit date for the administration.
+  if (visitDate) {
+    for (const v of out) {
+      if (!v.administered_on && v.lot_number) v.administered_on = visitDate;
+    }
+  }
+
   return { vaccinations: out, fuzzyNames };
 }
 
@@ -701,19 +728,28 @@ function readMedications(
 ): ExtractedReport["medications"] {
   const out: ExtractedReport["medications"] = [];
   for (const l of lines) {
-    if (MONEY_RE.test(l.text)) continue; // a charge line, not a direction
+    // A price on the line does NOT disqualify a medication: an itemised invoice
+    // prints the direction and the charge together — "Apoquel 5.4 mg - monthly
+    // $65.00". The dose + frequency requirement and the name guards below are
+    // what separate a real direction from a bare charge line, so the money test
+    // is no longer a blanket skip.
     const inMedSection = l.section === "medications";
-    const strong = DOSE_STRONG.exec(l.raw);
-    const count = DOSE_COUNT.exec(l.raw);
-    const freq = FREQ_RES.map((re) => re.exec(l.raw)).find(Boolean) ?? null;
+    // A price is not part of the direction — strip it so it can't bleed into the
+    // dose, the frequency or the name ("once daily $65.00" -> "once daily").
+    const raw = l.raw.replace(/\s*([$£€]|\bUSD\b|\bGBP\b|\bEUR\b)\s*\d[\d.,]*/gi, "").trim();
+    const strong = DOSE_STRONG.exec(raw);
+    const count = DOSE_COUNT.exec(raw);
+    const freq = FREQ_RES.map((re) => re.exec(raw)).find(Boolean) ?? null;
     if (!inMedSection && !(freq && (strong || count))) continue;
     if (!strong && !count && !freq) continue;
     if (findVaccineInLine(l.text, false) && !strong && !count) continue;
 
-    // Directions usually sit after a dash: "<name and strength> — <directions>".
-    const split = l.raw.search(/\s[—–]\s|\s-\s(?=[A-Z(])/);
-    const left = split > 0 ? l.raw.slice(0, split) : l.raw;
-    const right = split > 0 ? l.raw.slice(split) : "";
+    // Directions usually sit after a dash: "<name and strength> — <directions>",
+    // but the dash may be followed by a lowercase word ("- every 30 days"), so
+    // do not require an uppercase after it.
+    const split = raw.search(/\s[—–]\s|\s-\s/);
+    const left = split > 0 ? raw.slice(0, split) : raw;
+    const right = split > 0 ? raw.slice(split) : "";
 
     // A mass or volume is what a dose is, wherever on the line it is printed:
     // "Apoquel 5.4 mg — give 1 tablet twice daily" doses 5.4 mg, not 1 tablet.
@@ -724,8 +760,10 @@ function readMedications(
       hit(DOSE_STRONG, right) ?? hit(DOSE_STRONG, left) ?? hit(DOSE_COUNT, right) ?? hit(DOSE_COUNT, left);
 
     let name = tidy(left.replace(MED_NOISE, ""));
-    const doseAt = name.search(DOSE_STRONG);
-    if (doseAt > 2) name = tidy(name.slice(0, doseAt));
+    const strongAt = name.search(DOSE_STRONG);
+    const countAt = name.search(DOSE_COUNT);
+    const cut = [strongAt, countAt].filter((n) => n > 2).sort((a, b) => a - b)[0];
+    if (cut !== undefined) name = tidy(name.slice(0, cut));
     name = name.replace(/[,:;]+$/, "").slice(0, 80);
     if (!name || name.length < 3 || !/[A-Za-z]{3}/.test(name)) continue;
     if (/^(total|subtotal|balance|exam|consult)/i.test(name)) continue;
