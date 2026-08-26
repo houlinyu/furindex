@@ -127,6 +127,20 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
   const clampEnd = (start: string, end: string | null) =>
     end && end >= start ? end : null;
 
+  // Re-filing the SAME record must not double a pet's history: a per-document
+  // latch stops re-applying one document, but a user who re-uploads the same
+  // certificate ("did I already add this?") would otherwise duplicate every row.
+  // So skip a vaccination/medication/visit that already matches one on the pet.
+  const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
+  const [{ data: existingVax }, { data: existingMeds }, { data: existingVisits }] = await Promise.all([
+    supabase.from("vaccinations").select("name, administered_on").eq("pet_id", petId),
+    supabase.from("medications").select("name, dosage").eq("pet_id", petId),
+    supabase.from("vet_visits").select("visited_on").eq("pet_id", petId),
+  ]);
+  const vaxKeys = new Set((existingVax ?? []).map((v) => `${norm(v.name)}|${v.administered_on ?? ""}`));
+  const medKeys = new Set((existingMeds ?? []).map((m) => `${norm(m.name)}|${norm(m.dosage)}`));
+  const visitDays = new Set((existingVisits ?? []).map((v) => v.visited_on));
+
   const vaccineRows = plan.vaccinations
     .map((i) => report.vaccinations[i])
     .filter(Boolean)
@@ -140,6 +154,12 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
         vet_clinic: report.clinic_name,
         lot_number: v.lot_number,
       };
+    })
+    .filter((r) => {
+      const k = `${norm(r.name)}|${r.administered_on}`;
+      if (vaxKeys.has(k)) return false; // already on the pet — don't duplicate
+      vaxKeys.add(k); // also dedup within this same batch
+      return true;
     });
   if (vaccineRows.length) {
     const { error } = await supabase.from("vaccinations").insert(vaccineRows);
@@ -159,6 +179,12 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
         start_date: start,
         end_date: clampEnd(start, m.end_date),
       };
+    })
+    .filter((r) => {
+      const k = `${norm(r.name)}|${norm(r.dosage)}`;
+      if (medKeys.has(k)) return false;
+      medKeys.add(k);
+      return true;
     });
   if (medRows.length) {
     const { error } = await supabase.from("medications").insert(medRows);
@@ -173,7 +199,7 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
     if (error) throw new Error(error.message);
   }
 
-  if (plan.visit) {
+  if (plan.visit && !visitDays.has(visitDate)) {
     const { error } = await supabase.from("vet_visits").insert({
       pet_id: petId,
       visited_on: visitDate,

@@ -121,7 +121,10 @@ export function toLines(text: string): DocLine[] {
 
 // ------------------------------------------------------------------- utilities
 
-const MONEY_RE = /([$£€]|\bUSD\b|\bGBP\b|\bEUR\b)\s*(\d[\d.,]*\d|\d)/i;
+// Trailing (?![\d/\-]) so a date whose month abuts a currency symbol ("Balance
+// due $12/25/2026") is not read as a $12 charge: every truncation of the amount
+// is followed by a digit or a date separator, so the match fails cleanly.
+const MONEY_RE = /([$£€]|\bUSD\b|\bGBP\b|\bEUR\b)\s*(\d[\d.,]*\d|\d)(?![\d/\-])/i;
 
 /**
  * Parse a printed money amount in either convention: US/UK "1,234.56" (comma
@@ -190,19 +193,38 @@ export function parseVetReport(
   // so. (A single pet whose name is merely repeated in a header/footer has one
   // distinct name and is untouched.)
   const PATIENT_MARKER = /^\s*(?:patient|pet|animal)(?:\s+name)?\s*[:#]\s*(.+)$/i;
-  const markers: Array<{ i: number; name: string }> = [];
+  const markers: Array<{ i: number; tokens: string[] }> = [];
   lines.forEach((l, i) => {
     const mk = PATIENT_MARKER.exec(l.text);
-    // Compare the FIRST NAME TOKEN only: "Patient: Bella Smith" and "Pet: Bella"
-    // are the same animal labelled two ways, not two pets. cleanName already
-    // strips a trailing " - Breed" / glued field, leaving the given name.
-    if (mk) markers.push({ i, name: (cleanName(mk[1]) ?? "").toLowerCase().split(/\s+/)[0] });
+    if (mk) {
+      const tokens = (cleanName(mk[1]) ?? "").toLowerCase().split(/[\s-]+/).filter(Boolean);
+      if (tokens.length) markers.push({ i, tokens });
+    }
   });
-  const distinctNames = [...new Set(markers.map((x) => x.name).filter(Boolean))];
-  if (distinctNames.length >= 2) {
-    lines = lines.slice(0, markers[1].i);
+  // Two labels are the SAME animal when one name is a token-prefix of the other:
+  // "Bella" / "Bella Smith" is one pet labelled two ways. Two labels are DIFFERENT
+  // animals when they share a first name but diverge later: "Bella Smith" (dog) vs
+  // "Bella Jones" (cat). Group the markers by that rule and, if more than one
+  // group appears, keep only the first animal's block so nothing cross-wires.
+  const samePet = (a: string[], b: string[]) => {
+    const n = Math.min(a.length, b.length);
+    for (let k = 0; k < n; k++) if (a[k] !== b[k]) return false;
+    return true;
+  };
+  const groups: string[][] = [];
+  const secondPetAt: number[] = [];
+  for (const m of markers) {
+    if (groups.some((g) => samePet(g, m.tokens))) continue;
+    groups.push(m.tokens);
+    if (groups.length >= 2) secondPetAt.push(m.i);
+  }
+  if (groups.length >= 2) {
+    lines = lines.slice(0, secondPetAt[0]);
     caveats.push(
-      `this document appears to list more than one animal (${distinctNames.slice(0, 3).join(", ")}) — only the first is shown, to avoid mixing their records`,
+      `this document appears to list more than one animal (${groups
+        .slice(0, 3)
+        .map((g) => g.join(" "))
+        .join(", ")}) — only the first is shown, to avoid mixing their records`,
     );
   }
 
@@ -512,7 +534,9 @@ function cleanName(s: string): string | null {
     "",
   );
   v = v.replace(/\s+[A-Za-z][A-Za-z.]*\s*[:#].*$/, ""); // any glued "Label:" field
-  v = v.replace(/\s+\d.*$/, "").trim(); // any glued number/date
+  // Cut a glued DATE or long id ("Bella 05/10/2026", "Bella 985141002317744"),
+  // but NOT a short number that is part of the name ("Lucky 7", "Apollo 13").
+  v = v.replace(/\s+(?:\d{4,}|\d{1,3}[/.\-]\d).*$/, "").trim();
   if (!v || v.length > 40 || !/[A-Za-z]/.test(v)) return null;
   return v;
 }
@@ -617,23 +641,22 @@ function readChip(s: string): string | null {
   // blank "Microchip:" line the value can bleed in from a neighbouring field
   // ("License No 123...", "mobile 555...", "Lot ABC..."); reject when a non-chip
   // label sits just before the number.
-  if (/\b(phone|mobile|cell|tel|fax|account|acct|licen[sc]e|policy|insurance|invoice|receipt|order|reg(?:istration|ister)?|claim|lot|batch|serial|dob|d\.o\.b|birth|amount|total|balance|weight)\b[^0-9]{0,12}$/i.test(pre)) return null;
-  const m = /\b([0-9]{9,16})\b/.exec(raw.replace(/[\s.\-]/g, "")) ?? /\b([A-Z0-9]{9,16})\b/i.exec(raw);
+  if (/\b(phone|mobile|cell|tel|fax|account|acct|licen[sc]e|lic|policy|insurance|invoice|receipt|order|reg(?:istration|ister)?|ref(?:erence)?|claim|auth(?:orization)?|dea|npi|rx|po|lot|batch|serial|dob|d\.o\.b|birth|amount|total|balance|weight)\b[^0-9]{0,12}$/i.test(pre)) return null;
+  // A phone number (3-3-4 grouping, or a parenthesised area code) reads as 10
+  // digits once separators are stripped — the same length as a legacy chip — so
+  // reject the phone SHAPE before it can be surfaced as a microchip.
+  if (/(?:^|\D)\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}(?:\D|$)/.test(raw)) return null;
+  // Real pet microchips are all DIGITS: 15 (ISO 11784/11785) or 9-10 (legacy
+  // AVID/FECAVA). The alphanumeric fallback was dropped: it surfaced DEA numbers,
+  // licence ids and even the label word "microchip" as the chip. A non-digit read
+  // is OCR corruption or a different field — leave it blank for a human.
+  const m = /\b([0-9]{9,16})\b/.exec(raw.replace(/[\s.\-]/g, ""));
   if (!m) return null;
   const v = m[1];
-  const digits = /^[0-9]+$/.test(v);
-  // Real microchips are 15 digits (ISO 11784/11785) or 9-10 (legacy AVID/FECAVA,
-  // which may be alphanumeric). Any other length — or a 15-char id that is NOT
-  // all digits, i.e. a confusion letter where a digit belongs ("9851410O2317744")
-  // — is OCR corruption. Surfacing it would write a WRONG permanent id, worse
-  // than none, so leave it blank for a human to confirm.
-  if (v.length === 15) {
-    if (!digits) return null;
-  } else if (v.length !== 9 && v.length !== 10) {
-    return null;
-  }
+  // 11-14 or 16 digits is an OCR digit drop/add — not a real chip.
+  if (v.length !== 15 && v.length !== 9 && v.length !== 10) return null;
   // A run of one repeated digit ("000000000000000") is a placeholder, not a chip.
-  if (digits && /^(\d)\1+$/.test(v)) return null;
+  if (/^(\d)\1+$/.test(v)) return null;
   return v;
 }
 
@@ -657,12 +680,17 @@ const WEIGHT_LABEL = /^(current\s+)?(body\s*)?(weight|wt\.?|bw|mass)\b/i;
 // per-kilogram DOSING weight ("weight-based dose 2 mg/kg").
 const WEIGHT_SKIP = /\b(birth|born|previous|prior|last\s+visit|estimated|target|ideal|goal|dosing|dose|per\s*kg)\b/i;
 
-/** Convert a value in a recognised unit to kilograms; null if the unit isn't one. */
+/**
+ * Convert a value in a recognised unit to kilograms; null if the unit isn't one.
+ * Units are matched EXACTLY (not by prefix): a prefix match read "88 bpm" and
+ * "24 (BUN)" as pounds because they start with 'b'. OCR spellings of "lb" are
+ * already folded to "lb" by the caller, so only the true unit words remain.
+ */
 function unitToKg(n: number, u: string): number | null {
   if (u.includes("/")) return null; // "mg/kg", "ml/kg" — a rate/dose, not a weight
   if (/^k/.test(u)) return n; // kg, kgs, kilo(s), kilogram(s)
-  if (/^(lbs?|pounds?|ibs?|1bs?|\(?b)/.test(u)) return n * LB_TO_KG;
-  if (/^(oz|ounces?)/.test(u)) return n * OZ_TO_KG;
+  if (/^(lb|lbs|pound|pounds)$/.test(u)) return n * LB_TO_KG;
+  if (/^(oz|ounce|ounces)$/.test(u)) return n * OZ_TO_KG;
   if (/^(g|gs|gm|gms|gram|grams|gramme|grammes)$/.test(u)) return n * 0.001;
   return null;
 }
@@ -740,7 +768,12 @@ function sectionText(lines: DocLine[], section: Section): string | null {
 function readTotal(lines: DocLine[]): { amount: number; currency: string; label: string } | null {
   let best: { amount: number; currency: string; label: string } | null = null;
   for (const l of lines) {
-    if (!/total|balance|amount (due|paid)|charg|paid|due/i.test(l.text)) continue;
+    if (!/total|balance|amount (due|owed|paid)|grand total|charg|paid|due/i.test(l.text)) continue;
+    // A deposit / part-payment / refund line is not the grand total, and would
+    // otherwise win the "largest amount" contest ("Deposit paid $200" beating
+    // "Total due $120"). Exclude only genuine PARTIAL amounts — a bare "Amount
+    // Paid $196" is still the total.
+    if (/\b(deposit|down\s*payment|prepaid|tendered|change|refund|credit)\b/i.test(l.text)) continue;
     const m = MONEY_RE.exec(l.text);
     if (!m) continue;
     const symbol = m[1].toUpperCase();
@@ -757,7 +790,10 @@ function readTotal(lines: DocLine[]): { amount: number; currency: string; label:
 // ---- vaccinations ----------------------------------------------------------
 
 const LOT_RE = /\b(?:lot|batch|serial)\s*(?:no\.?|number|#)?\s*[:.\-]?\s*([A-Za-z0-9][A-Za-z0-9\-\/]{2,})/i;
-const LOT_TOKEN_RE = /\b([A-Za-z]{2,4}-\d{3,}|\d{4,}[A-Za-z]-\d{3,})\b/;
+// A bare "AAA-#####" token can be a lot number — but also an order, invoice,
+// reference, DEA or claim number. Exclude those prefixes so they are not
+// surfaced as a vaccine's lot when the real lot is absent.
+const LOT_TOKEN_RE = /\b(?!(?:ord|inv|ref|po|clm|dea|npi|auth|acct|rx|no|id|lic|pol)-)([A-Za-z]{2,4}-\d{3,}|\d{4,}[A-Za-z]-\d{3,})\b/i;
 const DUE_CUE = /\b(due|next|expir|renew|recheck|booster due|valid (to|until))\b/i;
 const ADMIN_CUE_NEAR = /\b(given|administered|vaccinated|inoculated|received|done)\b/i;
 
@@ -845,6 +881,11 @@ function readVaccinations(
       // flattened onto a right-column vaccine row — using it would fabricate a
       // "vaccinated on the birthday" record. Skip a date cued by birth.
       if (/\b(d\.?o\.?b|date\s+of\s+birth|born|birth\s*date)\b\W{0,4}$/i.test(before)) continue;
+      // A date attached to a TEST is a sample/draw date, not an administration.
+      // The two-tier guard admits a line like "Rabies titer drawn <d1>; given
+      // <d2>" because it has "given" — but the titer-draw date must not become
+      // the administration. Skip a date cued by a test word.
+      if (/\b(titer|titre|serolog\w*|drawn|sampled?|collected|screen\w*|tested|test)\b\W{0,6}$/i.test(before)) continue;
       const value = resolve(hit.parse(order));
       const dueIdx = lastIndexOfMatch(before, DUE_CUE);
       const adminIdx = lastIndexOfMatch(before, ADMIN_CUE_NEAR);

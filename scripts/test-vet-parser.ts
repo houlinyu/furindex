@@ -439,5 +439,52 @@ eq(passport.vaccinations[0]?.administered_on, "2026-10-15", "the passport's real
   eq(R("Downtown Pet Clinic\nPatient: Luna\nTotal Due: $217.00\nRabies given 14 Aug 2026 lot RB-1").cost_usd, 217, "a US $217.00 total still reads 217");
 }
 
+// --- wave-3 hardening: re-verify wave-2 fixes did not over-correct ------------
+{
+  const R = (t: string) => parseVetReport(t, { source: "pdf-text" });
+  const H = "Somerville Animal Hospital\nPatient: Rex\nMicrochip: 985141002317744\n";
+
+  // Two REAL pets that share a first name must be detected (not merged/cross-wired)
+  {
+    const two = R("Happy Vet\nPatient: Bella Smith\nSpecies: Dog\nWeight: 30 kg\nRabies given 05/25/2026 lot R1\n\nPatient: Bella Jones\nSpecies: Cat\nWeight: 4 kg\nMicrochip: 985141000999888\nFVRCP given 06/26/2026 lot F1").report;
+    eq(two.pet.microchip_id, null, "two pets sharing a first name: the cat's chip is not grafted onto the dog");
+    eq(two.vaccinations.map((v) => v.name), ["Rabies"], "two pets sharing a first name: the cat's vaccine is not cross-filed");
+  }
+  // but one pet labelled two ways (surname vs first name) is NOT split
+  {
+    const one = R("Happy Vet\nPatient: Bella Smith\nMicrochip: 985141002317744\nRabies given 05/25/2026 lot R1\nPet Name: Bella\nDHPP given 05/26/2026 lot D2");
+    eq(one.report.vaccinations.length, 2, "'Bella Smith' and 'Bella' are the same pet — both vaccines kept");
+    eq(one.trace.caveats.some((c) => /more than one animal/.test(c)), false, "and no false multi-animal warning");
+  }
+
+  // A real name containing a number is preserved; a glued date is still cut
+  eq(R(H.replace("Patient: Rex", "Patient: Lucky 7")).report.pet.name, "Lucky 7", "'Lucky 7' keeps its number");
+  eq(R("Vet Clinic\nPatient: Bella 05/10/2026\nMicrochip: 985141002317744\nRabies given 05/25/2026 lot R1").report.pet.name, "Bella", "a glued date is cut off the name");
+
+  // A titer/test DRAW date is not fabricated as an administration; the real
+  // 'given' date is used (25 > 12 fixes the date order so nothing is ambiguous)
+  eq(R(H + "Rabies titer drawn 03/10/2026; last given 05/25/2023 lot RB-9").report.vaccinations[0]?.administered_on, "2023-05-25", "a titer-draw date is not the administration; the real given date is");
+  eq(R(H + "Rabies given 05/25/2026; titer not needed lot RB-1").report.vaccinations[0]?.administered_on, "2026-05-25", "a real 'given' line with an incidental 'titer' still records the administration");
+
+  // A currency symbol abutting a date is not read as a cost
+  eq(R(H + "Balance due $12/25/2026\nRabies given 14 Aug 2026 lot RB-1").report.cost_usd, null, "'$12/25/2026' (a due date) is not a $12 charge");
+
+  // Numeric cross-field contamination: an identity number is never a microchip.
+  // (Header without a chip of its own, so the decoy is the only candidate.)
+  const NC = "Somerville Animal Hospital\nPatient: Rex  dog\n";
+  eq(R(NC + "Microchip:\nNPI 1234567890\nRabies given 14 Aug 2026 lot RB-1").report.pet.microchip_id, null, "an NPI on the line after a blank Microchip label is not the chip");
+  eq(R(NC + "Microchip: DEA# BX1234563\nRabies given 14 Aug 2026 lot RB-1").report.pet.microchip_id, null, "a DEA number is not a microchip");
+  eq(R(NC + "Microchip: 555-123-4567\nRabies given 14 Aug 2026 lot RB-1").report.pet.microchip_id, null, "a phone number (3-3-4) is not a microchip");
+  eq(R(NC + "Transponder (microchip): 985141210940252 NPI 1234567890\nRabies given 14 Aug 2026 lot RB-1").report.pet.microchip_id, "985141210940252", "the real chip is recovered even when an NPI trails it");
+  // A heart rate / lab value is not a body weight
+  eq(R(H + "Weight: 88 bpm\nRabies given 14 Aug 2026 lot RB-1").report.weight_kg, null, "'88 bpm' (heart rate) is not a body weight");
+  eq(R(H + "Body Weight: 24 (BUN)\nRabies given 14 Aug 2026 lot RB-1").report.weight_kg, null, "'24 (BUN)' (a lab value) is not a body weight");
+  // An order/reference token is not a vaccine lot
+  eq(R(H + "Rabies given Feb 21, 2026  Order ORD-12345").report.vaccinations[0]?.lot_number, null, "an ORD- order number is not a vaccine lot");
+  eq(R(H + "Rabies given Feb 21, 2026  RB-4471902").report.vaccinations[0]?.lot_number, "RB-4471902", "a real 'RB-' lot is still captured");
+  // A deposit/part-payment does not beat the grand total for cost
+  eq(R("Downtown Pet Clinic\nPatient: Luna\nDeposit paid $200.00\nTotal due: $120.00\nRabies given 14 Aug 2026 lot RB-1").report.cost_usd, 120, "a deposit does not become the cost; the total does");
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
