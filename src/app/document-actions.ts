@@ -134,12 +134,21 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
   const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
   const [{ data: existingVax }, { data: existingMeds }, { data: existingVisits }] = await Promise.all([
     supabase.from("vaccinations").select("name, administered_on").eq("pet_id", petId),
-    supabase.from("medications").select("name, dosage").eq("pet_id", petId),
-    supabase.from("vet_visits").select("visited_on").eq("pet_id", petId),
+    supabase.from("medications").select("name, dosage, start_date").eq("pet_id", petId),
+    supabase.from("vet_visits").select("visited_on, clinic, reason").eq("pet_id", petId),
   ]);
+  // Dedup keys must include the DATE, so re-filing the same document is caught
+  // but genuinely new history is not: the same drug/dose re-prescribed at a later
+  // visit (a new start date) is a real new course, and two distinct visits on one
+  // day (an ER trip and a specialist referral, different clinic/reason) are two
+  // real visits. Only an exact same-date, same-context repeat is a duplicate.
   const vaxKeys = new Set((existingVax ?? []).map((v) => `${norm(v.name)}|${v.administered_on ?? ""}`));
-  const medKeys = new Set((existingMeds ?? []).map((m) => `${norm(m.name)}|${norm(m.dosage)}`));
-  const visitDays = new Set((existingVisits ?? []).map((v) => v.visited_on));
+  const medKeys = new Set(
+    (existingMeds ?? []).map((m) => `${norm(m.name)}|${norm(m.dosage)}|${m.start_date ?? ""}`),
+  );
+  const visitKeys = new Set(
+    (existingVisits ?? []).map((v) => `${v.visited_on}|${norm(v.clinic)}|${norm(v.reason)}`),
+  );
 
   const vaccineRows = plan.vaccinations
     .map((i) => report.vaccinations[i])
@@ -181,7 +190,7 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
       };
     })
     .filter((r) => {
-      const k = `${norm(r.name)}|${norm(r.dosage)}`;
+      const k = `${norm(r.name)}|${norm(r.dosage)}|${r.start_date ?? ""}`;
       if (medKeys.has(k)) return false;
       medKeys.add(k);
       return true;
@@ -199,7 +208,7 @@ export async function applyExtraction(documentId: string, plan: ApplyPlan) {
     if (error) throw new Error(error.message);
   }
 
-  if (plan.visit && !visitDays.has(visitDate)) {
+  if (plan.visit && !visitKeys.has(`${visitDate}|${norm(report.clinic_name)}|${norm(report.reason)}`)) {
     const { error } = await supabase.from("vet_visits").insert({
       pet_id: petId,
       visited_on: visitDate,

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getUser } from "@/lib/supabase/server";
 import MarketingNav from "@/components/MarketingNav";
 import Logo from "@/components/Logo";
+import { ScanCamera } from "@/components/HowIcons";
 import {
   SUNDAI_PROJECT_URL,
   GITHUB_REPO_URL,
@@ -66,8 +67,11 @@ export default async function LandingPage() {
           href="/identify"
           className="group mx-auto mt-14 flex max-w-lg items-center gap-4 rounded-2xl border border-[var(--border)] bg-brand-50/40 p-5 text-left transition hover:border-brand-400 dark:bg-brand-500/10"
         >
-          <span className="text-4xl" aria-hidden>
-            📸
+          <span
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-100 text-[var(--brand-text)] dark:bg-brand-500/15"
+            aria-hidden
+          >
+            <ScanCamera className="h-7 w-7" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-lg font-medium">

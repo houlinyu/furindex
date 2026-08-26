@@ -1,6 +1,7 @@
 import Link from "next/link";
 import MarketingNav from "@/components/MarketingNav";
 import { getUser } from "@/lib/supabase/server";
+import { StepUpload, StepRead, StepConfirm } from "@/components/HowIcons";
 
 export const metadata = {
   title: "How it works — FurIndex",
@@ -36,34 +37,47 @@ export default async function HowItWorksPage() {
           <h2 className="text-center text-3xl font-semibold tracking-tight sm:text-4xl">
             Three steps, about thirty seconds
           </h2>
-          <ol className="mt-10 grid gap-6 sm:grid-cols-3">
+          <ol className="mt-12 grid gap-6 sm:grid-cols-3">
             {[
               {
                 n: "1",
-                icon: "📄",
+                Icon: StepUpload,
                 title: "Drop the report in",
                 body: "A PDF from the clinic, or a photo of the printout taken on your phone. Both work.",
               },
               {
                 n: "2",
-                icon: "🔎",
+                Icon: StepRead,
                 title: "It gets read",
                 body: "Vaccinations, medications, weight, diagnosis, next-due dates — pulled out as structured records.",
               },
               {
                 n: "3",
-                icon: "✅",
+                Icon: StepConfirm,
                 title: "You confirm",
                 body: "Every line is shown before anything is saved. Nothing lands on the record without your tick.",
               },
             ].map((s) => (
-              <li key={s.n} className="card p-6">
-                <div className="text-3xl">{s.icon}</div>
-                <p className="muted mt-3 text-xs font-medium uppercase tracking-wide">
-                  Step {s.n}
-                </p>
-                <p className="mt-1 font-medium">{s.title}</p>
-                <p className="muted mt-2 text-sm leading-relaxed">{s.body}</p>
+              <li key={s.n} className="card relative overflow-hidden p-6">
+                {/* A large, softly-tinted step number set behind the content —
+                    decorative, and the reason the card reads as one of a
+                    numbered series at a glance. */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -right-1 -top-3 select-none text-[5.5rem] font-bold leading-none tracking-tighter text-brand-100 dark:text-brand-500/15"
+                >
+                  {s.n}
+                </span>
+                <div className="relative">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100 text-[var(--brand-text)] dark:bg-brand-500/15">
+                    <s.Icon className="h-6 w-6" />
+                  </span>
+                  <p className="muted mt-4 text-xs font-medium uppercase tracking-wide">
+                    Step {s.n}
+                  </p>
+                  <p className="mt-1 font-medium">{s.title}</p>
+                  <p className="muted mt-2 text-sm leading-relaxed">{s.body}</p>
+                </div>
               </li>
             ))}
           </ol>
