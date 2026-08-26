@@ -29,6 +29,14 @@ export default function ExtractionReview({
   // ambiguity the parser could not settle) and the numbers want a second look.
   // This changes only what the screen SAYS — never what it pre-ticks.
   const exact = report.confidence === "high";
+  // Anything not read from a PDF's own text layer was read approximately. A
+  // photographed digit can be misread to a DIFFERENT but equally-plausible digit
+  // — a wrong-but-valid microchip, a decimal-dropped weight, a year-flipped date
+  // — and OCR confidence does NOT separate those from correct reads (a wrong
+  // value can come back at 90%+). So flag the identifier / number / date fields
+  // themselves, by field type, telling the reviewer exactly what to eyeball
+  // against the original. Nothing here changes what is pre-ticked.
+  const needsCheck = !exact;
 
   // With exactly one pet there is nothing to disambiguate, and leaving it
   // unpicked disables the save button under a label that already counts the
@@ -181,6 +189,7 @@ export default function ExtractionReview({
               ]
                 .filter(Boolean)
                 .join(" · ")}
+              {needsCheck && report.pet.microchip_id && <Verify />}
             </span>
           </span>
         </label>
@@ -199,6 +208,7 @@ export default function ExtractionReview({
               ]
                 .filter(Boolean)
                 .join(" · ")}
+              {needsCheck && <Verify />}
             </span>
           </Row>
         </Section>
@@ -207,7 +217,9 @@ export default function ExtractionReview({
       {report.weight_kg != null && (
         <Section title="Weight">
           <Row checked={weight} onChange={() => setWeight(!weight)}>
-            <span className="font-medium">{report.weight_kg} kg</span>
+            <span className="font-medium">
+              {report.weight_kg} kg{needsCheck && <Verify />}
+            </span>
             <span className="muted block text-xs">recorded {formatDate(report.visit_date)}</span>
           </Row>
         </Section>
@@ -226,6 +238,7 @@ export default function ExtractionReview({
                 ]
                   .filter(Boolean)
                   .join(" · ") || "no dates stated"}
+                {needsCheck && (v.administered_on || v.due_on) && <Verify />}
               </span>
             </Row>
           ))}
@@ -328,5 +341,22 @@ function Row({
       <input type="checkbox" checked={checked} onChange={onChange} className="mt-1" />
       <span className="min-w-0 flex-1">{children}</span>
     </label>
+  );
+}
+
+/**
+ * A per-field "read approximately, verify it" marker. Shown on the fields where a
+ * length-preserving OCR misread is both likely and invisible to the eye — a
+ * microchip, a weight, a date — because those are the values a reviewer would
+ * otherwise trust without checking.
+ */
+function Verify() {
+  return (
+    <span
+      className="ml-1 inline-block rounded bg-amber-100 px-1 text-[10px] font-medium leading-4 text-amber-800 align-middle dark:bg-amber-900/40 dark:text-amber-300"
+      title="Read approximately from an image — check this value against the original before saving."
+    >
+      check ✓
+    </span>
   );
 }
