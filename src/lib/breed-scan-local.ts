@@ -108,84 +108,29 @@ export function modelIsWarm(): boolean {
   return loading !== null;
 }
 
-/**
- * Two extra framings of the same photo — a horizontal flip and a centre-zoom —
- * as data URLs. A dog doesn't change breed when mirrored or cropped a little, so
- * averaging the model's answer over these views cancels the framing-specific
- * quirks that produce a confident WRONG guess (a Golden Retriever read as a
- * Chesapeake Bay off one crop). Best-effort: if the canvas isn't available the
- * caller falls back to the single view.
- */
-async function augmentedViews(file: File): Promise<string[]> {
-  const bmp = await createImageBitmap(file);
-  const { width: w, height: h } = bmp;
-  const render = (paint: (ctx: CanvasRenderingContext2D) => void): string => {
-    const c = document.createElement("canvas");
-    c.width = w;
-    c.height = h;
-    const ctx = c.getContext("2d");
-    if (!ctx) throw new Error("no 2d context");
-    paint(ctx);
-    return c.toDataURL("image/jpeg", 0.9);
-  };
-  const flip = render((ctx) => {
-    ctx.translate(w, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(bmp, 0, 0);
-  });
-  const m = 0.08; // drop the outer 8% — pull the subject in from a busy edge
-  const zoom = render((ctx) =>
-    ctx.drawImage(bmp, w * m, h * m, w * (1 - 2 * m), h * (1 - 2 * m), 0, 0, w, h)
-  );
-  bmp.close();
-  return [flip, zoom];
-}
-
-/** Average the model's per-label scores across several views of one photo. */
-function averagePredictions(views: RawPrediction[][]): RawPrediction[] {
-  const acc = new Map<string, RawPrediction>();
-  for (const view of views) {
-    for (const p of view) {
-      const e = acc.get(p.label) ?? { label: p.label, score: 0, index: p.index };
-      e.score += p.score / views.length;
-      acc.set(p.label, e);
-    }
-  }
-  return [...acc.values()].sort((a, b) => b.score - a.score);
-}
-
 export async function scanPetPhotoLocally(
   file: File,
   species: ScanSpecies
 ): Promise<LocalScanResult> {
   const { run, labelIndex } = await load();
-  const toPreds = (raw: Array<{ label: string; score: number }>): RawPrediction[] =>
-    raw.map((p) => ({ label: p.label, score: p.score, index: labelIndex.get(p.label) }));
 
+  // Single pass. Test-time augmentation (averaging a flip + centre-zoom) was
+  // tried and removed: measured on 60 real dog photos it was net-negative
+  // (−1 top-1, −1 top-3, one clean confident flip Basset→Welsh Springer) while
+  // adding two extra model passes on the uncertain third of scans. The plain
+  // classifier is the strong part — 95% top-1 / 98% top-3 on that set.
   const url = URL.createObjectURL(file);
-  let preds: RawPrediction[];
+  let raw: Array<{ label: string; score: number }>;
   try {
-    const raw = await run(url, { top_k: 8 });
-    preds = toPreds(raw);
-
-    // Adaptive test-time augmentation: a photo the model already reads as one
-    // dominant breed needs no help and stays fast (one pass). Only when the
-    // first look is uncertain or split — exactly where a framing quirk flips the
-    // winner — do we spend two more passes on a flip and a zoom and average them.
-    const first = interpret(preds, species);
-    const dominant = first.confidence === "high" && (first.breakdown[0]?.pct ?? 0) >= 85;
-    if (species === "dog" && !dominant && first.support >= 0.02) {
-      try {
-        const views = await augmentedViews(file);
-        const extra = await Promise.all(views.map((v) => run(v, { top_k: 8 }).then(toPreds)));
-        preds = averagePredictions([preds, ...extra]);
-      } catch {
-        // Canvas unavailable or a view failed — keep the single-view result.
-      }
-    }
+    raw = await run(url, { top_k: 8 });
   } finally {
     URL.revokeObjectURL(url);
   }
+  const preds: RawPrediction[] = raw.map((p) => ({
+    label: p.label,
+    score: p.score,
+    index: labelIndex.get(p.label),
+  }));
 
   if (typeof window !== "undefined" && window.location.search.includes("scandebug")) {
     console.log("[scandebug] mapped:", JSON.stringify(preds));
