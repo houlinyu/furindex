@@ -66,12 +66,29 @@ const HEADINGS: Array<[RegExp, Section]> = [
   [/patient|animal details|pet details|signalment/i, "patient"],
 ];
 
+// A line that names a specific vaccine/disease is a RECORD, not just a section
+// heading — "Rabies vaccination" on a terse certificate is the vaccine itself.
+// Consuming it as a heading erased the only vaccine mention and made the card
+// read as illegible. (Duplicates are merged by canonical name downstream, so
+// keeping a title like "RABIES VACCINATION CERTIFICATE" as data is harmless.)
+const SPECIFIC_VACCINE =
+  /\b(rabies|dhl?pp\w*|da2pp\w*|dapp|fvrcp\w*|bordetella|bordatella|felv|fiv|fip|lepto\w*|leptospir\w*|distemper|parvo\w*|parainfluenza|adenovirus|lyme|borrelia|influenza|giardia|coronavirus|panleukopenia|calicivirus|rhinotracheitis|nobivac|vanguard|purevax|recombitek|imrab|duramune)\b/i;
+
 /** A short line with no value on it reads as a heading, not as data. */
 function headingFor(text: string): Section | null {
   const t = text.trim();
   if (!t || t.length > 44) return null;
+  if (SPECIFIC_VACCINE.test(t)) return null;
   const looksLikeHeading =
-    (t === t.toUpperCase() && /[A-Z]{3}/.test(t)) || /^[A-Z][a-z ]+:?$/.test(t);
+    (t === t.toUpperCase() && /[A-Z]{3}/.test(t)) ||
+    /^[A-Z][a-z ]+:?$/.test(t) ||
+    // Title Case, possibly multi-word with small connectives — "Certificate of
+    // Vaccination", "Vaccination Record". Every word is either capitalised or a
+    // connective, so a data line ("Rabies given 14 Aug 2026", with a lowercase
+    // word) does not qualify. Exclude a phrase that STARTS with a data-label word
+    // ("Patient Pepper", "Owner Jane") — that is a labelled value, not a heading.
+    (/^[A-Z][A-Za-z]+(?:\s+(?:of|and|the|for|&|[A-Z][A-Za-z]+))+:?$/.test(t) &&
+      !/^(patient|owner|pet|animal|name|species|breed|sex|colou?r|dob|microchip|chip|weight|clinic|hospital|doctor|client|address|phone|tel|email|lot|batch)\b/i.test(t));
   if (!looksLikeHeading) return null;
   // "Weight: 20.7 lb" is upper-case-free enough not to reach here, but a
   // labelled line with a value is data whatever its case.
@@ -140,7 +157,28 @@ export function parseVetReport(
 ): { report: ExtractedReport; trace: ParseTrace } {
   const caveats: string[] = [];
   const text = rawText.replace(/ /g, " ");
-  const lines = toLines(text).filter((l) => !CONTACT_LINE.test(l.text));
+  let lines = toLines(text).filter((l) => !CONTACT_LINE.test(l.text));
+
+  // Multi-pet guard: a document describing two or more animals must NOT be
+  // flattened into one record that keeps pet A's name but back-fills pet B's
+  // chip, weight or vaccines. When a second, differently-named patient block
+  // begins, keep only the first animal's block so nothing cross-wires, and say
+  // so. (A single pet whose name is merely repeated in a header/footer has one
+  // distinct name and is untouched.)
+  const PATIENT_MARKER = /^\s*(?:patient|pet|animal)(?:\s+name)?\s*[:#]\s*(.+)$/i;
+  const markers: Array<{ i: number; name: string }> = [];
+  lines.forEach((l, i) => {
+    const mk = PATIENT_MARKER.exec(l.text);
+    if (mk) markers.push({ i, name: (cleanName(mk[1]) ?? "").toLowerCase() });
+  });
+  const distinctNames = [...new Set(markers.map((x) => x.name).filter(Boolean))];
+  if (distinctNames.length >= 2) {
+    lines = lines.slice(0, markers[1].i);
+    caveats.push(
+      `this document appears to list more than one animal (${distinctNames.slice(0, 3).join(", ")}) — only the first is shown, to avoid mixing their records`,
+    );
+  }
+
   const body = lines.map((l) => l.text).join("\n");
   const order = detectDateOrder(body);
   const ocr = opts.source === "ocr";
@@ -164,12 +202,14 @@ export function parseVetReport(
   // --- is this even a vet document, and is it legible ----------------------
   const vetScore = scoreVetDocument(body);
   const garbage = garbageRatio(body);
-  // Even a terse vaccination card carries a couple of dozen words. Under
-  // eight and there is nothing to parse, whatever the file claims to be.
+  // Too few words to be a document AND no real veterinary signal — then there
+  // is nothing to parse. A terse but clearly-veterinary card (a rabies
+  // certificate: "Rabies vaccination Administered <date> Lot <n> Next due
+  // <date>") clears vetScore >= 3 and must NOT be refused just for being short.
   const tooFewWords = body.split(/\s+/).filter((w) => /[A-Za-z]{2,}/.test(w)).length < 8;
 
   const scanTooPoor = ocr && opts.ocrConfidence != null && opts.ocrConfidence < 45;
-  if (garbage > 0.4 || tooFewWords || scanTooPoor) {
+  if (garbage > 0.4 || (tooFewWords && vetScore < 3) || scanTooPoor) {
     const r = empty();
     r.notes = ocr
       ? "Read on this device without a model. Almost nothing legible came out of the image — a flatter, better-lit photo, or a PDF from the clinic, would read far better."
@@ -413,7 +453,11 @@ export function scoreVetDocument(text: string): number {
 /** Share of "words" that are not word-shaped — OCR noise looks like this. */
 export function garbageRatio(text: string): number {
   const words = text.split(/\s+/).filter(Boolean);
-  if (words.length < 10) return 1;
+  // Short is not the same as garbage: a real rabies certificate is only a
+  // dozen tokens. Judge the actual noise ratio and let the sparse/vet-signal
+  // gates decide whether there is enough to parse — don't declare every terse
+  // document illegible.
+  if (words.length === 0) return 1;
   const bad = words.filter((w) => {
     const letters = w.replace(/[^A-Za-z]/g, "");
     if (!letters) return !/^[\d$£€.,:/%#()+-]+$/.test(w);
@@ -483,12 +527,25 @@ function findInformalSignalment(
   for (const l of lines.slice(0, 12)) {
     const m = /^([A-Z][A-Za-z'’\-]{1,20})\s*[-–—~:]\s*(.+)$/.exec(l.text);
     if (!m) continue;
+    // "Patient: Rex" — the token before the colon is a field LABEL, not the pet's
+    // name; the labelled extractor handles it. Don't record "Patient" as a name.
+    if (/^(patient|owner|pet|animal|name|species|breed|sex|colou?r|weight|microchip|chip|dob|date|client|clinic|hospital|doctor|vet|dr|address|phone|tel|email|reg|lot)$/i.test(m[1]))
+      continue;
     const rest = m[2];
+    // If the line states the species outright, trust it — an ambiguous breed word
+    // ("Rex" is a rabbit/cat breed but far more often a dog's name) must not
+    // override an explicit "Dog"/"Canine".
+    const explicit: Species | null = /\b(dog|canine|puppy|bitch)\b/i.test(rest)
+      ? "dog"
+      : /\b(cat|feline|kitten)\b/i.test(rest)
+        ? "cat"
+        : null;
     for (const [breedName, sp] of SPECIES_OF_BREED) {
       const re = new RegExp(`\\b${breedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
       const bm = re.exec(rest);
       if (bm) {
-        return { name: m[1], breed: tidy(bm[0]), species: sp };
+        if (explicit && sp !== explicit) continue;
+        return { name: m[1], breed: tidy(bm[0]), species: explicit ?? sp };
       }
     }
   }
@@ -511,14 +568,34 @@ function sexFromText(s: string): "male" | "female" | "unknown" | null {
 }
 
 function readChip(s: string): string | null {
-  const m = /\b([0-9]{9,16})\b/.exec(s.replace(/[\s\-]/g, "")) ?? /\b([A-Z0-9]{9,16})\b/i.exec(s);
+  const raw = s.trim();
+  const firstDigit = raw.search(/[0-9]/);
+  // Everything printed before the first digit is context for that number.
+  const pre = firstDigit >= 0 ? raw.slice(0, firstDigit) : raw;
+  // "none" / "N/A" / "not chipped" means there is no chip — never scavenge a
+  // stray number (a phone, an account) from the rest of the line.
+  if (/\b(none|n\/?a|n\.a\.?|not\s+chipped|un-?chipped|no\s+chip|pending|unknown)\b/i.test(pre)) return null;
+  // A number that belongs to a DIFFERENT labelled field is not the chip. On a
+  // blank "Microchip:" line the value can bleed in from a neighbouring field
+  // ("License No 123...", "mobile 555...", "Lot ABC..."); reject when a non-chip
+  // label sits just before the number.
+  if (/\b(phone|mobile|cell|tel|fax|account|acct|licen[sc]e|policy|insurance|invoice|receipt|order|reg(?:istration|ister)?|claim|lot|batch|serial|dob|d\.o\.b|birth|amount|total|balance|weight)\b[^0-9]{0,12}$/i.test(pre)) return null;
+  const m = /\b([0-9]{9,16})\b/.exec(raw.replace(/[\s.\-]/g, "")) ?? /\b([A-Z0-9]{9,16})\b/i.exec(raw);
   if (!m) return null;
   const v = m[1];
-  // Real microchips are 15 digits (ISO 11784/11785) or 9-10 (legacy AVID/FECAVA).
-  // An all-digit read of 11-14 or 16 is almost always OCR dropping or adding a
-  // digit in a long run — surfacing it would write a WRONG chip onto the record,
-  // which is worse than none, so leave it blank for a human to confirm.
-  if (/^[0-9]+$/.test(v) && !(v.length === 15 || v.length === 9 || v.length === 10)) return null;
+  const digits = /^[0-9]+$/.test(v);
+  // Real microchips are 15 digits (ISO 11784/11785) or 9-10 (legacy AVID/FECAVA,
+  // which may be alphanumeric). Any other length — or a 15-char id that is NOT
+  // all digits, i.e. a confusion letter where a digit belongs ("9851410O2317744")
+  // — is OCR corruption. Surfacing it would write a WRONG permanent id, worse
+  // than none, so leave it blank for a human to confirm.
+  if (v.length === 15) {
+    if (!digits) return null;
+  } else if (v.length !== 9 && v.length !== 10) {
+    return null;
+  }
+  // A run of one repeated digit ("000000000000000") is a placeholder, not a chip.
+  if (digits && /^(\d)\1+$/.test(v)) return null;
   return v;
 }
 
@@ -536,35 +613,67 @@ function looseVisitDate(lines: DocLine[], order: DateOrder, dobValue: string | n
   return [...seen.values()][0];
 }
 
-const WEIGHT_UNIT = /(kgs?|kilograms?|kilos?|lbs?|pounds?|Ibs?|1bs?|ibs?)\b|\(b\b/i;
+const OZ_TO_KG = 0.028349523125;
+const WEIGHT_LABEL = /^(current\s+)?(body\s*)?(weight|wt\.?|bw|mass)\b/i;
+// Not the animal's current body weight: a birth/previous/target weight, or a
+// per-kilogram DOSING weight ("weight-based dose 2 mg/kg").
+const WEIGHT_SKIP = /\b(birth|born|previous|prior|last\s+visit|estimated|target|ideal|goal|dosing|dose|per\s*kg)\b/i;
 
-function readWeight(lines: DocLine[], caveats: string[]): number | null {
-  const hit = labelled(lines, /^(weight|body ?weight|wt\.?|bw)\b/i) ?? inlineWeight(lines);
-  if (!hit) return null;
-  // Capture the unit token even when OCR spells it with noise glyphs: it renders
-  // "lb" as "|b", "1b", "ib" or "(b" (an 'l' becomes a pipe/one/paren), so the
-  // class has to admit those before we can recognise pounds.
-  const m = /(\d+(?:\.\d+)?)\s*([A-Za-z(|1!\[\]{}\\/]+)?/.exec(hit.value);
+/** Convert a value in a recognised unit to kilograms; null if the unit isn't one. */
+function unitToKg(n: number, u: string): number | null {
+  if (u.includes("/")) return null; // "mg/kg", "ml/kg" — a rate/dose, not a weight
+  if (/^k/.test(u)) return n; // kg, kgs, kilo(s), kilogram(s)
+  if (/^(lbs?|pounds?|ibs?|1bs?|\(?b)/.test(u)) return n * LB_TO_KG;
+  if (/^(oz|ounces?)/.test(u)) return n * OZ_TO_KG;
+  if (/^(g|gs|gm|gms|gram|grams|gramme|grammes)$/.test(u)) return n * 0.001;
+  return null;
+}
+
+function parseWeightValue(value: string, caveats: string[]): number | null {
+  // A letter glued to the front of the number ("S2.4", "lO.4", "l0.4") is a
+  // glyph-corrupted digit; reading the surviving digits would surface a wrong
+  // body weight, so reject the value rather than guess.
+  const fd = value.search(/[0-9]/);
+  if (fd > 0 && /[A-Za-z][.,]?$/.test(value.slice(0, fd))) {
+    caveats.push(`a weight of "${tidy(value)}" looks OCR-corrupted — left blank`);
+    return null;
+  }
+  // Capture the number (allowing a European comma decimal) and its unit token,
+  // admitting the OCR noise glyphs that spell "lb" as "|b"/"1b"/"(b"/"ib".
+  const m = /(\d+(?:[.,]\d+)?)\s*([A-Za-z(|1!\[\]{}\\/]+)?/.exec(value);
   if (!m) return null;
-  const n = Number(m[1]);
-  const unitRaw = (m[2] ?? "").toLowerCase();
-  // Fold the leading OCR noise glyph to 'l' so "|b"/"1b"/"(b"/"ib" all read "lb".
-  const unitNorm = unitRaw.replace(/^[|1!\[\]{}()\\/i]/, "l");
-  let kg: number;
-  if (/^k/.test(unitNorm)) kg = n;
-  else if (WEIGHT_UNIT.test(unitNorm) || /^\(?[i1l]?b/.test(unitNorm)) kg = n * LB_TO_KG;
-  else {
-    caveats.push(`a weight of "${tidy(hit.value)}" had no readable unit — left blank`);
+  const n = Number(m[1].replace(",", "."));
+  // Fold a leading OCR noise glyph to 'l' so "|b"/"1b"/"(b"/"ib" all read "lb".
+  const unitNorm = (m[2] ?? "").toLowerCase().replace(/^[|1!\[\]{}()\\/i]/, "l");
+  const kg = unitToKg(n, unitNorm);
+  if (kg == null) {
+    caveats.push(`a weight of "${tidy(value)}" had no readable unit — left blank`);
     return null;
   }
   const rounded = Math.round(kg * 100) / 100;
-  if (rounded < 0.02 || rounded > 150) {
-    // 831 lb is what OCR made of "9.3 lb" on one of the test cards. Dropping it
-    // is right: an invented weight is worse than a missing one.
-    caveats.push(`a weight of "${tidy(hit.value)}" is not a plausible body weight — left blank`);
+  // Plausibility in kilograms: nothing lighter than ~20 g or heavier than the
+  // largest breeds (~120 kg). 300 lb (136 kg) — a common OCR digit-duplication
+  // of 30 lb — is caught here; an invented weight is worse than a missing one.
+  if (rounded < 0.02 || rounded > 120) {
+    caveats.push(`a weight of "${tidy(value)}" is not a plausible body weight — left blank`);
     return null;
   }
   return rounded;
+}
+
+function readWeight(lines: DocLine[], caveats: string[]): number | null {
+  // Gather weight-labelled candidates, dropping non-current weights (birth,
+  // previous, target) and per-kg dosing weights, and preferring a line that
+  // explicitly says "current"/"today" so a birth weight never wins over it.
+  const cands: { value: string; current: boolean }[] = [];
+  for (const l of lines) {
+    if (WEIGHT_SKIP.test(l.text)) continue;
+    const hit = labelled([l], WEIGHT_LABEL);
+    if (hit) cands.push({ value: hit.value, current: /\b(current|today|now)\b/i.test(l.text) });
+  }
+  const chosen = cands.find((c) => c.current)?.value ?? cands[0]?.value ?? inlineWeight(lines)?.value ?? null;
+  if (chosen == null) return null;
+  return parseWeightValue(chosen, caveats);
 }
 
 function inlineWeight(lines: DocLine[]): { line: DocLine; value: string } | null {
@@ -606,6 +715,19 @@ function readTotal(lines: DocLine[]): { amount: number; currency: string; label:
 const LOT_RE = /\b(?:lot|batch|serial)\s*(?:no\.?|number|#)?\s*[:.\-]?\s*([A-Za-z0-9][A-Za-z0-9\-\/]{2,})/i;
 const LOT_TOKEN_RE = /\b([A-Za-z]{2,4}-\d{3,}|\d{4,}[A-Za-z]-\d{3,})\b/;
 const DUE_CUE = /\b(due|next|expir|renew|recheck|booster due|valid (to|until))\b/i;
+const ADMIN_CUE_NEAR = /\b(given|administered|vaccinated|inoculated|received|done)\b/i;
+
+/** Index of the LAST match of `re` in `s`, or -1 — for nearest-cue date typing. */
+function lastIndexOfMatch(s: string, re: RegExp): number {
+  const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
+  let last = -1;
+  let m: RegExpExecArray | null;
+  while ((m = g.exec(s))) {
+    last = m.index;
+    if (m.index === g.lastIndex) g.lastIndex++;
+  }
+  return last;
+}
 
 function readVaccinations(
   lines: DocLine[],
@@ -635,8 +757,20 @@ function readVaccinations(
 
     const match = findVaccineInLine(l.text, ocr);
     if (!match) continue;
-    // "Leptospirosis booster deferred" — nothing was given.
-    if (/\b(deferred|declined|not given|refused|postponed|due but)\b/i.test(l.text)) continue;
+    // A recognised disease name on a line does NOT mean the vaccine was given.
+    // Titers, antibody/serology tests, 4DX/SNAP screens, negative/positive test
+    // results, medical exemptions, "no history of", "elected to skip", and
+    // future "due for"/"scheduled"/"to be given" reminders all name a disease
+    // while recording a NON-administration. Surfacing them fabricates a
+    // "vaccinated on <date>" record (dated to a test/reminder date) — the most
+    // dangerous class, since 4DX tests and titers appear on nearly every visit.
+    // Skip them; only a real administration should become a vaccination.
+    if (
+      /\b(deferred|declined|not\s+given|refused|postponed|due\s+but|due\s+for|overdue|past\s+due|not\s+due|titer|titre|serolog\w*|antibod\w*|screen\w*|tested|test\s+(?:result|negative|positive|for)|negative|positive\s+for|exempt\w*|no\s+history|history\s+of|elected\s+to\s+skip|opted?\s+out|owner\s+declined|4dx|snap\s+test|scheduled|to\s+be\s+given|will\s+be\s+given)\b/i.test(
+        l.text,
+      )
+    )
+      continue;
     // "EUROPEAN PET PASSPORT - VACCINATION AGAINST RABIES" is a document title,
     // and "protects against distemper" describes what a vaccine is for — neither
     // is an administration. Skip an "against <disease>" line that carries no date
@@ -647,17 +781,22 @@ function readVaccinations(
     let administered: string | null = null;
     let due: string | null = null;
     for (const hit of dates) {
-      const before = l.text.slice(Math.max(0, hit.index - 26), hit.index);
-      const isDue = DUE_CUE.test(before) || (dates.length > 1 && hit === dates[1] && !administered === false);
+      // Classify each date by the NEAREST cue before it, not by any cue within a
+      // fixed window — otherwise a reverse-order line ("next due <d1>, given
+      // <d2>") lets the earlier "due" capture the given date. Whichever of an
+      // administration cue or a due cue sits closer to the date wins.
+      const before = l.text.slice(Math.max(0, hit.index - 22), hit.index);
       const value = resolve(hit.parse(order));
-      if (DUE_CUE.test(before)) {
+      const dueIdx = lastIndexOfMatch(before, DUE_CUE);
+      const adminIdx = lastIndexOfMatch(before, ADMIN_CUE_NEAR);
+      if (dueIdx >= 0 && (adminIdx < 0 || dueIdx > adminIdx)) {
         due = due ?? value;
+      } else if (adminIdx >= 0) {
+        administered = administered ?? value;
       } else if (!administered) {
         administered = value;
-      } else if (!due && isDue) {
-        due = value;
-      } else if (!due) {
-        due = value;
+      } else {
+        due = due ?? value;
       }
     }
     if (!administered && /\b(given|administered|vaccinated)\s+today\b/i.test(l.text) && visitDate) {
@@ -744,6 +883,19 @@ const FREQ_RES: RegExp[] = [
   /\b(?:daily|weekly|monthly|nightly|morning and night)\b[^.,;()]*/i,
 ];
 const MED_NOISE = /^(give|administer|dispense[d]?|apply|rx|prescribed|take|sig)\b[:.\s]*/i;
+// "50 mg/ml", "5 mg/kg", "10 %" are a concentration or a per-kg rate, not the
+// DELIVERED dose ("give 2 ml") — never surface a rate as the dose.
+const DOSE_RATE = /\/\s*(?:ml|kg|lb|l|dose|tab\w*)\b|%/i;
+// A food or prescription diet is not a medication, even when dispensed "1 sachet"
+// or "2 cups". Brand/diet/serving cues that a drug direction never carries.
+const FOOD_RE =
+  /\b(royal\s*canin|hill'?s|science\s+diet|prescription\s+diet|purina|pro\s*plan|iams|eukanuba|blue\s+buffalo|farmina|acana|orijen|kibble|canned|cups?|scoops?|kcal|per\s+meal|at\s+meal)\b|\bdiet\b|\bfeed\b/i;
+// A medication name is a product, not a sentence: reject injected instructions,
+// SQL, or markup that landed on a dose-shaped line, and reject prose runs.
+const MED_NAME_BAD =
+  /\b(ignore|instructions?|previous|system|assistant|prompt|delete|select|insert|update|drop\s+table|password|script|function|console|null|undefined|approve)\b/i;
+/** Route words that must not bleed into the captured frequency. */
+const ROUTE_RE = /\s+(?:PO|SQ|SC|IM|IV|by\s+mouth|orally|topical(?:ly)?|per\s+os)\b.*$/i;
 
 function readMedications(
   lines: DocLine[],
@@ -758,6 +910,9 @@ function readMedications(
     // what separate a real direction from a bare charge line, so the money test
     // is no longer a blanket skip.
     const inMedSection = l.section === "medications";
+    // A food or prescription diet is not a medication, even dispensed by sachet
+    // or cup — skip it wherever it appears.
+    if (FOOD_RE.test(l.text)) continue;
     // A price is not part of the direction — strip it so it can't bleed into the
     // dose, the frequency or the name ("once daily $65.00" -> "once daily").
     const raw = l.raw.replace(/\s*([$£€]|\bUSD\b|\bGBP\b|\bEUR\b)\s*\d[\d.,]*/gi, "").trim();
@@ -766,7 +921,9 @@ function readMedications(
     const freq = FREQ_RES.map((re) => re.exec(raw)).find(Boolean) ?? null;
     if (!inMedSection && !(freq && (strong || count))) continue;
     if (!strong && !count && !freq) continue;
-    if (findVaccineInLine(l.text, false) && !strong && !count) continue;
+    // A vaccine is recorded by the vaccination extractor; never double-book it as
+    // a medication, even when it carries a dose ("Rabies vaccine 1 ml SQ").
+    if (findVaccineInLine(l.text, false)) continue;
 
     // Directions usually sit after a dash: "<name and strength> — <directions>",
     // but the dash may be followed by a lowercase word ("- every 30 days"), so
@@ -777,20 +934,43 @@ function readMedications(
 
     // A mass or volume is what a dose is, wherever on the line it is printed:
     // "Apoquel 5.4 mg — give 1 tablet twice daily" doses 5.4 mg, not 1 tablet.
-    // Counts ("1 chewable") are the fallback for products with no strength.
-    // Verbatim either way — a dose is never rewritten, rounded or converted.
+    // But a CONCENTRATION or per-kg RATE ("50 mg/ml", "5 mg/kg") is not the
+    // delivered dose — skip it and take the real dose ("2 ml"). Counts
+    // ("1 chewable") are the fallback. Verbatim either way — never rewritten.
+    const firstDose = (s: string): string | null => {
+      if (!s) return null;
+      const re = new RegExp(DOSE_STRONG.source, "gi");
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(s))) if (!DOSE_RATE.test(m[0])) return m[0];
+      return null;
+    };
     const hit = (re: RegExp, s: string) => (s ? re.exec(s)?.[0] ?? null : null);
     const dosage =
-      hit(DOSE_STRONG, right) ?? hit(DOSE_STRONG, left) ?? hit(DOSE_COUNT, right) ?? hit(DOSE_COUNT, left);
+      firstDose(right) ?? firstDose(left) ?? hit(DOSE_COUNT, right) ?? hit(DOSE_COUNT, left);
 
-    let name = tidy(left.replace(MED_NOISE, ""));
+    let name = tidy(left.replace(MED_NOISE, "").replace(/^[^A-Za-z0-9(]+/, ""));
     const strongAt = name.search(DOSE_STRONG);
     const countAt = name.search(DOSE_COUNT);
     const cut = [strongAt, countAt].filter((n) => n > 2).sort((a, b) => a - b)[0];
     if (cut !== undefined) name = tidy(name.slice(0, cut));
-    name = name.replace(/[,:;]+$/, "").slice(0, 80);
+    name = name.replace(/[,:;*]+$/, "").replace(/^[*\s]+/, "").slice(0, 80);
     if (!name || name.length < 3 || !/[A-Za-z]{3}/.test(name)) continue;
     if (/^(total|subtotal|balance|exam|consult)/i.test(name)) continue;
+    // A drug name is a product, not injected prose/SQL/markup or a long sentence.
+    if (MED_NAME_BAD.test(name) || name.split(/\s+/).length > 6) continue;
+
+    // Trim route/dispense-quantity/price contamination off the captured
+    // frequency: "BID PO for 7 days" -> "BID", "BID x 30 tablets 65.00" -> "BID".
+    let frequency = freq ? tidy(freq[0]) : null;
+    if (frequency) {
+      frequency = frequency
+        .replace(ROUTE_RE, "")
+        .replace(/\s+x?\s*\d+\s*(?:tablets?|tabs?|caps?|capsules?|chewables?|chews?|doses?|pills?)\b.*$/i, "")
+        .replace(/\s+(?:qty|quantity)\b.*$/i, "")
+        .replace(/\s+\$?\d[\d.,]*$/, "")
+        .replace(/[.,;]+$/, "")
+        .trim();
+    }
 
     const startM = /\b(?:start(?:ing|ed)?|from|begin(?:ning)?)\b[^.\n]{0,20}?(\d{1,4}[/.\-]\d{1,2}[/.\-]\d{1,4})/i.exec(l.text);
     const endM = /\b(?:until|through|end(?:ing|s)?|last dose)\b[^.\n]{0,20}?(\d{1,4}[/.\-]\d{1,2}[/.\-]\d{1,4})/i.exec(l.text);
@@ -799,7 +979,7 @@ function readMedications(
     out.push({
       name,
       dosage: dosage ? dosage.trim() : null,
-      frequency: freq ? tidy(freq[0]) : null,
+      frequency: frequency || null,
       start_date: startM ? resolve(findDates(startM[1])[0]?.parse(order) ?? null) : null,
       end_date: endM ? resolve(findDates(endM[1])[0]?.parse(order) ?? null) : null,
     });

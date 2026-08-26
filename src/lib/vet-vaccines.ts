@@ -79,7 +79,9 @@ export const VACCINES: VaccineDef[] = [
   {
     canonical: "FeLV",
     species: "cat",
-    aliases: ["felv", "fel v", "feline leukemia", "feline leukaemia", "leukemia virus", "purevax felv"],
+    // NOT bare "leukemia virus": that phrase appears on HUMAN leukemia charts and
+    // would fabricate a feline vaccine from a person's record. Require "feline".
+    aliases: ["felv", "fel v", "feline leukemia", "feline leukaemia", "feline leukemia virus", "purevax felv"],
   },
   {
     canonical: "Lyme",
@@ -89,7 +91,9 @@ export const VACCINES: VaccineDef[] = [
   {
     canonical: "Canine influenza",
     species: "dog",
-    aliases: ["canine influenza", "civ", "h3n2", "h3n8", "flu vaccine", "canine flu"],
+    // NOT bare "flu vaccine": a HUMAN "Influenza (flu) vaccine" line would map to
+    // canine influenza. Require the canine qualifier.
+    aliases: ["canine influenza", "civ", "h3n2", "h3n8", "canine flu", "dog flu"],
   },
   {
     canonical: "Rattlesnake",
@@ -105,6 +109,11 @@ export const VACCINES: VaccineDef[] = [
     canonical: "FIP",
     species: "cat",
     aliases: ["fip", "feline infectious peritonitis"],
+  },
+  {
+    canonical: "FIV",
+    species: "cat",
+    aliases: ["fiv", "feline immunodeficiency", "feline immunodeficiency virus", "feline aids"],
   },
 ];
 

@@ -42,7 +42,10 @@ const MONTH_WORD = Object.keys(MONTHS).join("|");
 /** `08/14/2026`, `8-2-26`, `03.04.2026` */
 const NUMERIC_RE = /\b(\d{1,2})\s*[/.\-]\s*(\d{1,2})\s*[/.\-]\s*(\d{2,4})\b/g;
 /** `2026-08-14`, and the same order written with `/` or `.` separators. */
-const ISO_RE = /\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b/g;
+// Trailing (?!\d) rather than \b so an ISO-8601 datetime keeps its date: a
+// practice-management export prints "2026-08-14T09:30", where a \b between the
+// day digit and the letter T would fail and drop the whole date.
+const ISO_RE = /\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?!\d)/g;
 /** `August 14, 2026` / `Aug 14 2026` / `Aug-14-2026` / `Sept. 3, 2026` */
 const MDY_WORD_RE = new RegExp(`\\b(${MONTH_WORD})\\.?[\\s.\\-]+(\\d{1,2})(?:st|nd|rd|th)?[,\\s.\\-]+(\\d{4})\\b`, "gi");
 /** `14 August 2026` / `14th August 2026` / `14-Aug-2026` / `3 Sept 2026` */

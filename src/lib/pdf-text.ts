@@ -21,12 +21,20 @@ export async function extractPdfText(bytes: Uint8Array): Promise<PdfText> {
   // Imported lazily: unpdf pulls in a pdf.js build, and a route that never
   // sees a PDF should never pay for it.
   const { extractText, getDocumentProxy } = await import("unpdf");
-  // pdf.js takes ownership of the buffer it is handed and detaches it, which
-  // would break the caller's bytes for anything that runs afterwards (a retry,
-  // or a second reader). Hand it a copy.
-  const pdf = await getDocumentProxy(new Uint8Array(bytes));
-  const { totalPages, text } = await extractText(pdf, { mergePages: true });
-  const merged = Array.isArray(text) ? text.join("\n") : text;
-  const wordChars = merged.replace(/[^A-Za-z0-9]/g, "").length;
-  return { text: merged, pages: totalPages, hasTextLayer: wordChars >= MIN_CHARS };
+  try {
+    // pdf.js takes ownership of the buffer it is handed and detaches it, which
+    // would break the caller's bytes for anything that runs afterwards (a retry,
+    // or a second reader). Hand it a copy.
+    const pdf = await getDocumentProxy(new Uint8Array(bytes));
+    const { totalPages, text } = await extractText(pdf, { mergePages: true });
+    const merged = Array.isArray(text) ? text.join("\n") : text;
+    const wordChars = merged.replace(/[^A-Za-z0-9]/g, "").length;
+    return { text: merged, pages: totalPages, hasTextLayer: wordChars >= MIN_CHARS };
+  } catch {
+    // A corrupt, truncated, empty, or non-PDF byte stream makes pdf.js throw.
+    // The contract is to report "no usable text layer" (so the caller falls
+    // through to OCR), never to crash the request. An unreadable file is a
+    // scan-shaped input, not an error.
+    return { text: "", pages: 0, hasTextLayer: false };
+  }
 }
