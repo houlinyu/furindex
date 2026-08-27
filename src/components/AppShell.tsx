@@ -76,6 +76,12 @@ export default function AppShell({
           <Link href="/collaborate" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
             Partner
           </Link>
+          <Link href="/privacy" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
+            Privacy
+          </Link>
+          <Link href="/terms" className="muted inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[var(--brand-text)]">
+            Terms
+          </Link>
           <span className="muted ml-auto">FurIndex — a Sundai project</span>
         </div>
       </footer>

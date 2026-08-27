@@ -99,6 +99,14 @@ export default async function LandingPage() {
         <div className="muted flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm">
           <span>FurIndex</span>
           <span aria-hidden>·</span>
+          <Link href="/privacy" className="underline underline-offset-4 hover:text-[var(--brand-text)]">
+            Privacy
+          </Link>
+          <span aria-hidden>·</span>
+          <Link href="/terms" className="underline underline-offset-4 hover:text-[var(--brand-text)]">
+            Terms
+          </Link>
+          <span aria-hidden>·</span>
           {/* Until the project is registered, render plain text — a live link to
               a REPLACE_ME URL is worse than no link. */}
           {isPlaceholder(SUNDAI_PROJECT_URL) ? (

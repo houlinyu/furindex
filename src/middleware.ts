@@ -34,6 +34,8 @@ const PUBLIC_EXACT = [
   "/identify",
   "/roadmap",
   "/how",
+  "/privacy",
+  "/terms",
 ];
 
 /**
